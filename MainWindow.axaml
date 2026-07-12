@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:SBtools.ViewModels"
+        xmlns:views="clr-namespace:SBtools.Views"
+        x:Class="SBtools.MainWindow"
+        Title="SchoolBusytools (SBtools)"
+        Width="1100" Height="700">
+    <Design.DataContext>
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <Grid>
+        <TabControl TabStripPlacement="Left" Margin="10">
+            <TabItem Header="状态监控">
+                <views:StatusTabView />
+            </TabItem>
+            <TabItem Header="详细日志">
+                <views:LogTabView />
+            </TabItem>
+            <TabItem Header="系统工具">
+                <views:ToolsTabView />
+            </TabItem>
+            <TabItem Header="设置">
+                <views:SettingsTabView />
+            </TabItem>
+            <TabItem Header="关于">
+                <views:AboutTabView />
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

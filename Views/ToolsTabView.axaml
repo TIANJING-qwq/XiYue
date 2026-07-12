@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:SBtools.ViewModels"
+             x:Class="SBtools.Views.ToolsTabView">
+    <Design.DataContext>
+        <vm:ToolsTabViewModel />
+    </Design.DataContext>
+
+    <StackPanel Margin="20" Spacing="15">
+        <GroupBox Header="远程桌面配置">
+            <StackPanel>
+                <TextBlock Text="⚠️ 需要管理员权限" Foreground="Red" FontWeight="Bold" />
+                <Button Content="一键配置远程桌面" Command="{Binding ConfigureRdpCommand}" />
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox Header="系统工具">
+            <StackPanel Spacing="5">
+                <Button Content="命令提示符" Command="{Binding LaunchToolCommand}" CommandParameter="cmd" />
+                <Button Content="控制面板" Command="{Binding LaunchToolCommand}" CommandParameter="control" />
+                <Button Content="服务管理" Command="{Binding LaunchToolCommand}" CommandParameter="services.msc" />
+                <Button Content="注册表编辑器" Command="{Binding LaunchToolCommand}" CommandParameter="regedit" />
+            </StackPanel>
+        </GroupBox>
+    </StackPanel>
+</UserControl>

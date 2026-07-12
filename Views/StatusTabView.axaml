@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:SBtools.ViewModels"
+             x:Class="SBtools.Views.StatusTabView">
+    <Design.DataContext>
+        <vm:StatusTabViewModel />
+    </Design.DataContext>
+
+    <StackPanel Margin="20" Spacing="15">
+        <!-- 互联网状态 -->
+        <GroupBox Header="互联网状态">
+            <StackPanel>
+                <TextBlock Text="{Binding StatusText}" FontWeight="Bold" FontSize="16" Foreground="{Binding StatusColor}" />
+                <TextBlock Text="{Binding IpInfo}" />
+                <TextBlock Text="{Binding LoadingText}" Foreground="Gray" FontStyle="Italic" />
+            </StackPanel>
+        </GroupBox>
+
+        <!-- 连接统计 -->
+        <GroupBox Header="连接统计">
+            <StackPanel>
+                <TextBlock Text="连接尝试: {Binding AttemptCount}" />
+                <TextBlock Text="最后连接: 无" />
+            </StackPanel>
+        </GroupBox>
+
+        <!-- 控制面板 -->
+        <GroupBox Header="控制面板">
+            <StackPanel Spacing="8">
+                <ToggleSwitch Header="启用自动连接" IsChecked="{Binding AutoConnectEnabled}" />
+                <ToggleSwitch Header="自动验证网络" IsChecked="{Binding AutoVerifyEnabled}" />
+                <Button Content="立即连接" Command="{Binding ConnectCommand}" />
+                <ToggleSwitch Header="开机自启动" IsChecked="{Binding AutoStartEnabled}" />
+            </StackPanel>
+        </GroupBox>
+
+        <!-- 操作按钮 -->
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="隐藏到托盘" Command="{Binding MinimizeCommand}" />
+            <Button Content="退出" Command="{Binding ExitCommand}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

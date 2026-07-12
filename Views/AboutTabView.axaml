@@ -1,7 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:SBtools.ViewModels"
-             x:Class="SBtools.Views.AboutTabView">
+             x:Class="SBtools.Views.AboutTabView"
+             x:DataType="vm:AboutTabViewModel">
     <Design.DataContext>
         <vm:AboutTabViewModel />
     </Design.DataContext>

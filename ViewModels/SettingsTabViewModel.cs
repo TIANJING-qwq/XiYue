@@ -8,8 +8,8 @@ public class SettingsTabViewModel : ViewModelBase
 {
     private readonly ConfigManager _config;
     private readonly WiFiAuthenticator _authenticator;
-    private string _username;
-    private string _password;
+    private string _username = string.Empty;
+    private string _password = string.Empty;
 
     public string Username
     {

@@ -44,44 +44,62 @@ git clone https://github.com/TIANJING-qwq/SBtools.git
 cd SBtools
 dotnet restore
 dotnet run
-打包为独立可执行文件
-bash
+```
+
+### 打包为独立可执行文件
+
+```bash
 dotnet publish -c Release -r win-x64 --self-contained true -o ./publish
-生成的 .exe 位于 ./publish 目录（Windows）。
+```
+生成的 `.exe` 位于 `./publish` 目录（Windows）。
 
-🖼️ 界面预览
-状态监控	详细日志	系统工具	设置	关于
-实时网络状态、连接统计	按级别彩色显示日志	远程桌面配置、系统工具	修改认证账号和密码	版本及制作信息
-🛠️ 技术栈
-语言：C# 12
+---
 
-框架：.NET 8
+## 🖼️ 界面预览
 
-UI 框架：Avalonia UI 11.0.13
+| 状态监控 | 详细日志 | 系统工具 | 设置 | 关于 |
+|----------|----------|----------|------|------|
+| 实时网络状态、连接统计 | 按级别彩色显示日志 | 远程桌面配置、系统工具 | 修改认证账号和密码 | 版本及制作信息 |
 
-数据持久化：Newtonsoft.Json + AES 加密
+---
 
-日志：Serilog
+## 🛠️ 技术栈
 
-平台：跨平台（Windows / macOS / Linux）
+- **语言**：C# 12
+- **框架**：.NET 8
+- **UI 框架**：Avalonia UI 11.0.13
+- **数据持久化**：Newtonsoft.Json + AES 加密
+- **日志**：Serilog
+- **平台**：跨平台（Windows / macOS / Linux）
 
-❓ 常见问题
-Q: 为什么在 macOS/Linux 上部分功能不可用？
+---
+
+## ❓ 常见问题
+
+**Q: 为什么在 macOS/Linux 上部分功能不可用？**  
 A: 开机自启动、远程桌面配置等功能依赖 Windows 注册表和系统服务，在 macOS/Linux 下自动跳过，不影响核心网络认证功能。
 
-Q: 如何查看日志？
-A: 运行日志保存在 %APPDATA%/SchoolBusytools/logs/（Windows）或 ~/.config/SchoolBusytools/logs/（Linux/macOS）。
+**Q: 如何查看日志？**  
+A: 运行日志保存在 `%APPDATA%/SchoolBusytools/logs/`（Windows）或 `~/.config/SchoolBusytools/logs/`（Linux/macOS）。
 
-Q: 忘记密码怎么办？
-A: 删除 %APPDATA%/SchoolBusytools/config.json 和 secure.key 后重启程序，会自动恢复默认账号 x2110 / 密码 456123。
+**Q: 忘记密码怎么办？**  
+A: 删除 `%APPDATA%/SchoolBusytools/config.json` 和 `secure.key` 后重启程序，会自动恢复默认账号 `x2110` / 密码 `456123`。
 
-🤝 贡献指南
-欢迎提交 Issue 或 Pull Request。
-请确保代码风格与现有项目一致，并通过 dotnet build 编译测试。
+---
 
-📄 许可证
-本项目采用 MIT 许可证 授权。
+## 🤝 贡献指南
 
-作者：tianjing & deepseek
-版本：1.1.0
-最后更新：2026-07-12
+欢迎提交 Issue 或 Pull Request。  
+请确保代码风格与现有项目一致，并通过 `dotnet build` 编译测试。
+
+---
+
+## 📄 许可证
+
+本项目采用 [BSD-3 许可证](LICENSE) 授权。
+
+---
+
+**作者**：tianjing & deepseek  
+**版本**：1.1.0  
+**最后更新**：2026-07-12

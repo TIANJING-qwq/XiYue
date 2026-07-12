@@ -64,3 +64,73 @@ SBtools 致力于解决学生在校期间遇到的常见痛点，例如：
 ```bash
 git clone https://github.com/yourusername/SchoolBusytools.git
 cd SchoolBusytools
+2. 安装依赖
+bash
+pip install -r requirements.txt
+requirements.txt 包含：requests, PyQt5>=5.15, psutil, netifaces, cryptography
+
+3. 运行程序
+bash
+python main.py
+4. （可选）打包为独立可执行文件
+bash
+pip install pyinstaller
+pyinstaller --onefile --noconsole --name "SBtools" --icon=icon.ico main.py
+🚀 使用指南
+首次启动
+自动创建配置目录：%APPDATA%\SchoolBusytools
+
+默认账号 x2110 / 密码 456123 —— 请在“设置”中立即修改
+
+主要操作
+功能	位置
+启用/禁用自动连接	“状态监控” → “启用自动连接” 开关
+手动立即认证	“状态监控” → “立即连接” 按钮
+自动网络验证开关	“状态监控” → “自动验证网络” 开关
+修改认证账号密码	“设置” → 输入 → 点击“保存”
+开机自启动	“状态监控” → “开机自启动” 开关
+配置远程桌面	“系统工具” → “一键配置远程桌面”（需管理员权限）
+查看/保存日志	“详细日志” → 显示、清空、保存
+配置文件
+认证信息：%APPDATA%\SchoolBusytools\config.json
+
+加密密钥：%APPDATA%\SchoolBusytools\secure.key
+
+日志目录：%APPDATA%\SchoolBusytools\logs\
+
+🛠️ 技术栈（当前版本）
+Python 3 + PyQt5（GUI）
+
+requests（网络请求）
+
+psutil / netifaces（系统信息）
+
+cryptography（加密）
+
+PyInstaller（打包）
+
+❓ 常见问题
+Q: 开关点击无反应？
+A: 确保点击整个开关矩形区域，已扩大点击热区；若仍无效，重启程序。
+
+Q: 启动时出现黑框？
+A: 已使用 CREATE_NO_WINDOW 隐藏子进程，如仍出现请更新到最新代码。
+
+Q: 如何调试网络问题？
+A: 查看日志文件（路径见上），或使用“保存日志”导出分析。
+
+Q: macOS/Linux 支持如何？
+A: 核心网络认证功能可用，但注册表、自启动、远程桌面等 Windows 专属功能不可用。
+
+📄 许可证
+本项目采用 MIT 许可证 授权。
+
+🙏 致谢
+感谢所有开源社区贡献者
+
+灵感来源于校园网自动认证需求
+
+作者：tianjing & deepseek
+版本：1.1.0
+最后更新：2026-03-21
+计划迁移：C# / .NET（后续版本）

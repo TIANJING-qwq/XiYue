@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Assets/logo.png" width="140" alt="汐月 XiYue Logo" />
+<img src="Assets/app.png" width="140" alt="汐月 XiYue Logo" />
 
 # 汐月 · XiYue
 

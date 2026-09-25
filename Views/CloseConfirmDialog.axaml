@@ -1,0 +1,89 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SBtools.Views.CloseConfirmDialog"
+        Width="460"
+        SizeToContent="Height"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+
+    <Border Name="RootCard"
+            BorderBrush="#E0E0E0"
+            BorderThickness="1"
+            CornerRadius="10"
+            Background="#F3F3F3"
+            Padding="24"
+            Opacity="0"
+            RenderTransformOrigin="50%,50%"
+            BoxShadow="0 16 48 0 #60000000">
+
+        <!-- ★ 只声明 Transitions，不声明 Transform -->
+        <Border.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.22">
+                    <DoubleTransition.Easing>
+                        <CubicEaseOut />
+                    </DoubleTransition.Easing>
+                </DoubleTransition>
+
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28">
+                    <TransformOperationsTransition.Easing>
+                        <BackEaseOut />
+                    </TransformOperationsTransition.Easing>
+                </TransformOperationsTransition>
+            </Transitions>
+        </Border.Transitions>
+
+        <Grid RowDefinitions="Auto,*,Auto">
+
+            <TextBlock Grid.Row="0"
+                       Text="关闭 汐月"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,10" />
+
+            <TextBlock Grid.Row="1"
+                       Text="你想退出程序，还是最小化到系统托盘继续运行？"
+                       FontSize="14"
+                       Foreground="#606060"
+                       TextWrapping="Wrap" />
+
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10"
+                        Margin="0,24,0,0">
+
+                <Button Name="CancelButton"
+                        Content="取消"
+                        Padding="18,8"
+                        CornerRadius="6"
+                        Background="Transparent"
+                        BorderBrush="#D0D0D0"
+                        BorderThickness="1"
+                        Click="CancelButton_Click" />
+
+                <Button Name="MinimizeButton"
+                        Content="最小化到托盘"
+                        Padding="18,8"
+                        CornerRadius="6"
+                        Background="Transparent"
+                        BorderBrush="#D0D0D0"
+                        BorderThickness="1"
+                        Click="MinimizeButton_Click" />
+
+                <Button Name="QuitButton"
+                        Content="退出"
+                        Padding="18,8"
+                        CornerRadius="6"
+                        Background="#0078D4"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="QuitButton_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

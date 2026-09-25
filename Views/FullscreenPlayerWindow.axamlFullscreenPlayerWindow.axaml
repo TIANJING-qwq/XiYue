@@ -1,0 +1,185 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SBtools.Controls"
+        x:Class="SBtools.Views.FullscreenPlayerWindow"
+        Title="CCTV 直播"
+        Background="Black"
+        SystemDecorations="None"
+        WindowState="FullScreen">
+
+    <Grid>
+        <!-- 1. 视频层 -->
+        <controls:VlcVideoView x:Name="VideoView" />
+
+        <!-- 2. 顶部渐变遮罩 -->
+        <Border Name="TopGradient"
+                Height="120"
+                VerticalAlignment="Top"
+                IsHitTestVisible="False"
+                Opacity="0">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+                </Transitions>
+            </Border.Transitions>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Color="#A0000000" Offset="0" />
+                    <GradientStop Color="#00000000" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- ★ 3. 顶部控制栏（自动隐藏） -->
+        <Border Name="TopBar"
+                VerticalAlignment="Top"
+                Opacity="0"
+                ZIndex="150">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.35" />
+                </Transitions>
+            </Border.Transitions>
+
+            <Grid Margin="20,16" ColumnDefinitions="*,Auto">
+
+                <!-- 左侧：频道选择 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="频道"
+                               Foreground="White"
+                               FontSize="14"
+                               VerticalAlignment="Center" />
+                    <ComboBox Name="ChannelSelector"
+                              Width="220"
+                              FontSize="14"
+                              SelectionChanged="ChannelSelector_SelectionChanged" />
+                    <TextBlock Name="PlayingHint"
+                               Foreground="#CCFFFFFF"
+                               FontSize="13"
+                               VerticalAlignment="Center"
+                               Margin="10,0,0,0" />
+                </StackPanel>
+
+                <!-- 右侧：时钟 + 关闭 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                    <TextBlock Name="ClockText"
+                               Foreground="#CCFFFFFF"
+                               FontSize="13"
+                               VerticalAlignment="Center" />
+                    <Button Name="ExitButton"
+                            Content="✕"
+                            Width="32" Height="32"
+                            FontSize="14"
+                            Padding="0"
+                            CornerRadius="16"
+                            Background="#40FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Click="ExitButton_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 4. 加载 / 错误 -->
+        <StackPanel Name="LoadingPanel"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="12">
+            <TextBlock Name="LoadingText"
+                       Text="正在加载..."
+                       FontSize="14"
+                       Foreground="#CCFFFFFF" />
+            <ProgressBar IsIndeterminate="True" Width="240" />
+        </StackPanel>
+
+        <StackPanel Name="ErrorPanel"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="12"
+                    IsVisible="False">
+            <TextBlock Name="ErrorText"
+                       FontSize="14"
+                       Foreground="#FF6666"
+                       Text="播放失败" />
+            <Button Content="重试" Click="RetryButton_Click" />
+        </StackPanel>
+
+        <!-- 5. 通知卡片 -->
+        <Border Name="ToastCard"
+                Width="380"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,90,24,0"
+                CornerRadius="10"
+                BorderThickness="1"
+                BorderBrush="#40FFFFFF"
+                Background="#E61E1E1E"
+                Opacity="0"
+                ZIndex="100"
+                ClipToBounds="True"
+                BoxShadow="0 12 36 0 #A0000000">
+            <Grid RowDefinitions="*,Auto">
+                <Grid Grid.Row="0"
+                      ColumnDefinitions="Auto,*,Auto"
+                      Margin="16,14,12,10">
+
+                    <Border Grid.Column="0"
+                            Width="38" Height="38"
+                            CornerRadius="19"
+                            Background="#1FFFFFFF"
+                            VerticalAlignment="Top"
+                            Margin="0,0,12,0">
+                        <PathIcon Width="18" Height="18"
+                                  Foreground="#60CDFF"
+                                  Data="M8 5v14l11-7z" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Spacing="4"
+                                VerticalAlignment="Center"
+                                Margin="0,0,8,0">
+                        <TextBlock Name="ToastTitle"
+                                   Text="新闻联播"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Name="ToastMessage"
+                                   Text="正在播放"
+                                   FontSize="12"
+                                   Foreground="#B3FFFFFF"
+                                   TextWrapping="Wrap"
+                                   MaxLines="2" />
+                        <TextBlock Name="ToastTime"
+                                   Text="00:00"
+                                   FontSize="11"
+                                   Foreground="#80FFFFFF" />
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            Name="ToastCloseButton"
+                            Width="24" Height="24"
+                            Padding="0"
+                            CornerRadius="12"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Right"
+                            Cursor="Hand"
+                            Click="ToastCloseButton_Click">
+                        <PathIcon Width="9" Height="9"
+                                  Foreground="#99FFFFFF"
+                                  Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Row="1" Height="3" Background="#1AFFFFFF">
+                    <Border Name="ToastProgressFill"
+                            HorizontalAlignment="Stretch"
+                            Background="#60CDFF"
+                            RenderTransformOrigin="0%,50%" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -27,7 +27,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- ★ 通知行为 -->
+            <!-- 通知设置 -->
             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -39,12 +39,66 @@
                                    VerticalAlignment="Center"
                                    Width="240" />
                         <ToggleSwitch Name="AutoCollapseSwitch"
-                        OnContent=""
-                        OffContent=""
-                        IsCheckedChanged="AutoCollapseSwitch_Changed" />
+                                      OnContent=""
+                                      OffContent=""
+                                      IsCheckedChanged="AutoCollapseSwitch_Changed" />
                     </StackPanel>
-                    <TextBlock Text="开启后，展开状态下的通知堆叠会在有新通知到达时自动折叠回压缩状态。"
-                               FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ★ 定时播放 CCTV -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="定时播放 CCTV" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="到设定时段时自动全屏打开所选频道。支持跨午夜时段。"
+                               FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="启用定时播放" VerticalAlignment="Center" Width="160" />
+                        <ToggleSwitch Name="ScheduleEnabledSwitch" OnContent="" OffContent="" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="Auto,*,Auto,*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="时段"
+                                   VerticalAlignment="Center"
+                                   Width="160" />
+                        <TimePicker Grid.Column="1"
+                                    Name="StartTimePicker"
+                                    ClockIdentifier="24HourClock"
+                                    HorizontalAlignment="Left"
+                                    Width="140" />
+                        <TextBlock Grid.Column="2"
+                                   Text=" 至 "
+                                   VerticalAlignment="Center" />
+                        <TimePicker Grid.Column="3"
+                                    Name="EndTimePicker"
+                                    ClockIdentifier="24HourClock"
+                                    HorizontalAlignment="Left"
+                                    Width="140" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="默认频道" VerticalAlignment="Center" Width="160" />
+                        <ComboBox Name="ChannelSelector" Width="240" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Name="TestPlaybackButton"
+                                Content="测试播放"
+                                Click="TestPlaybackButton_Click" />
+                        <Button Name="SaveScheduleButton"
+                                Content="保存设置"
+                                Click="SaveScheduleButton_Click" />
+                    </StackPanel>
+
+                    <TextBlock Name="ScheduleStatusText"
+                               FontSize="12"
+                               Opacity="0.6"
+                               Text="当前未启用" />
                 </StackPanel>
             </Border>
 

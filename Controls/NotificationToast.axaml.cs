@@ -21,7 +21,7 @@ public partial class NotificationToast : UserControl
     private const int EnterDurationMs = 850;
     private const int ExitDurationMs  = 700;
     private const int FadeDurationMs  = 450;
-    private const int SlideOffsetPx   = 360;   // 让通知完全滑出右侧
+    private const int SlideOffsetPx   = 360;
 
     public event EventHandler? Closed;
 
@@ -62,26 +62,26 @@ public partial class NotificationToast : UserControl
 
     public async Task ShowAsync(int durationSeconds = 5)
     {
-        _cts?.Cancel();
-        _cts = new CancellationTokenSource();
-        var token = _cts.Token;
-
-        _isShown = false;
-        RootBorder.Opacity = 0;
-        RootBorder.RenderTransform = TransformOperations.Parse($"translateX({SlideOffsetPx}px)");
-        _progressScale.ScaleX = 1;
-
-        await Task.Delay(30, token);
-
-        RootBorder.Opacity = 1;
-        RootBorder.RenderTransform = TransformOperations.Parse("translateX(0px)");
-        _isShown = true;
-
-        var start = DateTime.Now;
-        var totalMs = durationSeconds * 1000.0;
-
         try
         {
+            _cts?.Cancel();
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+
+            _isShown = false;
+            RootBorder.Opacity = 0;
+            RootBorder.RenderTransform = TransformOperations.Parse($"translateX({SlideOffsetPx}px)");
+            _progressScale.ScaleX = 1;
+
+            await Task.Delay(30, token);
+
+            RootBorder.Opacity = 1;
+            RootBorder.RenderTransform = TransformOperations.Parse("translateX(0px)");
+            _isShown = true;
+
+            var start = DateTime.Now;
+            var totalMs = durationSeconds * 1000.0;
+
             while (!token.IsCancellationRequested)
             {
                 var elapsed = (DateTime.Now - start).TotalMilliseconds;
@@ -89,13 +89,29 @@ public partial class NotificationToast : UserControl
                 _progressScale.ScaleX = remaining / totalMs;
 
                 if (remaining <= 0) break;
-                await Task.Delay(16, token);
+
+                try
+                {
+                    await Task.Delay(16, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    // 被手动取消，正常退出
+                    return;
+                }
             }
 
             if (!token.IsCancellationRequested)
                 await HideAsync();
         }
-        catch (TaskCanceledException) { }
+        catch (OperationCanceledException)
+        {
+            // 取消：静默退出
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NotificationToast.ShowAsync 异常: {ex.Message}");
+        }
     }
 
     public async Task HideAsync()
@@ -103,26 +119,38 @@ public partial class NotificationToast : UserControl
         if (!_isShown) return;
         _isShown = false;
 
-        if (RootBorder.Transitions != null)
+        try
         {
-            foreach (var t in RootBorder.Transitions)
+            if (RootBorder.Transitions != null)
             {
-                if (t is TransformOperationsTransition tot)
-                    tot.Duration = TimeSpan.FromMilliseconds(ExitDurationMs);
+                foreach (var t in RootBorder.Transitions)
+                {
+                    if (t is TransformOperationsTransition tot)
+                        tot.Duration = TimeSpan.FromMilliseconds(ExitDurationMs);
+                }
             }
+
+            RootBorder.Opacity = 0;
+            RootBorder.RenderTransform = TransformOperations.Parse($"translateX({SlideOffsetPx}px)");
+
+            await Task.Delay(ExitDurationMs + 80);
+
+            Closed?.Invoke(this, EventArgs.Empty);
         }
-
-        RootBorder.Opacity = 0;
-        RootBorder.RenderTransform = TransformOperations.Parse($"translateX({SlideOffsetPx}px)");
-
-        await Task.Delay(ExitDurationMs + 80);
-        Closed?.Invoke(this, EventArgs.Empty);
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NotificationToast.HideAsync 异常: {ex.Message}");
+            Closed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private async void CloseButton_Click(object? sender, RoutedEventArgs e)
     {
-        e.Handled = true;
-        _cts?.Cancel();
-        await HideAsync();
+        try
+        {
+            _cts?.Cancel();
+            await HideAsync();
+        }
+        catch { }
     }
 }

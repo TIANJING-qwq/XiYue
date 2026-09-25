@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using LibVLCSharp.Shared;
 using System;
 
 namespace SBtools;
@@ -6,8 +7,13 @@ namespace SBtools;
 class Program
 {
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        try { Core.Initialize(); }
+        catch { }
+
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
 
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()

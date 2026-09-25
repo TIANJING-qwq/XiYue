@@ -2,81 +2,160 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SBtools.Views.NetworkView"
              x:CompileBindings="False">
-    <ScrollViewer>
-        <StackPanel Margin="32" Spacing="20">
+    <Grid RowDefinitions="Auto,*" Margin="0">
 
+        <!-- 顶部标题 -->
+        <StackPanel Grid.Row="0" Margin="32,24,32,12" Spacing="4">
             <TextBlock Text="网络" FontSize="28" FontWeight="Bold" />
             <TextBlock Text="网络状态与连接管理"
                        FontSize="14" Opacity="0.6" />
-
-            <!-- 连接状态 -->
-            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="12">
-                    <TextBlock Text="连接状态" FontSize="16" FontWeight="SemiBold" />
-
-                    <TextBlock Text="{Binding StatusText}"
-                               FontSize="20" FontWeight="Bold"
-                               Foreground="{Binding StatusBrush}" />
-
-                    <TextBlock Text="{Binding LoadingText}"
-                               FontSize="13"
-                               Foreground="Gray"
-                               FontStyle="Italic" />
-
-                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto"
-                          Margin="0,8,0,0">
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="本地 IP：" FontSize="13" />
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LocalIp}" FontSize="13" />
-
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="公网 IP：" FontSize="13" Margin="0,4,0,0" />
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PublicIp}" FontSize="13" Margin="0,4,0,0" />
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="上次检测：" FontSize="13" Margin="0,4,0,0" />
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LastCheck}" FontSize="13" Margin="0,4,0,0" />
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- 连接统计 -->
-            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="连接统计" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding Attempts, StringFormat='连接尝试: {0}'}" FontSize="13" />
-                    <TextBlock Text="{Binding LastConnectionInfo}" FontSize="13" />
-                </StackPanel>
-            </Border>
-
-            <!-- 控制面板 -->
-            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="14">
-                    <TextBlock Text="控制面板" FontSize="16" FontWeight="SemiBold" />
-
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="启用自动连接" VerticalAlignment="Center" Width="160" />
-                        <ToggleSwitch IsChecked="{Binding AutoConnectEnabled}" OnContent="" OffContent="" />
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="自动验证网络" VerticalAlignment="Center" Width="160" />
-                        <ToggleSwitch IsChecked="{Binding AutoVerifyEnabled}" OnContent="" OffContent="" />
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Name="ConnectButton" Content="立即连接" Click="ConnectButton_Click" />
-                        <Button Name="RefreshButton" Content="刷新状态" Click="RefreshButton_Click" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
         </StackPanel>
-    </ScrollViewer>
+
+        <!-- ★ 两个次级选项卡 -->
+        <TabControl Grid.Row="1"
+                    Name="NetworkTabs"
+                    Margin="24,0,24,24">
+
+            <!-- 选项卡 1：网络连接 -->
+            <TabItem Header="网络连接">
+                <ScrollViewer>
+                    <StackPanel Margin="16,20" Spacing="20">
+
+                        <!-- 连接状态 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="连接状态" FontSize="16" FontWeight="SemiBold" />
+
+                                <TextBlock Text="{Binding StatusText}"
+                                           FontSize="20" FontWeight="Bold"
+                                           Foreground="{Binding StatusBrush}" />
+
+                                <TextBlock Text="{Binding LoadingText}"
+                                           FontSize="13"
+                                           Foreground="Gray"
+                                           FontStyle="Italic" />
+
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto"
+                                      Margin="0,8,0,0">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="本地 IP：" FontSize="13" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LocalIp}" FontSize="13" />
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="公网 IP：" FontSize="13" Margin="0,4,0,0" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PublicIp}" FontSize="13" Margin="0,4,0,0" />
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="上次检测：" FontSize="13" Margin="0,4,0,0" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LastCheck}" FontSize="13" Margin="0,4,0,0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 连接统计 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="连接统计" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Attempts, StringFormat='连接尝试: {0}'}" FontSize="13" />
+                                <TextBlock Text="{Binding LastConnectionInfo}" FontSize="13" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 控制面板 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="控制面板" FontSize="16" FontWeight="SemiBold" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBlock Text="启用自动连接" VerticalAlignment="Center" Width="160" />
+                                    <ToggleSwitch IsChecked="{Binding AutoConnectEnabled}" OnContent="" OffContent="" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBlock Text="自动验证网络" VerticalAlignment="Center" Width="160" />
+                                    <ToggleSwitch IsChecked="{Binding AutoVerifyEnabled}" OnContent="" OffContent="" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Name="ConnectButton" Content="立即连接" Click="ConnectButton_Click" />
+                                    <Button Name="RefreshButton" Content="刷新状态" Click="RefreshButton_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 选项卡 2：定时播放 -->
+            <TabItem Header="定时播放">
+                <ScrollViewer>
+                    <StackPanel Margin="16,20" Spacing="20">
+
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="定时播放 CCTV" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="到设定时段时自动全屏打开所选频道。支持跨午夜时段。"
+                                           FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBlock Text="启用定时播放" VerticalAlignment="Center" Width="160" />
+                                    <ToggleSwitch Name="ScheduleEnabledSwitch" OnContent="" OffContent="" />
+                                </StackPanel>
+
+                                <Grid ColumnDefinitions="Auto,*,Auto,*,Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="时段"
+                                               VerticalAlignment="Center"
+                                               Width="160" />
+                                    <TimePicker Grid.Column="1"
+                                                Name="StartTimePicker"
+                                                ClockIdentifier="24HourClock"
+                                                HorizontalAlignment="Left"
+                                                Width="140" />
+                                    <TextBlock Grid.Column="2"
+                                               Text=" 至 "
+                                               VerticalAlignment="Center" />
+                                    <TimePicker Grid.Column="3"
+                                                Name="EndTimePicker"
+                                                ClockIdentifier="24HourClock"
+                                                HorizontalAlignment="Left"
+                                                Width="140" />
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBlock Text="默认频道" VerticalAlignment="Center" Width="160" />
+                                    <ComboBox Name="ChannelSelector" Width="240" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Name="TestPlaybackButton"
+                                            Content="测试播放"
+                                            Click="TestPlaybackButton_Click" />
+                                    <Button Name="SaveScheduleButton"
+                                            Content="保存设置"
+                                            Click="SaveScheduleButton_Click" />
+                                </StackPanel>
+
+                                <TextBlock Name="ScheduleStatusText"
+                                           FontSize="12"
+                                           Opacity="0.6"
+                                           Text="当前未启用" />
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </UserControl>

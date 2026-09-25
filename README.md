@@ -123,23 +123,28 @@ git clone https://github.com/TIANJING-qwq/XiYue.git
 cd XiYue
 dotnet restore
 dotnet run
+```
 发布独立可执行文件
 Windows：
 
-bash
+```bash
 dotnet publish -c Release -r win-x64 --self-contained true \
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
   -o ./publish/win-x64
 macOS（Apple Silicon）：
+```
 
-bash
+```bash
 dotnet publish -c Release -r osx-arm64 --self-contained true \
   -p:PublishSingleFile=true -o ./publish/osx-arm64
 Linux：
+```
 
-bash
+```bash
 dotnet publish -c Release -r linux-x64 --self-contained true \
   -p:PublishSingleFile=true -o ./publish/linux-x64
+```
+
 📁 配置文件位置
 平台	路径
 Windows	%APPDATA%\SchoolBusytools\

@@ -8,32 +8,38 @@
             <TextBlock Text="配置认证信息与程序选项"
                        FontSize="14" Opacity="0.6" />
 
-            <!-- WiFi 认证 -->
+            <!-- ============ WiFi 认证 ============ -->
             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="14">
                     <TextBlock Text="WiFi 认证" FontSize="16" FontWeight="SemiBold" />
+
                     <StackPanel Spacing="6">
                         <TextBlock Text="账号" FontSize="13" />
                         <TextBox Name="UsernameBox" Watermark="输入账号" />
                     </StackPanel>
+
                     <StackPanel Spacing="6">
                         <TextBlock Text="密码" FontSize="13" />
                         <TextBox Name="PasswordBox" PasswordChar="*" Watermark="输入密码" />
                     </StackPanel>
-                    <Button Content="保存" Click="SaveCredentials_Click" HorizontalAlignment="Left" />
+
+                    <Button Content="保存"
+                            Click="SaveCredentials_Click"
+                            HorizontalAlignment="Left" />
                 </StackPanel>
             </Border>
 
-            <!-- 通知设置 -->
+            <!-- ============ 通知 ============ -->
             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <TextBlock Text="通知" FontSize="16" FontWeight="SemiBold" />
+
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="新通知到达时自动折叠堆叠"
                                    VerticalAlignment="Center"
@@ -46,7 +52,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- ★ 定时播放 CCTV -->
+            <!-- ============ 定时播放 ============ -->
             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -58,7 +64,9 @@
 
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="启用定时播放" VerticalAlignment="Center" Width="160" />
-                        <ToggleSwitch Name="ScheduleEnabledSwitch" OnContent="" OffContent="" />
+                        <ToggleSwitch Name="ScheduleEnabledSwitch"
+                                      OnContent=""
+                                      OffContent="" />
                     </StackPanel>
 
                     <Grid ColumnDefinitions="Auto,*,Auto,*,Auto">
@@ -102,20 +110,34 @@
                 </StackPanel>
             </Border>
 
-            <!-- 程序选项 -->
+            <!-- ============ 程序选项 ============ -->
             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <TextBlock Text="程序选项" FontSize="16" FontWeight="SemiBold" />
+
+                    <!-- ★ Name="AutoStartSwitch" -->
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="开机自启动" VerticalAlignment="Center" Width="240" />
-                        <ToggleSwitch OnContent="" OffContent="" />
+                        <TextBlock Text="开机自启动"
+                                   VerticalAlignment="Center"
+                                   Width="240" />
+                        <ToggleSwitch Name="AutoStartSwitch"
+                                      OnContent=""
+                                      OffContent=""
+                                      IsCheckedChanged="AutoStartSwitch_Changed" />
                     </StackPanel>
+
+                    <!-- ★ Name="MinTraySwitch" -->
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="最小化到托盘" VerticalAlignment="Center" Width="240" />
-                        <ToggleSwitch OnContent="" OffContent="" />
+                        <TextBlock Text="关闭时最小化到托盘"
+                                   VerticalAlignment="Center"
+                                   Width="240" />
+                        <ToggleSwitch Name="MinTraySwitch"
+                                      OnContent=""
+                                      OffContent=""
+                                      IsCheckedChanged="MinTraySwitch_Changed" />
                     </StackPanel>
                 </StackPanel>
             </Border>

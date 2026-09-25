@@ -73,7 +73,7 @@ public partial class NotificationToast : UserControl
             RootBorder.RenderTransform = TransformOperations.Parse($"translateX({SlideOffsetPx}px)");
             _progressScale.ScaleX = 1;
 
-            await Task.Delay(30, token);
+            if (!await SafeDelayAsync(30, token)) return;
 
             RootBorder.Opacity = 1;
             RootBorder.RenderTransform = TransformOperations.Parse("translateX(0px)");
@@ -90,27 +90,15 @@ public partial class NotificationToast : UserControl
 
                 if (remaining <= 0) break;
 
-                try
-                {
-                    await Task.Delay(16, token);
-                }
-                catch (TaskCanceledException)
-                {
-                    // 被手动取消，正常退出
-                    return;
-                }
+                if (!await SafeDelayAsync(16, token)) return;
             }
 
             if (!token.IsCancellationRequested)
                 await HideAsync();
         }
-        catch (OperationCanceledException)
-        {
-            // 取消：静默退出
-        }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"NotificationToast.ShowAsync 异常: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ShowAsync 兜底: {ex.Message}");
         }
     }
 
@@ -134,13 +122,14 @@ public partial class NotificationToast : UserControl
             RootBorder.RenderTransform = TransformOperations.Parse($"translateX({SlideOffsetPx}px)");
 
             await Task.Delay(ExitDurationMs + 80);
-
-            Closed?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"NotificationToast.HideAsync 异常: {ex.Message}");
-            Closed?.Invoke(this, EventArgs.Empty);
+            System.Diagnostics.Debug.WriteLine($"HideAsync 兜底: {ex.Message}");
+        }
+        finally
+        {
+            try { Closed?.Invoke(this, EventArgs.Empty); } catch { }
         }
     }
 
@@ -152,5 +141,19 @@ public partial class NotificationToast : UserControl
             await HideAsync();
         }
         catch { }
+    }
+
+    /// <summary>
+    /// ★ 永不抛异常的延迟：轮询方式，不使用带 token 的 Task.Delay
+    /// </summary>
+    private static async Task<bool> SafeDelayAsync(int ms, CancellationToken token)
+    {
+        var end = DateTime.Now.AddMilliseconds(ms);
+        while (DateTime.Now < end)
+        {
+            if (token.IsCancellationRequested) return false;
+            await Task.Delay(10).ConfigureAwait(false);
+        }
+        return true;
     }
 }

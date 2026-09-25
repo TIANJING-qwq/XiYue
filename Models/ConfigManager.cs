@@ -9,25 +9,40 @@ public class ConfigManager
     private static ConfigManager? _instance;
     public static ConfigManager Instance => _instance ??= new ConfigManager();
 
-    private readonly string _path = Path.Combine(
+    // ★ 明确用 %APPDATA% 路径，避免写入程序目录
+    private static readonly string ConfigDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SchoolBusytools", "config.json");
+        "SchoolBusytools");
+
+    private readonly string _path = Path.Combine(ConfigDir, "config.json");
 
     private ConfigData _data;
 
     private ConfigManager()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+        try
+        {
+            Directory.CreateDirectory(ConfigDir);
+            System.Diagnostics.Debug.WriteLine($"[Config] 目录: {ConfigDir}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Config] 创建目录失败: {ex.Message}");
+        }
+
         _data = Load() ?? new ConfigData();
 
-        // ★ 把配置同步到 ScheduleConfig（启动时恢复）
-        Services.ScheduleConfig.Enabled     = _data.ScheduleEnabled;
-        Services.ScheduleConfig.StartTime   = TimeSpan.FromMinutes(_data.ScheduleStartMinutes);
-        Services.ScheduleConfig.EndTime     = TimeSpan.FromMinutes(_data.ScheduleEndMinutes);
-        Services.ScheduleConfig.ChannelName = _data.ScheduleChannel;
+        // ★ 同步到 ScheduleConfig
+        try
+        {
+            Services.ScheduleConfig.Enabled = _data.ScheduleEnabled;
+            Services.ScheduleConfig.StartTime = TimeSpan.FromMinutes(_data.ScheduleStartMinutes);
+            Services.ScheduleConfig.EndTime = TimeSpan.FromMinutes(_data.ScheduleEndMinutes);
+            Services.ScheduleConfig.ChannelName = _data.ScheduleChannel;
+        }
+        catch { }
     }
 
-    // ---------------- WiFi 认证 ----------------
     public string Username
     {
         get => _data.Username;
@@ -40,14 +55,12 @@ public class ConfigManager
         set { _data.EncryptedPassword = SecureStorage.Encrypt(value); Save(); }
     }
 
-    // ---------------- 通知 ----------------
     public bool AutoCollapseOnNewToast
     {
         get => _data.AutoCollapseOnNewToast;
         set { _data.AutoCollapseOnNewToast = value; Save(); }
     }
 
-    // ---------------- 定时播放 ----------------
     public bool ScheduleEnabled
     {
         get => _data.ScheduleEnabled;
@@ -92,7 +105,6 @@ public class ConfigManager
         }
     }
 
-    // ---------------- 程序选项 ----------------
     public bool AutoStartOnBoot
     {
         get => _data.AutoStartOnBoot;
@@ -105,16 +117,23 @@ public class ConfigManager
         set { _data.MinimizeToTrayOnClose = value; Save(); }
     }
 
-    // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
-        if (!File.Exists(_path)) return null;
+        if (!File.Exists(_path))
+        {
+            System.Diagnostics.Debug.WriteLine($"[Config] 文件不存在，使用默认配置");
+            return null;
+        }
+
         try
         {
-            return JsonConvert.DeserializeObject<ConfigData>(File.ReadAllText(_path));
+            var json = File.ReadAllText(_path);
+            System.Diagnostics.Debug.WriteLine($"[Config] 读取成功: {_path}");
+            return JsonConvert.DeserializeObject<ConfigData>(json);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[Config] 读取失败: {ex.Message}");
             return null;
         }
     }
@@ -123,9 +142,20 @@ public class ConfigManager
     {
         try
         {
-            File.WriteAllText(_path, JsonConvert.SerializeObject(_data, Formatting.Indented));
+            var json = JsonConvert.SerializeObject(_data, Formatting.Indented);
+            File.WriteAllText(_path, json);
+            System.Diagnostics.Debug.WriteLine($"[Config] 保存成功: {_path}");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Config] 保存失败: {ex.Message}");
+            // ★ 保存失败时弹通知
+            try
+            {
+                MainWindow.PushToast("设置保存失败", ex.Message);
+            }
+            catch { }
+        }
     }
 
     private class ConfigData
@@ -134,13 +164,11 @@ public class ConfigManager
         public string EncryptedPassword { get; set; } = "";
         public bool AutoCollapseOnNewToast { get; set; } = true;
 
-        // ★ 定时播放
         public bool ScheduleEnabled { get; set; } = false;
-        public int ScheduleStartMinutes { get; set; } = 19 * 60;  // 19:00
-        public int ScheduleEndMinutes   { get; set; } = 19 * 60 + 30; // 19:30
-        public string ScheduleChannel   { get; set; } = "CCTV-13 新闻";
+        public int ScheduleStartMinutes { get; set; } = 19 * 60;
+        public int ScheduleEndMinutes { get; set; } = 19 * 60 + 30;
+        public string ScheduleChannel { get; set; } = "CCTV-13 新闻";
 
-        // ★ 程序选项
         public bool AutoStartOnBoot { get; set; } = false;
         public bool MinimizeToTrayOnClose { get; set; } = true;
     }

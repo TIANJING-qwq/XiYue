@@ -5,7 +5,7 @@
         <StackPanel Margin="32" Spacing="20">
 
             <TextBlock Text="设置" FontSize="28" FontWeight="Bold" />
-            <TextBlock Text="配置认证信息与程序选项"
+            <TextBlock Text="配置账号、通知与程序选项"
                        FontSize="14" Opacity="0.6" />
 
             <!-- ============ WiFi 认证 ============ -->
@@ -15,6 +15,8 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="14">
                     <TextBlock Text="WiFi 认证" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="认证凭据将以 AES 加密后保存在本地。"
+                               FontSize="12" Opacity="0.6" />
 
                     <StackPanel Spacing="6">
                         <TextBlock Text="账号" FontSize="13" />
@@ -43,70 +45,12 @@
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="新通知到达时自动折叠堆叠"
                                    VerticalAlignment="Center"
-                                   Width="240" />
+                                   Width="260" />
                         <ToggleSwitch Name="AutoCollapseSwitch"
                                       OnContent=""
                                       OffContent=""
                                       IsCheckedChanged="AutoCollapseSwitch_Changed" />
                     </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- ============ 定时播放 ============ -->
-            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="14">
-                    <TextBlock Text="定时播放 CCTV" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="到设定时段时自动全屏打开所选频道。支持跨午夜时段。"
-                               FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
-
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="启用定时播放" VerticalAlignment="Center" Width="160" />
-                        <ToggleSwitch Name="ScheduleEnabledSwitch"
-                                      OnContent=""
-                                      OffContent="" />
-                    </StackPanel>
-
-                    <Grid ColumnDefinitions="Auto,*,Auto,*,Auto">
-                        <TextBlock Grid.Column="0"
-                                   Text="时段"
-                                   VerticalAlignment="Center"
-                                   Width="160" />
-                        <TimePicker Grid.Column="1"
-                                    Name="StartTimePicker"
-                                    ClockIdentifier="24HourClock"
-                                    HorizontalAlignment="Left"
-                                    Width="140" />
-                        <TextBlock Grid.Column="2"
-                                   Text=" 至 "
-                                   VerticalAlignment="Center" />
-                        <TimePicker Grid.Column="3"
-                                    Name="EndTimePicker"
-                                    ClockIdentifier="24HourClock"
-                                    HorizontalAlignment="Left"
-                                    Width="140" />
-                    </Grid>
-
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="默认频道" VerticalAlignment="Center" Width="160" />
-                        <ComboBox Name="ChannelSelector" Width="240" />
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Name="TestPlaybackButton"
-                                Content="测试播放"
-                                Click="TestPlaybackButton_Click" />
-                        <Button Name="SaveScheduleButton"
-                                Content="保存设置"
-                                Click="SaveScheduleButton_Click" />
-                    </StackPanel>
-
-                    <TextBlock Name="ScheduleStatusText"
-                               FontSize="12"
-                               Opacity="0.6"
-                               Text="当前未启用" />
                 </StackPanel>
             </Border>
 
@@ -118,27 +62,41 @@
                 <StackPanel Spacing="12">
                     <TextBlock Text="程序选项" FontSize="16" FontWeight="SemiBold" />
 
-                    <!-- ★ Name="AutoStartSwitch" -->
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="开机自启动"
                                    VerticalAlignment="Center"
-                                   Width="240" />
+                                   Width="260" />
                         <ToggleSwitch Name="AutoStartSwitch"
                                       OnContent=""
                                       OffContent=""
                                       IsCheckedChanged="AutoStartSwitch_Changed" />
                     </StackPanel>
 
-                    <!-- ★ Name="MinTraySwitch" -->
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="关闭时最小化到托盘"
                                    VerticalAlignment="Center"
-                                   Width="240" />
+                                   Width="260" />
                         <ToggleSwitch Name="MinTraySwitch"
                                       OnContent=""
                                       OffContent=""
                                       IsCheckedChanged="MinTraySwitch_Changed" />
                     </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ============ 提示 ============ -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8" Padding="16">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="💡 定时播放设置"
+                               FontSize="13"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="定时播放 CCTV 的时段、频道、测试等选项已移至「网络 → 定时播放」标签页。"
+                               FontSize="12"
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

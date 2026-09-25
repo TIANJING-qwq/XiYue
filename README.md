@@ -68,24 +68,6 @@
 
 ---
 
-## 🖼️ 界面预览
-
-<div align="center">
-
-| 状态监控 | 网络 | 定时播放 |
-|:--------:|:----:|:--------:|
-| <img src="Assets/screenshots/status.png" width="280" /> | <img src="Assets/screenshots/network.png" width="280" /> | <img src="Assets/screenshots/schedule.png" width="280" /> |
-
-| 实验室 | 设置 | 关于 |
-|:------:|:----:|:----:|
-| <img src="Assets/screenshots/lab.png" width="280" /> | <img src="Assets/screenshots/settings.png" width="280" /> | <img src="Assets/screenshots/about.png" width="280" /> |
-
-</div>
-
-> 截图目录：`Assets/screenshots/`
-
----
-
 ## 🚀 快速开始
 
 ### 环境要求
@@ -214,9 +196,10 @@ JSON	Newtonsoft.Json	13.0
 主题模式
 在 App.axaml 中修改：
 
-xml
+```xml
 <Application ...
              RequestedThemeVariant="Dark">   <!-- Light / Dark / Default -->
+
 通知参数
 在 Controls/ToastHost.cs 中调整：
 
@@ -238,6 +221,7 @@ public static List<CctvChannel> All { get; } = new()
     new() { Name = "自定义频道", Urls = new[] { "http://your-stream.m3u8" } },
     // ...
 };
+```
 ❓ 常见问题
 Q: 首次运行较慢？
 A: 单文件打包的 exe 首次启动需解压到临时目录，约 2～5 秒。后续启动会快很多。
@@ -293,4 +277,4 @@ SchoolBusytools 项目组 · tianjing & deepseek
 
 ⭐ 如果这个项目对你有帮助，欢迎点一个 Star！
 
-</div> ```
+</div> 

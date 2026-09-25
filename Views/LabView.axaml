@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SBtools.Views.LabView">
+
+    <ScrollViewer>
+        <StackPanel Margin="32" Spacing="20">
+
+            <TextBlock Text="实验室" FontSize="28" FontWeight="Bold" />
+            <TextBlock Text="实验性功能与测试工具"
+                       FontSize="14" Opacity="0.6" />
+
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="通知测试" FontSize="16" FontWeight="SemiBold" />
+
+                    <TextBlock Text="通知会从右侧滑入，5 秒后自动消失。连续点击按钮，通知会向下堆叠；超出窗口高度时自动压缩，点击通知区域可展开/折叠。"
+                               FontSize="13" Opacity="0.7"
+                               TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="显示 1 条" Click="TestNotification_Click" />
+                        <Button Content="显示 5 条" Click="BurstNotification_Click" />
+                        <Button Content="自定义..." Click="CustomNotification_Click" />
+                    </StackPanel>
+
+                    <!-- 自定义通知输入区 -->
+                    <StackPanel Name="CustomPanel"
+                                Spacing="8"
+                                IsVisible="False"
+                                Margin="0,6,0,0">
+                        <TextBlock Text="标题" FontSize="13" />
+                        <TextBox Name="CustomTitle" Watermark="输入标题" />
+                        <TextBlock Text="正文" FontSize="13" />
+                        <TextBox Name="CustomMessage" Watermark="输入正文" AcceptsReturn="True" Height="70" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Content="推送" Click="PushCustom_Click" />
+                            <Button Content="取消" Click="CancelCustom_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SBtools.Views.FeaturesView">
+    <ScrollViewer>
+        <StackPanel Margin="32" Spacing="20">
+
+            <TextBlock Text="功能" FontSize="28" FontWeight="Bold" Foreground="#1c1c1e" />
+            <TextBlock Text="这里将展示 SBtools 的核心功能模块"
+                       FontSize="14" Foreground="#6c6c70" />
+
+            <Border Background="White" CornerRadius="8" Padding="20"
+                    BorderBrush="#e5e5e5" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="自动网络连接" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="检测到校园网断开时自动认证"
+                               FontSize="13" Foreground="#6c6c70" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="White" CornerRadius="8" Padding="20"
+                    BorderBrush="#e5e5e5" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="状态监控" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="实时显示网络状态、IP 信息"
+                               FontSize="13" Foreground="#6c6c70" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="White" CornerRadius="8" Padding="20"
+                    BorderBrush="#e5e5e5" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="系统工具" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="一键配置远程桌面、系统服务"
+                               FontSize="13" Foreground="#6c6c70" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fluent="using:FluentAvalonia.UI.Controls"
+        xmlns:controls="clr-namespace:SBtools.Controls"
+        x:Class="SBtools.MainWindow"
+        Title="SchoolBusytools (SBtools)"
+        Width="1100" Height="720"
+        MinWidth="800" MinHeight="560"
+        Background="#f3f3f3">
+
+    <Grid>
+        <!-- 主体导航 -->
+        <fluent:NavigationView x:Name="NavView"
+                               PaneDisplayMode="Left"
+                               IsSettingsVisible="False"
+                               IsBackButtonVisible="False"
+                               SelectionChanged="NavView_SelectionChanged">
+
+            <fluent:NavigationView.MenuItems>
+                <fluent:NavigationViewItem Content="功能" Tag="features">
+                    <fluent:NavigationViewItem.IconSource>
+                        <fluent:SymbolIconSource Symbol="Home" />
+                    </fluent:NavigationViewItem.IconSource>
+                </fluent:NavigationViewItem>
+
+                <fluent:NavigationViewItem Content="网络" Tag="network">
+                    <fluent:NavigationViewItem.IconSource>
+                        <fluent:SymbolIconSource Symbol="Globe" />
+                    </fluent:NavigationViewItem.IconSource>
+                </fluent:NavigationViewItem>
+
+                <fluent:NavigationViewItem Content="实验室" Tag="lab">
+                    <fluent:NavigationViewItem.IconSource>
+                        <fluent:SymbolIconSource Symbol="Repair" />
+                    </fluent:NavigationViewItem.IconSource>
+                </fluent:NavigationViewItem>
+
+                <fluent:NavigationViewItemSeparator />
+
+                <fluent:NavigationViewItem Content="设置" Tag="settings">
+                    <fluent:NavigationViewItem.IconSource>
+                        <fluent:SymbolIconSource Symbol="Setting" />
+                    </fluent:NavigationViewItem.IconSource>
+                </fluent:NavigationViewItem>
+
+                <fluent:NavigationViewItem Content="关于" Tag="about">
+                    <fluent:NavigationViewItem.IconSource>
+                        <fluent:SymbolIconSource Symbol="Help" />
+                    </fluent:NavigationViewItem.IconSource>
+                </fluent:NavigationViewItem>
+            </fluent:NavigationView.MenuItems>
+
+            <fluent:Frame x:Name="ContentFrame" />
+        </fluent:NavigationView>
+
+        <!-- ★ 全局通知层：覆盖在所有内容之上 -->
+        <controls:ToastHost Name="GlobalToastHost"
+                            Width="320"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Stretch"
+                            Margin="0,20,20,20"
+                            StackedVisible="32"
+                            IsHitTestVisible="True"
+                            ClipToBounds="True" />
+    </Grid>
+</Window>

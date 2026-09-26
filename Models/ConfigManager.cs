@@ -9,7 +9,6 @@ public class ConfigManager
     private static ConfigManager? _instance;
     public static ConfigManager Instance => _instance ??= new ConfigManager();
 
-    // ★ 明确用 %APPDATA% 路径，避免写入程序目录
     private static readonly string ConfigDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "SchoolBusytools");
@@ -32,7 +31,7 @@ public class ConfigManager
 
         _data = Load() ?? new ConfigData();
 
-        // ★ 同步到 ScheduleConfig
+        // 同步到 ScheduleConfig
         try
         {
             Services.ScheduleConfig.Enabled = _data.ScheduleEnabled;
@@ -43,6 +42,7 @@ public class ConfigManager
         catch { }
     }
 
+    // ---------------- WiFi 认证 ----------------
     public string Username
     {
         get => _data.Username;
@@ -55,12 +55,14 @@ public class ConfigManager
         set { _data.EncryptedPassword = SecureStorage.Encrypt(value); Save(); }
     }
 
+    // ---------------- 通知 ----------------
     public bool AutoCollapseOnNewToast
     {
         get => _data.AutoCollapseOnNewToast;
         set { _data.AutoCollapseOnNewToast = value; Save(); }
     }
 
+    // ---------------- 定时播放 ----------------
     public bool ScheduleEnabled
     {
         get => _data.ScheduleEnabled;
@@ -105,23 +107,31 @@ public class ConfigManager
         }
     }
 
+    // ---------------- 程序选项 ----------------
     public bool AutoStartOnBoot
     {
         get => _data.AutoStartOnBoot;
         set { _data.AutoStartOnBoot = value; Save(); }
     }
 
+    /// <summary>关闭窗口时是否直接最小化到托盘（不再询问）</summary>
     public bool MinimizeToTrayOnClose
     {
         get => _data.MinimizeToTrayOnClose;
-        set { _data.MinimizeToTrayOnClose = value; Save(); }
+        set
+        {
+            _data.MinimizeToTrayOnClose = value;
+            Save();
+            System.Diagnostics.Debug.WriteLine($"[Config] MinimizeToTrayOnClose = {value}");
+        }
     }
 
+    // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
         if (!File.Exists(_path))
         {
-            System.Diagnostics.Debug.WriteLine($"[Config] 文件不存在，使用默认配置");
+            System.Diagnostics.Debug.WriteLine("[Config] 文件不存在，使用默认配置");
             return null;
         }
 
@@ -149,12 +159,6 @@ public class ConfigManager
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[Config] 保存失败: {ex.Message}");
-            // ★ 保存失败时弹通知
-            try
-            {
-                MainWindow.PushToast("设置保存失败", ex.Message);
-            }
-            catch { }
         }
     }
 
@@ -170,6 +174,8 @@ public class ConfigManager
         public string ScheduleChannel { get; set; } = "CCTV-13 新闻";
 
         public bool AutoStartOnBoot { get; set; } = false;
-        public bool MinimizeToTrayOnClose { get; set; } = true;
+
+        // ★ 默认 false：每次关闭都弹窗
+        public bool MinimizeToTrayOnClose { get; set; } = false;
     }
 }

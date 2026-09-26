@@ -2,9 +2,6 @@ using System;
 
 namespace SBtools.Services;
 
-/// <summary>
-/// 定时播放配置（全局共享，供设置页和调度器读取）
-/// </summary>
 public static class ScheduleConfig
 {
     public static bool Enabled { get; set; } = false;

@@ -62,23 +62,25 @@ public partial class FullscreenPlayerWindow : Window
             ChannelSelector.Items.Add(ch.Name);
         ChannelSelector.SelectedIndex = CctvChannels.All.IndexOf(_currentChannel);
 
-        // ★ 顶部栏自动隐藏：监听鼠标移动
         PointerMoved += OnPointerMoved;
-        // ★ 触摸屏幕时短暂显示
         PointerPressed += OnPointerPressed;
-
         KeyDown += OnKeyDown;
-        Loaded += async (_, _) => await StartAsync();
+
+        Opened += async (_, _) =>
+        {
+            await Task.Delay(50);
+            await StartAsync();
+        };
+
         Closed += (_, _) => Cleanup();
     }
 
     // ============================================================
-    // 顶部控制栏：自动显示/隐藏
+    // 顶部控制栏自动显示 / 隐藏
     // ============================================================
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
         var pos = e.GetPosition(this);
-        // 鼠标进入顶部 120px 内 → 显示
         if (pos.Y <= 120)
             ShowTopBar();
         else
@@ -87,9 +89,8 @@ public partial class FullscreenPlayerWindow : Window
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        // 触摸时短暂显示顶部栏
         ShowTopBar();
-        ScheduleHideTopBar(3); // 3 秒后隐藏
+        ScheduleHideTopBar(3);
     }
 
     private void ShowTopBar()
@@ -100,35 +101,23 @@ public partial class FullscreenPlayerWindow : Window
     }
 
     private void ScheduleHideTopBar(double seconds = 2.5)
-{
-    _topBarHideTimer?.Stop();
-    _topBarHideTimer = new DispatcherTimer
-    {
-        Interval = TimeSpan.FromSeconds(seconds)
-    };
-    _topBarHideTimer.Tick += (_, _) =>
     {
         _topBarHideTimer?.Stop();
-
-        // 直接隐藏：能走到这里说明鼠标已经离开顶部（OnPointerMoved 已经判断过）
-        TopBar.Opacity = 0;
-        TopGradient.Opacity = 0;
-    };
-    _topBarHideTimer.Start();
-}
-    
-
-    private static Point MousePosition
-    {
-        get
+        _topBarHideTimer = new DispatcherTimer
         {
-            // Avalonia 11 无内建 MousePosition，用 Pseudo 处理
-            return new Point(0, 0);
-        }
+            Interval = TimeSpan.FromSeconds(seconds)
+        };
+        _topBarHideTimer.Tick += (_, _) =>
+        {
+            _topBarHideTimer?.Stop();
+            TopBar.Opacity = 0;
+            TopGradient.Opacity = 0;
+        };
+        _topBarHideTimer.Start();
     }
 
     // ============================================================
-    // 启动
+    // 启动播放
     // ============================================================
     private async Task StartAsync()
     {
@@ -139,8 +128,21 @@ public partial class FullscreenPlayerWindow : Window
                 _libVLC = new LibVLC(
                     "--no-video-title-show",
                     "--quiet",
-                    "--vout=mem"
+                    "--vout=mem",
+                    "--avcodec-hw=dxva2",
+                    "--avcodec-threads=4",
+                    "--no-audio-time-stretch",
+                    "--network-caching=500",
+                    "--live-caching=500",
+                    "--file-caching=300",
+                    "--clock-jitter=0",
+                    "--clock-synchro=0",
+                    "--drop-late-frames",
+                    "--skip-frames",
+                    "--no-osd",
+                    "--no-snapshot-preview"
                 );
+
                 _mediaPlayer = new MediaPlayer(_libVLC);
                 VideoView.Attach(_mediaPlayer);
             }
@@ -152,7 +154,6 @@ public partial class FullscreenPlayerWindow : Window
             _clockTimer.Start();
             ClockText.Text = DateTime.Now.ToString("HH:mm:ss");
 
-            // 启动后先显示顶部栏 3 秒，让用户知道有控制面板
             ShowTopBar();
             ScheduleHideTopBar(3);
         }
@@ -212,8 +213,16 @@ public partial class FullscreenPlayerWindow : Window
     {
         if (_libVLC == null || _mediaPlayer == null) return false;
 
-        foreach (var url in channel.Urls)
+        var sources = !string.IsNullOrWhiteSpace(channel.CustomUrl)
+            ? new[] { channel.CustomUrl! }
+            : channel.Urls;
+
+        for (int i = 0; i < sources.Length; i++)
         {
+            var url = sources[i];
+            LoadingText.Text = $"正在加载 {channel.Name}（源 {i + 1}/{sources.Length}）";
+            LogService.Log($"尝试源 {i + 1}: {url}", "播放");
+
             try
             {
                 _currentMedia?.Dispose();
@@ -223,10 +232,19 @@ public partial class FullscreenPlayerWindow : Window
                 for (int w = 0; w < 60; w++)
                 {
                     await Task.Delay(100);
-                    if (_mediaPlayer.IsPlaying) return true;
+                    if (_mediaPlayer.IsPlaying && _mediaPlayer.Length > 0)
+                    {
+                        LogService.Log($"源 {i + 1} 播放成功", "播放");
+                        return true;
+                    }
+                    if (_mediaPlayer.State == VLCState.Error)
+                        break;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogService.Log($"源 {i + 1} 异常: {ex.Message}", "播放");
+            }
         }
         return false;
     }
@@ -332,6 +350,9 @@ public partial class FullscreenPlayerWindow : Window
         LoadingPanel.IsVisible = false;
     }
 
+    // ============================================================
+    // 清理
+    // ============================================================
     private void Cleanup()
     {
         _clockTimer?.Stop();

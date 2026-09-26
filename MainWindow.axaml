@@ -17,39 +17,45 @@
                                SelectionChanged="NavView_SelectionChanged">
 
             <fluent:NavigationView.MenuItems>
-                <fluent:NavigationViewItem Content="功能" Tag="features">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Home" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+            <fluent:NavigationViewItem Content="功能" Tag="features">
+                <fluent:NavigationViewItem.IconSource>
+                    <fluent:SymbolIconSource Symbol="Home" />
+                </fluent:NavigationViewItem.IconSource>
+            </fluent:NavigationViewItem>
 
-                <fluent:NavigationViewItem Content="网络" Tag="network">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Globe" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+            <fluent:NavigationViewItem Content="网络" Tag="network">
+                <fluent:NavigationViewItem.IconSource>
+                    <fluent:SymbolIconSource Symbol="Globe" />
+                </fluent:NavigationViewItem.IconSource>
+            </fluent:NavigationViewItem>
 
-                <fluent:NavigationViewItem Content="实验室" Tag="lab">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Repair" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+            <!-- ★ 新增：系统优化 -->
+            <fluent:NavigationViewItem Content="系统优化" Tag="optimization">
+                <fluent:NavigationViewItem.IconSource>
+                    <fluent:SymbolIconSource Symbol="Repair" />
+                </fluent:NavigationViewItem.IconSource>
+            </fluent:NavigationViewItem>
 
-                <fluent:NavigationViewItemSeparator />
+            <fluent:NavigationViewItem Content="实验室" Tag="lab">
+                <fluent:NavigationViewItem.IconSource>
+                    <fluent:SymbolIconSource Symbol="Repair" />
+                </fluent:NavigationViewItem.IconSource>
+            </fluent:NavigationViewItem>
 
-                <fluent:NavigationViewItem Content="设置" Tag="settings">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Setting" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+            <fluent:NavigationViewItemSeparator />
 
-                <fluent:NavigationViewItem Content="关于" Tag="about">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Help" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
-            </fluent:NavigationView.MenuItems>
+            <fluent:NavigationViewItem Content="设置" Tag="settings">
+                <fluent:NavigationViewItem.IconSource>
+                    <fluent:SymbolIconSource Symbol="Setting" />
+                </fluent:NavigationViewItem.IconSource>
+            </fluent:NavigationViewItem>
 
+            <fluent:NavigationViewItem Content="关于" Tag="about">
+                <fluent:NavigationViewItem.IconSource>
+                    <fluent:SymbolIconSource Symbol="Help" />
+                </fluent:NavigationViewItem.IconSource>
+            </fluent:NavigationViewItem>
+        </fluent:NavigationView.MenuItems>
             <fluent:Frame x:Name="ContentFrame" />
         </fluent:NavigationView>
 

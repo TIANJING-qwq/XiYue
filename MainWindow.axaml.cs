@@ -295,11 +295,12 @@ public partial class MainWindow : Window
         {
             switch (item.Tag?.ToString())
             {
-                case "features": ContentFrame.Navigate(typeof(FeaturesView)); break;
-                case "network":  ContentFrame.Navigate(typeof(NetworkView));  break;
-                case "lab":      ContentFrame.Navigate(typeof(LabView));      break;
-                case "settings": ContentFrame.Navigate(typeof(SettingsView)); break;
-                case "about":    ContentFrame.Navigate(typeof(AboutView));    break;
+                case "features":     ContentFrame.Navigate(typeof(FeaturesView));     break;
+                case "network":      ContentFrame.Navigate(typeof(NetworkView));      break;
+                case "optimization": ContentFrame.Navigate(typeof(OptimizationView)); break;   // ★ 新增
+                case "lab":          ContentFrame.Navigate(typeof(LabView));          break;
+                case "settings":     ContentFrame.Navigate(typeof(SettingsView));     break;
+                case "about":        ContentFrame.Navigate(typeof(AboutView));        break;
             }
         }
     }

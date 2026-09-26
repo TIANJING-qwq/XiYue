@@ -1,0 +1,98 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SBtools.Views.OptimizationView">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24">
+
+        <!-- 标题 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16" Spacing="4">
+            <TextBlock Text="系统优化" FontSize="28" FontWeight="Bold" />
+            <TextBlock Text="选择性优化 Windows 系统，每项都可随时还原（部分不可逆项已标注）"
+                       FontSize="14" Opacity="0.6" />
+        </StackPanel>
+
+        <!-- 顶部工具栏 -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="14"
+                Margin="0,0,0,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Name="OptimizationStatusText"
+                               VerticalAlignment="Center"
+                               FontSize="13"
+                               Opacity="0.7"
+                               Text="共 0 项已启用 / 30 项可选" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Name="ApplyRecommendedButton"
+                            Content="一键应用推荐项"
+                            Padding="14,6"
+                            CornerRadius="6"
+                            Background="#0078D4"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Click="ApplyRecommendedButton_Click" />
+                    <Button Name="RefreshStatusButton"
+                            Content="刷新状态"
+                            Padding="14,6"
+                            CornerRadius="6"
+                            Background="Transparent"
+                            BorderBrush="#D0D0D0"
+                            BorderThickness="1"
+                            Click="RefreshStatusButton_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 分类 TabControl -->
+        <TabControl Grid.Row="2" Name="CategoryTabs">
+
+            <TabItem Header="服务优化">
+                <ScrollViewer>
+                    <StackPanel Name="ServicesPanel" Margin="16,20" Spacing="10" />
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="AI 组件">
+                <ScrollViewer>
+                    <StackPanel Name="AiPanel" Margin="16,20" Spacing="10" />
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="隐私">
+                <ScrollViewer>
+                    <StackPanel Name="PrivacyPanel" Margin="16,20" Spacing="10" />
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="性能">
+                <ScrollViewer>
+                    <StackPanel Name="PerformancePanel" Margin="16,20" Spacing="10" />
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="清理">
+                <ScrollViewer>
+                    <StackPanel Name="CleanupPanel" Margin="16,20" Spacing="10" />
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- 底部日志 -->
+        <Border Grid.Row="3"
+                Background="#1E1E1E"
+                BorderBrush="#333333"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="10"
+                Margin="0,12,0,0"
+                MaxHeight="120">
+            <ScrollViewer Name="StatusScrollViewer">
+                <StackPanel Name="StatusLogPanel" Spacing="2" />
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

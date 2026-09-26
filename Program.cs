@@ -2,40 +2,60 @@
 using LibVLCSharp.Shared;
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace SBtools;
 
 class Program
 {
-    // ★ 全局唯一标识
     private const string MutexName = "Global\\XiYue_SingleInstance_Mutex";
-    private const string AppTitle = "汐月 · XiYue";
-
     private static Mutex? _mutex;
 
     [STAThread]
     public static void Main(string[] args)
     {
-        // ★ 单实例检测
+        // 全局异常兜底
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            LogException("AppDomain", e.ExceptionObject as Exception);
+
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            LogException("Task", e.Exception);
+            e.SetObserved();
+        };
+
+        // 单实例
         bool createdNew;
         _mutex = new Mutex(true, MutexName, out createdNew);
-
         if (!createdNew)
         {
-            // 已有实例在运行 → 尝试把已有窗口带到前台，然后退出
             BringExistingWindowToFront();
             return;
         }
 
-        try
-        {
-            Core.Initialize();
-        }
-        catch { }
+        try { Core.Initialize(); }
+        catch (Exception ex) { LogException("VLC", ex); }
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
+
+    private static void LogException(string source, Exception? ex)
+    {
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SchoolBusytools", "logs");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(
+                Path.Combine(dir, $"error_{DateTime.Now:yyyyMMdd}.log"),
+                $"[{DateTime.Now:HH:mm:ss}] [{source}] {ex}\n\n");
+        }
+        catch { }
     }
 
     public static AppBuilder BuildAvaloniaApp()
@@ -44,16 +64,12 @@ class Program
             .WithInterFont()
             .LogToTrace();
 
-    // ============================================================
-    // 把已运行的窗口带到前台（跨平台）
-    // ============================================================
     private static void BringExistingWindowToFront()
     {
         try
         {
             if (OperatingSystem.IsWindows())
             {
-                // Windows：遍历进程找同名窗口
                 var current = Process.GetCurrentProcess();
                 foreach (var p in Process.GetProcessesByName(current.ProcessName))
                 {
@@ -66,29 +82,11 @@ class Program
                     }
                 }
             }
-            else if (OperatingSystem.IsMacOS())
-            {
-                // macOS：用 open -a 激活
-                Process.Start(new ProcessStartInfo("open", "-a XiYue") { UseShellExecute = false });
-            }
-            else
-            {
-                // Linux：用 wmctrl（需安装）
-                try
-                {
-                    Process.Start(new ProcessStartInfo("wmctrl", "-a \"汐月\"") { UseShellExecute = false });
-                }
-                catch { }
-            }
         }
         catch { }
     }
 
-    [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
     private const int SW_RESTORE = 9;
 }

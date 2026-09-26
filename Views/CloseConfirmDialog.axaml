@@ -19,8 +19,6 @@
             Opacity="0"
             RenderTransformOrigin="50%,50%"
             BoxShadow="0 16 48 0 #60000000">
-
-        <!-- ★ 只声明 Transitions，不声明 Transform -->
         <Border.Transitions>
             <Transitions>
                 <DoubleTransition Property="Opacity" Duration="0:0:0.22">
@@ -28,7 +26,6 @@
                         <CubicEaseOut />
                     </DoubleTransition.Easing>
                 </DoubleTransition>
-
                 <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28">
                     <TransformOperationsTransition.Easing>
                         <BackEaseOut />
@@ -37,25 +34,29 @@
             </Transitions>
         </Border.Transitions>
 
-        <Grid RowDefinitions="Auto,*,Auto">
+        <StackPanel Spacing="14">
 
-            <TextBlock Grid.Row="0"
-                       Text="关闭 汐月"
+            <!-- 标题 -->
+            <TextBlock Text="关闭 汐月"
                        FontSize="20"
-                       FontWeight="SemiBold"
-                       Margin="0,0,0,10" />
+                       FontWeight="SemiBold" />
 
-            <TextBlock Grid.Row="1"
-                       Text="你想退出程序，还是最小化到系统托盘继续运行？"
+            <!-- 说明 -->
+            <TextBlock Text="你想退出程序，还是最小化到系统托盘继续运行？"
                        FontSize="14"
                        Foreground="#606060"
                        TextWrapping="Wrap" />
 
-            <StackPanel Grid.Row="2"
-                        Orientation="Horizontal"
+            <!-- ★ 不再询问 -->
+            <CheckBox Name="DontAskAgainCheckbox"
+                      Content="下次不再询问，直接最小化到托盘"
+                      FontSize="13" />
+
+            <!-- 按钮组 -->
+            <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Spacing="10"
-                        Margin="0,24,0,0">
+                        Margin="0,10,0,0">
 
                 <Button Name="CancelButton"
                         Content="取消"
@@ -84,6 +85,6 @@
                         BorderThickness="0"
                         Click="QuitButton_Click" />
             </StackPanel>
-        </Grid>
+        </StackPanel>
     </Border>
 </Window>

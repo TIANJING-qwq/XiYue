@@ -74,7 +74,7 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 关闭窗口：根据配置决定是否弹窗
+    // 关闭窗口
     // ============================================================
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
@@ -86,29 +86,26 @@ public partial class MainWindow : Window
             return;
         }
 
-        // ★★★ 关键：如果用户勾选过「不再询问」，直接最小化到托盘
+        // ★ 已勾选「不再询问」→ 直接最小化到托盘
         if (ConfigManager.Instance.MinimizeToTrayOnClose)
         {
             e.Cancel = true;
             Hide();
             ShowInTaskbar = false;
             LogService.Log("已按「不再询问」配置，直接最小化到托盘", "窗口");
-
             PushToast("已最小化", "汐月正在后台运行，双击托盘图标可恢复。");
             return;
         }
 
-        // 否则弹对话框
+        // 弹对话框
         e.Cancel = true;
         _closingDialogShown = true;
 
         try
         {
             LogService.Log("触发关闭询问对话框", "窗口");
-
             var dialog = new CloseConfirmDialog();
             var result = await dialog.ShowDialog<CloseAction>(this);
-
             LogService.Log($"用户选择: {result}", "窗口");
 
             switch (result)
@@ -117,15 +114,10 @@ public partial class MainWindow : Window
                     _reallyQuit = true;
                     Close();
                     break;
-
                 case CloseAction.MinimizeToTray:
                     Hide();
                     ShowInTaskbar = false;
                     PushToast("已最小化", "汐月正在后台运行，双击托盘图标可恢复。");
-                    break;
-
-                case CloseAction.Cancel:
-                default:
                     break;
             }
         }
@@ -140,7 +132,7 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 调度器回调
+    // 调度器
     // ============================================================
     private void OnScheduleStart()
     {
@@ -252,27 +244,15 @@ public partial class MainWindow : Window
             menu.Add(new NativeMenuItemSeparator());
 
             var connectItem = new NativeMenuItem("立即连接");
-            connectItem.Click += (_, _) =>
-            {
-                LogService.Log("托盘菜单：立即连接", "托盘");
-                PushToast("手动连接", "正在尝试连接校园网...");
-            };
+            connectItem.Click += (_, _) => PushToast("手动连接", "正在尝试连接校园网...");
             menu.Add(connectItem);
 
             var testPlayItem = new NativeMenuItem("测试播放 CCTV-13");
-            testPlayItem.Click += (_, _) =>
-            {
-                LogService.Log("托盘菜单：测试播放", "托盘");
-                OnScheduleStart();
-            };
+            testPlayItem.Click += (_, _) => OnScheduleStart();
             menu.Add(testPlayItem);
 
             var stopPlayItem = new NativeMenuItem("关闭播放");
-            stopPlayItem.Click += (_, _) =>
-            {
-                LogService.Log("托盘菜单：关闭播放", "托盘");
-                OnScheduleStop();
-            };
+            stopPlayItem.Click += (_, _) => OnScheduleStop();
             menu.Add(stopPlayItem);
 
             menu.Add(new NativeMenuItemSeparator());
@@ -280,14 +260,12 @@ public partial class MainWindow : Window
             var quitItem = new NativeMenuItem("退出");
             quitItem.Click += (_, _) =>
             {
-                LogService.Log("托盘菜单：退出", "托盘");
                 _reallyQuit = true;
                 Close();
             };
             menu.Add(quitItem);
 
             _trayIcon.Menu = menu;
-
             LogService.Log("托盘图标已创建", "托盘");
         }
         catch (Exception ex)
@@ -345,15 +323,8 @@ public partial class MainWindow : Window
                     var host = window.FindControl<ToastHost>("GlobalToastHost");
                     if (host != null)
                     {
-                        var toast = new NotificationToast
-                        {
-                            Title = title,
-                            Message = message
-                        };
-                        toast.Closed += (_, _) =>
-                        {
-                            try { host.Children.Remove(toast); } catch { }
-                        };
+                        var toast = new NotificationToast { Title = title, Message = message };
+                        toast.Closed += (_, _) => { try { host.Children.Remove(toast); } catch { } };
                         host.Children.Add(toast);
                         _ = SafeShowAsync(toast, durationSeconds);
                         return;

@@ -22,16 +22,11 @@ public class ConfigManager
         try
         {
             Directory.CreateDirectory(ConfigDir);
-            System.Diagnostics.Debug.WriteLine($"[Config] 目录: {ConfigDir}");
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Config] 创建目录失败: {ex.Message}");
-        }
+        catch { }
 
         _data = Load() ?? new ConfigData();
 
-        // 同步到 ScheduleConfig
         try
         {
             Services.ScheduleConfig.Enabled = _data.ScheduleEnabled;
@@ -114,52 +109,38 @@ public class ConfigManager
         set { _data.AutoStartOnBoot = value; Save(); }
     }
 
-    /// <summary>关闭窗口时是否直接最小化到托盘（不再询问）</summary>
+    /// <summary>开机自启动时自动隐藏到托盘</summary>
+    public bool AutoStartMinimized
+    {
+        get => _data.AutoStartMinimized;
+        set { _data.AutoStartMinimized = value; Save(); }
+    }
+
+    /// <summary>关闭窗口时直接最小化到托盘（不再弹窗询问）</summary>
     public bool MinimizeToTrayOnClose
     {
         get => _data.MinimizeToTrayOnClose;
-        set
-        {
-            _data.MinimizeToTrayOnClose = value;
-            Save();
-            System.Diagnostics.Debug.WriteLine($"[Config] MinimizeToTrayOnClose = {value}");
-        }
+        set { _data.MinimizeToTrayOnClose = value; Save(); }
     }
 
     // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
-        if (!File.Exists(_path))
-        {
-            System.Diagnostics.Debug.WriteLine("[Config] 文件不存在，使用默认配置");
-            return null;
-        }
-
+        if (!File.Exists(_path)) return null;
         try
         {
-            var json = File.ReadAllText(_path);
-            System.Diagnostics.Debug.WriteLine($"[Config] 读取成功: {_path}");
-            return JsonConvert.DeserializeObject<ConfigData>(json);
+            return JsonConvert.DeserializeObject<ConfigData>(File.ReadAllText(_path));
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Config] 读取失败: {ex.Message}");
-            return null;
-        }
+        catch { return null; }
     }
 
     private void Save()
     {
         try
         {
-            var json = JsonConvert.SerializeObject(_data, Formatting.Indented);
-            File.WriteAllText(_path, json);
-            System.Diagnostics.Debug.WriteLine($"[Config] 保存成功: {_path}");
+            File.WriteAllText(_path, JsonConvert.SerializeObject(_data, Formatting.Indented));
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Config] 保存失败: {ex.Message}");
-        }
+        catch { }
     }
 
     private class ConfigData
@@ -175,7 +156,9 @@ public class ConfigManager
 
         public bool AutoStartOnBoot { get; set; } = false;
 
-        // ★ 默认 false：每次关闭都弹窗
+        // ★ 默认 true：自启动时隐藏到托盘
+        public bool AutoStartMinimized { get; set; } = true;
+
         public bool MinimizeToTrayOnClose { get; set; } = false;
     }
 }

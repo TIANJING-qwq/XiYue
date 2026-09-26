@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using Microsoft.Win32;
 
 namespace SBtools.Services;
@@ -11,64 +12,76 @@ public static class AutoStartManager
 
     public static void Apply(bool enable)
     {
-        if (OperatingSystem.IsWindows())
+        try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(RegKey, writable: true);
-            if (key == null) throw new Exception("无法打开注册表");
+            if (OperatingSystem.IsWindows())
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(RegKey, writable: true);
+                if (key == null) return;
 
-            if (enable)
-            {
-                var exe = Process.GetCurrentProcess().MainModule?.FileName
-                          ?? throw new Exception("无法获取程序路径");
-                key.SetValue(AppName, $"\"{exe}\"");
+                if (enable)
+                {
+                    var exe = Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                    // ★ 加 --autostart 参数
+                    key.SetValue(AppName, $"\"{exe}\" --autostart");
+                    LogService.Log($"已注册开机自启动: {exe} --autostart", "自启动");
+                }
+                else
+                {
+                    if (key.GetValue(AppName) != null)
+                        key.DeleteValue(AppName);
+                    LogService.Log("已取消开机自启动", "自启动");
+                }
             }
-            else
+            else if (OperatingSystem.IsMacOS())
             {
-                if (key.GetValue(AppName) != null)
-                    key.DeleteValue(AppName);
-            }
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            // macOS：写入 LaunchAgents plist
-            var plist = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Library/LaunchAgents/com.schoolbusytools.xiyue.plist");
-            if (enable)
-            {
-                var exe = Process.GetCurrentProcess().MainModule?.FileName ?? "";
-                var content = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+                var plist = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    "Library/LaunchAgents/com.schoolbusytools.xiyue.plist");
+
+                if (enable)
+                {
+                    var exe = Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                    var content = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <!DOCTYPE plist PUBLIC ""-//Apple//DTD PLIST 1.0//EN"" ""http://www.apple.com/DTDs/PropertyList-1.0.dtd"">
 <plist version=""1.0""><dict>
 <key>Label</key><string>com.schoolbusytools.xiyue</string>
-<key>ProgramArguments</key><array><string>{exe}</string></array>
+<key>ProgramArguments</key><array>
+    <string>{exe}</string>
+    <string>--autostart</string>
+</array>
 <key>RunAtLoad</key><true/>
 </dict></plist>";
-                System.IO.File.WriteAllText(plist, content);
+                    File.WriteAllText(plist, content);
+                }
+                else
+                {
+                    if (File.Exists(plist)) File.Delete(plist);
+                }
             }
             else
             {
-                if (System.IO.File.Exists(plist)) System.IO.File.Delete(plist);
+                var desktop = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".config/autostart/xiyue.desktop");
+                Directory.CreateDirectory(Path.GetDirectoryName(desktop)!);
+
+                if (enable)
+                {
+                    var exe = Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                    var content = $"[Desktop Entry]\nType=Application\nName=汐月\nExec={exe} --autostart\nX-GNOME-Autostart-enabled=true\n";
+                    File.WriteAllText(desktop, content);
+                }
+                else
+                {
+                    if (File.Exists(desktop)) File.Delete(desktop);
+                }
             }
         }
-        else
+        catch (Exception ex)
         {
-            // Linux：写入 ~/.config/autostart
-            var desktop = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".config/autostart/xiyue.desktop");
-            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(desktop)!);
-
-            if (enable)
-            {
-                var exe = Process.GetCurrentProcess().MainModule?.FileName ?? "";
-                var content = $"[Desktop Entry]\nType=Application\nName=汐月\nExec={exe}\nX-GNOME-Autostart-enabled=true\n";
-                System.IO.File.WriteAllText(desktop, content);
-            }
-            else
-            {
-                if (System.IO.File.Exists(desktop)) System.IO.File.Delete(desktop);
-            }
+            LogService.Log($"自启动配置失败: {ex.Message}", "自启动");
+            throw;
         }
     }
 }

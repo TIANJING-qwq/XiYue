@@ -62,6 +62,7 @@
                 <StackPanel Spacing="12">
                     <TextBlock Text="程序选项" FontSize="16" FontWeight="SemiBold" />
 
+                    <!-- 开机自启动 -->
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="开机自启动"
                                    VerticalAlignment="Center"
@@ -72,6 +73,22 @@
                                       IsCheckedChanged="AutoStartSwitch_Changed" />
                     </StackPanel>
 
+                    <!-- ★ 自启动时隐藏到托盘 -->
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="开机自启动时隐藏到托盘"
+                                   VerticalAlignment="Center"
+                                   Width="260" />
+                        <ToggleSwitch Name="AutoStartMinimizedSwitch"
+                                      OnContent=""
+                                      OffContent=""
+                                      IsCheckedChanged="AutoStartMinimizedSwitch_Changed" />
+                    </StackPanel>
+                    <TextBlock Text="关闭此项时，开机后主窗口会直接显示。"
+                               FontSize="11" Opacity="0.55"
+                               Margin="0,-6,0,0"
+                               TextWrapping="Wrap" />
+
+                    <!-- 关闭时最小化到托盘 -->
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="关闭时最小化到托盘"
                                    VerticalAlignment="Center"
@@ -84,7 +101,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- ============ 提示 ============ -->
+            <!-- 提示 -->
             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"

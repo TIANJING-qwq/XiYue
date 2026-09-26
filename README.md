@@ -246,12 +246,20 @@ A: 第三方源可能随时变化。可通过编辑 Services/CctvChannels.cs 更
 
 Fork 本仓库
 
-创建特性分支：git checkout -b feature/amazing-feature
+创建特性分支：
+```
+git checkout -b feature/amazing-feature
+```
 
-提交改动：git commit -m "Add amazing feature"
+提交改动：
+```
+git commit -m "Add amazing feature"
+```
 
-推送分支：git push origin feature/amazing-feature
-
+推送分支：
+```
+git push origin feature/amazing-feature
+```
 提交 Pull Request
 
 📄 许可证

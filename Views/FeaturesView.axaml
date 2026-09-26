@@ -4,34 +4,104 @@
     <ScrollViewer>
         <StackPanel Margin="32" Spacing="20">
 
-            <TextBlock Text="功能" FontSize="28" FontWeight="Bold" Foreground="#1c1c1e" />
-            <TextBlock Text="这里将展示 SBtools 的核心功能模块"
-                       FontSize="14" Foreground="#6c6c70" />
+            <TextBlock Text="功能" FontSize="28" FontWeight="Bold" />
+            <TextBlock Text="工具箱中的核心功能"
+                       FontSize="14" Opacity="0.6" />
 
-            <Border Background="White" CornerRadius="8" Padding="20"
-                    BorderBrush="#e5e5e5" BorderThickness="1">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="自动网络连接" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="检测到校园网断开时自动认证"
-                               FontSize="13" Foreground="#6c6c70" />
+            <!-- ============ 自动网络连接 ============ -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="🌐 自动网络连接" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="检测到校园网断开时自动认证，支持 ikuai8 等常见网关。"
+                               FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+                    <TextBlock Text="请前往「网络」页配置。" FontSize="12" Opacity="0.5" />
                 </StackPanel>
             </Border>
 
-            <Border Background="White" CornerRadius="8" Padding="20"
-                    BorderBrush="#e5e5e5" BorderThickness="1">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="状态监控" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="实时显示网络状态、IP 信息"
-                               FontSize="13" Foreground="#6c6c70" />
+            <!-- ============ 状态监控 ============ -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="📊 定时播放 CCTV" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="到设定时段自动全屏播放央视新闻等频道，支持跨午夜时段。"
+                               FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+                    <TextBlock Text="请前往「网络 → 定时播放」配置。" FontSize="12" Opacity="0.5" />
                 </StackPanel>
             </Border>
 
-            <Border Background="White" CornerRadius="8" Padding="20"
-                    BorderBrush="#e5e5e5" BorderThickness="1">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="系统工具" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="一键配置远程桌面、系统服务"
-                               FontSize="13" Foreground="#6c6c70" />
+            <!-- ============ Windows 11 升级绕过 ============ -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="🪟 Windows 11 绕过配置要求升级"
+                               FontSize="16" FontWeight="SemiBold" />
+
+                    <TextBlock Text="适用于 Windows 10 硬件不满足 TPM 2.0 / CPU 要求，但已有 Windows 11 ISO 的场景。"
+                               FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+
+                    <TextBlock Text="原理：挂载 ISO 后，以 /product server 参数运行 setup.exe，让 Windows 11 安装程序以「Server 模式」启动，从而跳过 TPM / Secure Boot / CPU 检查。"
+                               FontSize="12" Opacity="0.55" TextWrapping="Wrap" />
+
+                    <!-- 步骤说明 -->
+                    <Border Background="#20808080"
+                            CornerRadius="6" Padding="12"
+                            Margin="0,4,0,0">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="操作步骤：" FontSize="13" FontWeight="SemiBold" />
+                            <TextBlock Text="1. 点击下方按钮，选择 Windows 11 的 ISO 文件"
+                                       FontSize="12" Opacity="0.75" />
+                            <TextBlock Text="2. 程序自动挂载 ISO"
+                                       FontSize="12" Opacity="0.75" />
+                            <TextBlock Text="3. 自动以 /product server 模式启动 setup.exe"
+                                       FontSize="12" Opacity="0.75" />
+                            <TextBlock Text="4. 按提示完成升级（安装过程中可能仍会显示「不支持」的提示，但可继续）"
+                                       FontSize="12" Opacity="0.75" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 状态 -->
+                    <TextBlock Name="Win11StatusText"
+                               FontSize="12"
+                               Opacity="0.6"
+                               Text="尚未选择 ISO 文件"
+                               TextWrapping="Wrap" />
+
+                    <!-- 按钮 -->
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Name="Win11SelectIsoButton"
+                                Content="选择 Windows 11 ISO"
+                                Padding="16,8"
+                                CornerRadius="6"
+                                Background="#0078D4"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Click="Win11SelectIsoButton_Click" />
+
+                        <Button Name="Win11UnmountButton"
+                                Content="卸载已挂载的 ISO"
+                                Padding="16,8"
+                                CornerRadius="6"
+                                Background="Transparent"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1"
+                                Click="Win11UnmountButton_Click" />
+                    </StackPanel>
+
+                    <!-- 警告 -->
+                    <Border Background="#30FFAA00"
+                            CornerRadius="6" Padding="10">
+                        <TextBlock Text="⚠️ 请以管理员权限运行本程序，否则无法挂载 ISO。"
+                                   FontSize="12"
+                                   Foreground="#FF8800"
+                                   TextWrapping="Wrap" />
+                    </Border>
                 </StackPanel>
             </Border>
 

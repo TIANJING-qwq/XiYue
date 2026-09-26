@@ -12,13 +12,12 @@ namespace SBtools;
 
 class Program
 {
-    private const string MutexName = "Global\\XiYue_SingleInstance_Mutex";
+    private const string MutexName = "XiYue_SingleInstance_Mutex";
     private static Mutex? _mutex;
 
     [STAThread]
     public static void Main(string[] args)
     {
-        // 全局异常兜底
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             LogException("AppDomain", e.ExceptionObject as Exception);
 
@@ -28,19 +27,127 @@ class Program
             e.SetObserved();
         };
 
-        // 单实例
-        bool createdNew;
-        _mutex = new Mutex(true, MutexName, out createdNew);
-        if (!createdNew)
+        LogInfo($"=== 程序启动，参数: {string.Join(" ", args)} ===");
+
+        bool isAnotherInstanceActive = CheckExistingInstance();
+
+        if (isAnotherInstanceActive)
         {
+            LogInfo("已有活跃实例，尝试唤到前台后退出");
             BringExistingWindowToFront();
             return;
         }
 
-        try { Core.Initialize(); }
-        catch (Exception ex) { LogException("VLC", ex); }
+        LogInfo("无活跃实例，启动新进程");
 
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        try
+        {
+            Core.Initialize();
+            LogInfo("VLC 初始化成功");
+        }
+        catch (Exception ex)
+        {
+            LogException("VLC", ex);
+        }
+
+        try
+        {
+            LogInfo("进入 Avalonia 主循环");
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            LogInfo("Avalonia 主循环已退出");
+        }
+        catch (Exception ex)
+        {
+            LogException("Avalonia", ex);
+            throw;
+        }
+        finally
+        {
+            try { _mutex?.ReleaseMutex(); } catch { }
+            _mutex?.Dispose();
+        }
+    }
+
+    private static bool CheckExistingInstance()
+    {
+        try
+        {
+            bool createdNew;
+            _mutex = new Mutex(true, MutexName, out createdNew);
+
+            if (createdNew)
+            {
+                LogInfo("Mutex 创建成功，无其他实例");
+                return false;
+            }
+
+            var current = Process.GetCurrentProcess();
+            var others = Process.GetProcessesByName(current.ProcessName)
+                .Where(p => p.Id != current.Id)
+                .ToList();
+
+            if (others.Count == 0)
+            {
+                LogInfo("Mutex 存在但无同名进程，视为残留，启动新进程");
+                _mutex?.Dispose();
+                _mutex = new Mutex(true, MutexName, out createdNew);
+                return false;
+            }
+
+            foreach (var p in others)
+            {
+                try
+                {
+                    if (p.MainWindowHandle != IntPtr.Zero)
+                    {
+                        LogInfo($"发现活跃实例 PID={p.Id}，有窗口");
+                        return true;
+                    }
+                }
+                catch { }
+            }
+
+            LogInfo($"发现 {others.Count} 个同名进程但均无窗口，清理旧进程");
+
+            foreach (var p in others)
+            {
+                try
+                {
+                    p.Kill();
+                    p.WaitForExit(2000);
+                    LogInfo($"已终止残留进程 PID={p.Id}");
+                }
+                catch { }
+            }
+
+            Thread.Sleep(500);
+
+            _mutex?.Dispose();
+            _mutex = new Mutex(true, MutexName, out createdNew);
+            LogInfo($"重新获取 Mutex: {createdNew}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            LogException("MutexCheck", ex);
+            return false;
+        }
+    }
+
+    private static void LogInfo(string message)
+    {
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SchoolBusytools", "logs");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(
+                Path.Combine(dir, $"app_{DateTime.Now:yyyyMMdd}.log"),
+                $"{DateTime.Now:HH:mm:ss} [启动] {message}{Environment.NewLine}");
+            Console.WriteLine(message);
+        }
+        catch { }
     }
 
     private static void LogException(string source, Exception? ex)
@@ -86,7 +193,11 @@ class Program
         catch { }
     }
 
-    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private const int SW_RESTORE = 9;
 }

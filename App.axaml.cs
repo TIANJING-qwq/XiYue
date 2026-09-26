@@ -1,8 +1,10 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using SBtools.Controls;
 using SBtools.Models;
+using SBtools.Services;
 using System;
 using System.Linq;
 
@@ -14,19 +16,25 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // 应用通知配置
         ToastHost.AutoCollapseOnNew = ConfigManager.Instance.AutoCollapseOnNewToast;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // ★ 检测是否由自启动触发
+            // ★ 只有显式 Shutdown 才退出
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
             bool isAutoStart = Environment.GetCommandLineArgs()
                 .Any(a => a.Equals("--autostart", StringComparison.OrdinalIgnoreCase));
 
-            // ★ 自启动 + 配置开启隐藏 → 直接隐藏到托盘
             bool startMinimized = isAutoStart && ConfigManager.Instance.AutoStartMinimized;
 
-            desktop.MainWindow = new MainWindow(startMinimized);
+            var window = new MainWindow(startMinimized);
+            desktop.MainWindow = window;
+
+            // ★ 显式 Show()，让 Opened 事件触发
+            window.Show();
+
+            LogService.Log($"App 初始化完成，startMinimized={startMinimized}", "启动");
         }
 
         base.OnFrameworkInitializationCompleted();

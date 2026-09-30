@@ -1,9 +1,8 @@
-﻿using Avalonia;
+﻿﻿using Avalonia;
 using LibVLCSharp.Shared;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,9 +28,7 @@ class Program
 
         LogInfo($"=== 程序启动，参数: {string.Join(" ", args)} ===");
 
-        bool isAnotherInstanceActive = CheckExistingInstance();
-
-        if (isAnotherInstanceActive)
+        if (CheckExistingInstance())
         {
             LogInfo("已有活跃实例，尝试唤到前台后退出");
             BringExistingWindowToFront();
@@ -68,12 +65,23 @@ class Program
         }
     }
 
+    /// <summary>
+    /// 检查是否已有实例在运行。
+    /// 返回 true  = 已有活跃实例（当前进程应当退出）
+    /// 返回 false = 无其他实例，当前进程继续运行并持有 Mutex
+    /// </summary>
     private static bool CheckExistingInstance()
     {
         try
         {
+            // Windows 上用 Global\ 前缀，避免被会话隔离
+            // （如果程序在 RDP 会话里启动，不加前缀会看不到其他会话里的实例）
+            string mutexName = OperatingSystem.IsWindows()
+                ? @"Global\" + MutexName
+                : MutexName;
+
             bool createdNew;
-            _mutex = new Mutex(true, MutexName, out createdNew);
+            _mutex = new Mutex(initiallyOwned: true, name: mutexName, createdNew: out createdNew);
 
             if (createdNew)
             {
@@ -81,55 +89,31 @@ class Program
                 return false;
             }
 
-            var current = Process.GetCurrentProcess();
-            var others = Process.GetProcessesByName(current.ProcessName)
-                .Where(p => p.Id != current.Id)
-                .ToList();
-
-            if (others.Count == 0)
+            // Mutex 已存在。尝试短暂等待，判断前一个实例是否还在运行。
+            // - 若前一个实例还活着：WaitOne 会超时 → 返回 true
+            // - 若前一个实例已经退出：WaitOne 会立刻拿到锁 → 返回 false
+            // - 若前一个实例异常退出：抛 AbandonedMutexException，我们接管锁 → 返回 false
+            try
             {
-                LogInfo("Mutex 存在但无同名进程，视为残留，启动新进程");
-                _mutex?.Dispose();
-                _mutex = new Mutex(true, MutexName, out createdNew);
+                if (_mutex.WaitOne(TimeSpan.FromMilliseconds(300)))
+                {
+                    LogInfo("前一个实例已退出，接管 Mutex");
+                    return false;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                LogInfo("检测到被放弃的 Mutex，接管所有权");
                 return false;
             }
 
-            foreach (var p in others)
-            {
-                try
-                {
-                    if (p.MainWindowHandle != IntPtr.Zero)
-                    {
-                        LogInfo($"发现活跃实例 PID={p.Id}，有窗口");
-                        return true;
-                    }
-                }
-                catch { }
-            }
-
-            LogInfo($"发现 {others.Count} 个同名进程但均无窗口，清理旧进程");
-
-            foreach (var p in others)
-            {
-                try
-                {
-                    p.Kill();
-                    p.WaitForExit(2000);
-                    LogInfo($"已终止残留进程 PID={p.Id}");
-                }
-                catch { }
-            }
-
-            Thread.Sleep(500);
-
-            _mutex?.Dispose();
-            _mutex = new Mutex(true, MutexName, out createdNew);
-            LogInfo($"重新获取 Mutex: {createdNew}");
-            return false;
+            LogInfo("检测到已有活跃实例，本次启动将退出");
+            return true;
         }
         catch (Exception ex)
         {
             LogException("MutexCheck", ex);
+            // 出错时保守选择：继续启动，避免应用完全无法打开
             return false;
         }
     }
@@ -189,6 +173,9 @@ class Program
                     }
                 }
             }
+            // macOS / Linux 上目前没有跨进程激活窗口的通用方案，
+            // 大多数桌面环境会自行将已运行实例带到前台，
+            // 或用户可以手动点击托盘 / Dock 图标。
         }
         catch { }
     }

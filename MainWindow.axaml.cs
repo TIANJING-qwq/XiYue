@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
@@ -26,7 +27,6 @@ public partial class MainWindow : Window
     private bool _reallyQuit;
     private bool _closingDialogShown;
     private bool _isHiddenToTray;
-    private readonly bool _startMinimized;
 
     private FullscreenPlayerWindow? _playerWindow;
 
@@ -36,26 +36,20 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _instance = this;
-        _startMinimized = startMinimized;
 
         NavView.SelectedItem = NavView.MenuItems[0];
         ContentFrame.Navigate(typeof(FeaturesView));
 
-        // 调度器
         _scheduler = new PlaybackScheduler(OnScheduleStart, OnScheduleStop);
         ApplyScheduleConfig();
 
-        // 托盘图标
         SetupTrayIcon();
-
-        // ★ 启动网络自动监控
         InitNetworkMonitor();
 
         Closing += OnWindowClosing;
 
         if (startMinimized)
         {
-            // ★ 窗口从未 Show，所以不会有闪烁
             _isHiddenToTray = true;
             ShowInTaskbar = false;
             LogService.Log("自启动模式：窗口保持隐藏", "启动");
@@ -82,7 +76,38 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 网络自动监控
+    // 导航
+    // ============================================================
+    private void NavView_SelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
+    {
+        if (e.SelectedItem is NavigationViewItem item)
+        {
+            switch (item.Tag?.ToString())
+            {
+                case "features":
+                    ContentFrame.Navigate(typeof(FeaturesView));
+                    break;
+                case "network":
+                    ContentFrame.Navigate(typeof(NetworkView));
+                    break;
+                case "optimization":
+                    ContentFrame.Navigate(typeof(OptimizationView));
+                    break;
+                case "lab":
+                    ContentFrame.Navigate(typeof(LabView));
+                    break;
+                case "settings":
+                    ContentFrame.Navigate(typeof(SettingsView));
+                    break;
+                case "about":
+                    ContentFrame.Navigate(typeof(AboutView));
+                    break;
+            }
+        }
+    }
+
+    // ============================================================
+    // 网络监控
     // ============================================================
     private void InitNetworkMonitor()
     {
@@ -96,7 +121,6 @@ public partial class MainWindow : Window
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    // 网络状态变化时，可选通知
                     LogService.Log($"网络状态变化: {(connected ? "已连接" : "断开")}", "网络");
                 });
             };
@@ -110,7 +134,6 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>设置页保存后调用，刷新认证器凭据</summary>
     public static void RefreshAuthenticator()
     {
         try
@@ -124,7 +147,7 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 隐藏到托盘 / 恢复
+    // 隐藏 / 恢复
     // ============================================================
     private void HideToTray()
     {
@@ -135,10 +158,7 @@ public partial class MainWindow : Window
             ShowInTaskbar = false;
             LogService.Log("窗口已隐藏到托盘", "窗口");
         }
-        catch (Exception ex)
-        {
-            LogService.Log($"隐藏窗口异常: {ex.Message}", "窗口");
-        }
+        catch { }
     }
 
     private void RestoreMainWindow()
@@ -147,45 +167,28 @@ public partial class MainWindow : Window
         {
             _isHiddenToTray = false;
             ShowInTaskbar = true;
-
-            // 先还原窗口状态
             WindowState = WindowState.Normal;
-
-            // Show 后再 Activate
             Show();
             Activate();
-
-            // 强制前置
             Topmost = true;
             Topmost = false;
-
             LogService.Log("窗口已恢复", "窗口");
         }
-        catch (Exception ex)
-        {
-            LogService.Log($"恢复窗口异常: {ex.Message}", "窗口");
-        }
+        catch { }
     }
 
     // ============================================================
-    // 关闭窗口
+    // 关闭
     // ============================================================
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_reallyQuit) return;
+        if (_closingDialogShown) { e.Cancel = true; return; }
 
-        if (_closingDialogShown)
-        {
-            e.Cancel = true;
-            return;
-        }
-
-        // 已勾选「不再询问」→ 直接隐藏
         if (ConfigManager.Instance.MinimizeToTrayOnClose)
         {
             e.Cancel = true;
             HideToTray();
-            LogService.Log("已按「不再询问」配置，直接最小化到托盘", "窗口");
             return;
         }
 
@@ -194,17 +197,14 @@ public partial class MainWindow : Window
 
         try
         {
-            // 弹对话框前先恢复窗口
             if (_isHiddenToTray || !IsVisible)
             {
                 RestoreMainWindow();
                 await Task.Delay(150);
             }
 
-            LogService.Log("触发关闭询问对话框", "窗口");
             var dialog = new CloseConfirmDialog();
             var result = await dialog.ShowDialog<CloseAction>(this);
-            LogService.Log($"用户选择: {result}", "窗口");
 
             switch (result)
             {
@@ -212,14 +212,9 @@ public partial class MainWindow : Window
                     _reallyQuit = true;
                     QuitApplication();
                     break;
-
                 case CloseAction.MinimizeToTray:
                     HideToTray();
                     PushToast("已最小化", "汐月正在后台运行，双击托盘图标可恢复。");
-                    break;
-
-                case CloseAction.Cancel:
-                default:
                     break;
             }
         }
@@ -227,10 +222,7 @@ public partial class MainWindow : Window
         {
             LogService.Log($"关闭询问异常: {ex.Message}", "窗口");
         }
-        finally
-        {
-            _closingDialogShown = false;
-        }
+        finally { _closingDialogShown = false; }
     }
 
     // ============================================================
@@ -243,11 +235,9 @@ public partial class MainWindow : Window
             LogService.Log("准备退出程序", "退出");
 
             ClosePlayerWindow();
-
             _networkMonitor?.Stop();
             _networkMonitor?.Dispose();
             _networkMonitor = null;
-
             _scheduler?.Dispose();
             _scheduler = null;
 
@@ -258,22 +248,14 @@ public partial class MainWindow : Window
                 _trayIcon = null;
             }
 
-            LogService.Log("程序已退出", "退出");
-
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime)
-            {
                 lifetime.Shutdown();
-            }
         }
-        catch (Exception ex)
-        {
-            LogService.Log($"退出失败: {ex.Message}", "退出");
-            Environment.Exit(0);
-        }
+        catch { Environment.Exit(0); }
     }
 
     // ============================================================
-    // 调度器回调
+    // 调度器
     // ============================================================
     private void OnScheduleStart()
     {
@@ -316,10 +298,7 @@ public partial class MainWindow : Window
                 ClosePlayerWindow();
                 PushToast("定时播放", "播放时段结束，已关闭");
             }
-            catch (Exception ex)
-            {
-                LogService.Log($"关闭播放异常: {ex.Message}", "调度");
-            }
+            catch { }
         });
     }
 
@@ -359,13 +338,11 @@ public partial class MainWindow : Window
             var showItem = new NativeMenuItem("显示主窗口");
             showItem.Click += (_, _) => RestoreMainWindow();
             menu.Add(showItem);
-
             menu.Add(new NativeMenuItemSeparator());
 
             var connectItem = new NativeMenuItem("立即连接");
             connectItem.Click += async (_, _) =>
             {
-                LogService.Log("托盘菜单：立即连接", "托盘");
                 try
                 {
                     if (_authenticator != null)
@@ -385,16 +362,10 @@ public partial class MainWindow : Window
             var stopPlayItem = new NativeMenuItem("关闭播放");
             stopPlayItem.Click += (_, _) => OnScheduleStop();
             menu.Add(stopPlayItem);
-
             menu.Add(new NativeMenuItemSeparator());
 
             var quitItem = new NativeMenuItem("退出");
-            quitItem.Click += (_, _) =>
-            {
-                LogService.Log("托盘菜单：退出", "托盘");
-                _reallyQuit = true;
-                QuitApplication();
-            };
+            quitItem.Click += (_, _) => { _reallyQuit = true; QuitApplication(); };
             menu.Add(quitItem);
 
             _trayIcon.Menu = menu;
@@ -407,26 +378,7 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 导航
-    // ============================================================
-    private void NavView_SelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
-    {
-        if (e.SelectedItem is NavigationViewItem item)
-        {
-            switch (item.Tag?.ToString())
-            {
-                case "features":     ContentFrame.Navigate(typeof(FeaturesView));     break;
-                case "network":      ContentFrame.Navigate(typeof(NetworkView));      break;
-                case "optimization": ContentFrame.Navigate(typeof(OptimizationView)); break;
-                case "lab":          ContentFrame.Navigate(typeof(LabView));          break;
-                case "settings":     ContentFrame.Navigate(typeof(SettingsView));     break;
-                case "about":        ContentFrame.Navigate(typeof(AboutView));        break;
-            }
-        }
-    }
-
-    // ============================================================
-    // 全局通知
+    // 通知
     // ============================================================
     public static void PushToast(string title, string message, int durationSeconds = 5)
     {
@@ -501,7 +453,6 @@ public partial class MainWindow : Window
             };
 
             toast.Closed += (_, _) => { try { win.Close(); } catch { } };
-
             win.Show();
             _ = SafeShowAsync(toast, durationSeconds);
         }
@@ -516,7 +467,6 @@ public partial class MainWindow : Window
         try
         {
             ClosePlayerWindow();
-
             _networkMonitor?.Stop();
             _networkMonitor?.Dispose();
             _networkMonitor = null;
@@ -534,7 +484,6 @@ public partial class MainWindow : Window
         _scheduler = null;
         _instance = null;
 
-        LogService.Log("窗口已关闭", "退出");
         base.OnClosed(e);
     }
 }

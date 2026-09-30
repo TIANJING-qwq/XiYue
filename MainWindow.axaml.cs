@@ -20,9 +20,13 @@ public partial class MainWindow : Window
     private static MainWindow? _instance;
     private static PlaybackScheduler? _scheduler;
     private TrayIcon? _trayIcon;
+    private NetworkMonitor? _networkMonitor;
+    private WiFiAuthenticator? _authenticator;
+
     private bool _reallyQuit;
     private bool _closingDialogShown;
     private bool _isHiddenToTray;
+    private readonly bool _startMinimized;
 
     private FullscreenPlayerWindow? _playerWindow;
 
@@ -32,27 +36,29 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _instance = this;
+        _startMinimized = startMinimized;
 
         NavView.SelectedItem = NavView.MenuItems[0];
         ContentFrame.Navigate(typeof(FeaturesView));
 
+        // 调度器
         _scheduler = new PlaybackScheduler(OnScheduleStart, OnScheduleStop);
         ApplyScheduleConfig();
 
+        // 托盘图标
         SetupTrayIcon();
+
+        // ★ 启动网络自动监控
+        InitNetworkMonitor();
+
         Closing += OnWindowClosing;
 
         if (startMinimized)
         {
-            // ★ 首帧渲染后隐藏到托盘
-            Opened += (_, _) =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    HideToTray();
-                    LogService.Log("自启动模式：已隐藏到托盘", "启动");
-                }, DispatcherPriority.Background);
-            };
+            // ★ 窗口从未 Show，所以不会有闪烁
+            _isHiddenToTray = true;
+            ShowInTaskbar = false;
+            LogService.Log("自启动模式：窗口保持隐藏", "启动");
         }
         else
         {
@@ -68,7 +74,6 @@ public partial class MainWindow : Window
         _scheduler.Enabled = ScheduleConfig.Enabled;
         _scheduler.StartTime = ScheduleConfig.StartTime;
         _scheduler.EndTime = ScheduleConfig.EndTime;
-
         LogService.Log(
             $"调度配置同步: 启用={ScheduleConfig.Enabled}, " +
             $"时段={ScheduleConfig.StartTime:hh\\:mm}-{ScheduleConfig.EndTime:hh\\:mm}, " +
@@ -77,7 +82,49 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 隐藏到托盘 / 恢复窗口
+    // 网络自动监控
+    // ============================================================
+    private void InitNetworkMonitor()
+    {
+        try
+        {
+            var cfg = ConfigManager.Instance;
+            _authenticator = new WiFiAuthenticator(cfg.Username, cfg.Password);
+            _networkMonitor = new NetworkMonitor(_authenticator, 5);
+
+            _networkMonitor.StatusChanged += (connected) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    // 网络状态变化时，可选通知
+                    LogService.Log($"网络状态变化: {(connected ? "已连接" : "断开")}", "网络");
+                });
+            };
+
+            _networkMonitor.Start();
+            LogService.Log("网络自动监控已启动", "网络");
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"网络监控启动失败: {ex.Message}", "网络");
+        }
+    }
+
+    /// <summary>设置页保存后调用，刷新认证器凭据</summary>
+    public static void RefreshAuthenticator()
+    {
+        try
+        {
+            if (_instance?._authenticator == null) return;
+            var cfg = ConfigManager.Instance;
+            _instance._authenticator.UpdateCredentials(cfg.Username, cfg.Password);
+            LogService.Log("认证凭据已刷新", "网络");
+        }
+        catch { }
+    }
+
+    // ============================================================
+    // 隐藏到托盘 / 恢复
     // ============================================================
     private void HideToTray()
     {
@@ -100,8 +147,12 @@ public partial class MainWindow : Window
         {
             _isHiddenToTray = false;
             ShowInTaskbar = true;
-            Show();
+
+            // 先还原窗口状态
             WindowState = WindowState.Normal;
+
+            // Show 后再 Activate
+            Show();
             Activate();
 
             // 强制前置
@@ -129,7 +180,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 已勾选「不再询问」→ 直接隐藏到托盘
+        // 已勾选「不再询问」→ 直接隐藏
         if (ConfigManager.Instance.MinimizeToTrayOnClose)
         {
             e.Cancel = true;
@@ -143,7 +194,7 @@ public partial class MainWindow : Window
 
         try
         {
-            // 如果窗口已隐藏，先恢复才能弹对话框
+            // 弹对话框前先恢复窗口
             if (_isHiddenToTray || !IsVisible)
             {
                 RestoreMainWindow();
@@ -192,6 +243,11 @@ public partial class MainWindow : Window
             LogService.Log("准备退出程序", "退出");
 
             ClosePlayerWindow();
+
+            _networkMonitor?.Stop();
+            _networkMonitor?.Dispose();
+            _networkMonitor = null;
+
             _scheduler?.Dispose();
             _scheduler = null;
 
@@ -217,7 +273,7 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 调度器
+    // 调度器回调
     // ============================================================
     private void OnScheduleStart()
     {
@@ -231,7 +287,6 @@ public partial class MainWindow : Window
                          ?? CctvChannels.GetDefault();
 
                 LogService.Log($"定时触发播放: {ch.Name}", "调度");
-
                 await Task.Delay(150);
 
                 _playerWindow = new FullscreenPlayerWindow(ch);
@@ -308,7 +363,19 @@ public partial class MainWindow : Window
             menu.Add(new NativeMenuItemSeparator());
 
             var connectItem = new NativeMenuItem("立即连接");
-            connectItem.Click += (_, _) => PushToast("手动连接", "正在尝试连接校园网...");
+            connectItem.Click += async (_, _) =>
+            {
+                LogService.Log("托盘菜单：立即连接", "托盘");
+                try
+                {
+                    if (_authenticator != null)
+                    {
+                        var ok = await _authenticator.Authenticate();
+                        PushToast(ok ? "认证成功" : "认证失败", ok ? "校园网已连接" : "请检查账号密码");
+                    }
+                }
+                catch { }
+            };
             menu.Add(connectItem);
 
             var testPlayItem = new NativeMenuItem("测试播放 CCTV-13");
@@ -372,7 +439,6 @@ public partial class MainWindow : Window
                 var window = _instance;
                 if (window == null) return;
 
-                // 主窗口可见 → 内嵌通知
                 if (window.IsVisible && !window._isHiddenToTray)
                 {
                     var host = window.FindControl<ToastHost>("GlobalToastHost");
@@ -386,7 +452,6 @@ public partial class MainWindow : Window
                     }
                 }
 
-                // 主窗口隐藏 → 独立通知窗口
                 ShowStandaloneToast(title, message, durationSeconds);
             }
             catch { }
@@ -451,6 +516,11 @@ public partial class MainWindow : Window
         try
         {
             ClosePlayerWindow();
+
+            _networkMonitor?.Stop();
+            _networkMonitor?.Dispose();
+            _networkMonitor = null;
+
             if (_trayIcon != null)
             {
                 _trayIcon.IsVisible = false;

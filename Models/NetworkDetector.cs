@@ -36,7 +36,6 @@ public class NetworkDetector
     {
         var info = new NetworkInfo();
 
-        // 本地 IP
         try
         {
             using var s = new System.Net.Sockets.Socket(
@@ -49,7 +48,6 @@ public class NetworkDetector
         }
         catch { }
 
-        // 公网 IP
         try
         {
             var publicIp = (await _client.GetStringAsync("https://api.ipify.org")).Trim();

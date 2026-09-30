@@ -53,10 +53,11 @@ public partial class SettingsView : UserControl
             MainWindow.PushToast("保存失败", "账号和密码不能为空");
             return;
         }
-
+    
         _config.Username = u;
         _config.Password = p;
         MainWindow.PushToast("设置已保存", "认证凭据已更新并加密存储。");
+        MainWindow.RefreshAuthenticator();
     }
 
     // ============ 通知 ============

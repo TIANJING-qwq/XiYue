@@ -27,6 +27,7 @@ public class ConfigManager
 
         _data = Load() ?? new ConfigData();
 
+        // 同步到 ScheduleConfig
         try
         {
             Services.ScheduleConfig.Enabled = _data.ScheduleEnabled;
@@ -123,6 +124,14 @@ public class ConfigManager
         set { _data.MinimizeToTrayOnClose = value; Save(); }
     }
 
+    // ---------------- ★ 音量 ----------------
+    /// <summary>上次使用的音量（0-100）</summary>
+    public int LastVolume
+    {
+        get => _data.LastVolume;
+        set { _data.LastVolume = Math.Clamp(value, 0, 100); Save(); }
+    }
+
     // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
@@ -155,10 +164,10 @@ public class ConfigManager
         public string ScheduleChannel { get; set; } = "CCTV-13 新闻";
 
         public bool AutoStartOnBoot { get; set; } = false;
-
-        // ★ 默认 true：自启动时隐藏到托盘
         public bool AutoStartMinimized { get; set; } = true;
-
         public bool MinimizeToTrayOnClose { get; set; } = false;
+
+        // ★★★ 关键：这里必须有 LastVolume
+        public int LastVolume { get; set; } = 80;
     }
 }

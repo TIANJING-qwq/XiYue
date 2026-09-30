@@ -16,18 +16,19 @@ public partial class OptimizationView : UserControl
     private readonly Dictionary<string, ToggleSwitch> _toggles = new();
     private readonly Dictionary<string, OptimizationItem> _items = new();
 
+    // ★ 防止 toggle 回滚触发二次调用
+    private bool _isUpdatingFromCode;
+
     public OptimizationView()
     {
         InitializeComponent();
 
-        // 分类填充
         BuildCategory("服务优化", "ServicesPanel");
         BuildCategory("AI 组件", "AiPanel");
         BuildCategory("隐私", "PrivacyPanel");
         BuildCategory("性能", "PerformancePanel");
         BuildCategory("清理", "CleanupPanel");
 
-        // 加载完成后再检测状态（异步）
         AttachedToVisualTree += async (_, _) =>
         {
             await Task.Delay(200);
@@ -35,9 +36,6 @@ public partial class OptimizationView : UserControl
         };
     }
 
-    // ============================================================
-    // 构建分类面板
-    // ============================================================
     private void BuildCategory(string category, string panelName)
     {
         var panel = this.FindControl<StackPanel>(panelName);
@@ -53,7 +51,6 @@ public partial class OptimizationView : UserControl
 
     private Border BuildItemCard(OptimizationItem item)
     {
-        // 风险标签
         var (riskText, riskColor) = item.Risk switch
         {
             RiskLevel.Safe => ("安全", "#22AA22"),
@@ -128,14 +125,14 @@ public partial class OptimizationView : UserControl
     }
 
     // ============================================================
-    // 开关切换
+    // ★ 核心修复：防止回滚触发二次调用
     // ============================================================
     private async Task OnToggleChangedAsync(string id, ToggleSwitch toggle)
     {
         if (!_items.TryGetValue(id, out var item)) return;
 
-        // 防止刷新状态时触发
-        if (toggle.Tag as string == "loading") return;
+        // ★ 如果正在程序化更新状态，忽略
+        if (_isUpdatingFromCode) return;
 
         bool enable = toggle.IsChecked == true;
 
@@ -144,9 +141,9 @@ public partial class OptimizationView : UserControl
             var result = await ConfirmAsync($"「{item.Name}」是高级操作，可能无法恢复。\n确定继续吗？");
             if (!result)
             {
-                toggle.Tag = "loading";
+                _isUpdatingFromCode = true;
                 toggle.IsChecked = false;
-                toggle.Tag = null;
+                _isUpdatingFromCode = false;
                 return;
             }
         }
@@ -154,32 +151,33 @@ public partial class OptimizationView : UserControl
         AppendLog($"{(enable ? "应用" : "还原")}: {item.Name}");
 
         toggle.IsEnabled = false;
-        bool ok;
+
+        (bool Success, string Message) result2;
         try
         {
-            ok = enable
+            result2 = enable
                 ? await SystemOptimizer.ApplyAsync(id)
                 : await SystemOptimizer.RevertAsync(id);
         }
         catch (Exception ex)
         {
-            ok = false;
-            AppendLog($"异常: {ex.Message}");
+            result2 = (false, ex.Message);
         }
+
         toggle.IsEnabled = true;
 
-        if (ok)
+        if (result2.Success)
         {
             AppendLog($"✓ {item.Name} {(enable ? "已应用" : "已还原")}");
         }
         else
         {
-            AppendLog($"✗ {item.Name} 操作失败（可能未以管理员权限运行）");
+            AppendLog($"✗ {item.Name} 失败: {result2.Message}");
 
-            // 还原开关状态
-            toggle.Tag = "loading";
+            // ★ 回滚 toggle，且用标志位防止重触发
+            _isUpdatingFromCode = true;
             toggle.IsChecked = !enable;
-            toggle.Tag = null;
+            _isUpdatingFromCode = false;
         }
 
         UpdateStatusText();
@@ -191,29 +189,31 @@ public partial class OptimizationView : UserControl
     private async Task RefreshAllStatusAsync()
     {
         AppendLog("正在检测系统优化状态...");
+
+        _isUpdatingFromCode = true;
         foreach (var (id, toggle) in _toggles)
         {
             try
             {
                 var applied = await SystemOptimizer.CheckStatusAsync(id);
-                toggle.Tag = "loading";
                 toggle.IsChecked = applied;
-                toggle.Tag = null;
             }
             catch { }
         }
+        _isUpdatingFromCode = false;
+
         AppendLog("状态检测完成");
         UpdateStatusText();
     }
 
     // ============================================================
-    // 一键应用推荐项（仅 Safe）
+    // 一键应用推荐项
     // ============================================================
     private async void ApplyRecommendedButton_Click(object? sender, RoutedEventArgs e)
     {
         var safeItems = SystemOptimizer.AllItems
             .Where(i => i.Risk == RiskLevel.Safe)
-            .Where(i => !i.Id.StartsWith("clean_"))   // 清理项需手动执行
+            .Where(i => !i.Id.StartsWith("clean_"))
             .ToList();
 
         var confirm = await ConfirmAsync(
@@ -226,23 +226,21 @@ public partial class OptimizationView : UserControl
         foreach (var item in safeItems)
         {
             if (!_toggles.TryGetValue(item.Id, out var toggle)) continue;
-            if (toggle.IsChecked == true) continue;   // 已应用跳过
+            if (toggle.IsChecked == true) continue;
 
-            toggle.Tag = "loading";
+            _isUpdatingFromCode = true;
             toggle.IsChecked = true;
-            toggle.Tag = null;
+            _isUpdatingFromCode = false;
 
-            var ok = await SystemOptimizer.ApplyAsync(item.Id);
-            AppendLog($"{(ok ? "✓" : "✗")} {item.Name}");
+            var result = await SystemOptimizer.ApplyAsync(item.Id);
+            AppendLog($"{(result.Success ? "✓" : "✗")} {item.Name}" +
+                     (result.Success ? "" : $" - {result.Message}"));
         }
 
         AppendLog("===== 推荐优化应用完成 =====");
         UpdateStatusText();
     }
 
-    // ============================================================
-    // 刷新按钮
-    // ============================================================
     private async void RefreshStatusButton_Click(object? sender, RoutedEventArgs e)
     {
         await RefreshAllStatusAsync();

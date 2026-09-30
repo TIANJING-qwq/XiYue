@@ -7,9 +7,9 @@ namespace SBtools.Services;
 
 public enum RiskLevel
 {
-    Safe,       // 安全，随时可还原
-    Medium,     // 中等，可能影响某些功能
-    Advanced    // 高级，建议了解后果再开
+    Safe,
+    Medium,
+    Advanced
 }
 
 public class OptimizationItem
@@ -23,9 +23,6 @@ public class OptimizationItem
 
 public static class SystemOptimizer
 {
-    // ============================================================
-    // 所有优化项定义
-    // ============================================================
     public static List<OptimizationItem> AllItems { get; } = new()
     {
         // ============ 服务优化 ============
@@ -72,7 +69,7 @@ public static class SystemOptimizer
 
         new() { Id = "ai_recall", Category = "AI 组件",
                 Name = "禁用 Recall（AI 截图历史）",
-                Description = "Windows 11 24H2 的 AI 屏幕记录功能，会持续截屏分析",
+                Description = "Windows 11 24H2 的 AI 屏幕记录功能",
                 Risk = RiskLevel.Safe },
 
         new() { Id = "ai_webexp", Category = "AI 组件",
@@ -82,7 +79,7 @@ public static class SystemOptimizer
 
         new() { Id = "ai_bing", Category = "AI 组件",
                 Name = "禁用搜索中的 Bing 结果",
-                Description = "让开始菜单搜索只返回本地结果，不显示网络内容",
+                Description = "让开始菜单搜索只返回本地结果",
                 Risk = RiskLevel.Safe },
 
         new() { Id = "ai_paint", Category = "AI 组件",
@@ -113,7 +110,7 @@ public static class SystemOptimizer
 
         new() { Id = "priv_cortana", Category = "隐私",
                 Name = "禁用 Cortana",
-                Description = "关闭 Cortana 语音助手（已基本淘汰）",
+                Description = "关闭 Cortana 语音助手",
                 Risk = RiskLevel.Safe },
 
         new() { Id = "priv_consumer", Category = "隐私",
@@ -175,187 +172,381 @@ public static class SystemOptimizer
     };
 
     // ============================================================
-    // 应用一项优化
+    // 应用
     // ============================================================
-    public static async Task<bool> ApplyAsync(string id)
+    public static async Task<(bool Success, string Message)> ApplyAsync(string id)
     {
         var script = GetApplyScript(id);
         if (string.IsNullOrEmpty(script))
-        {
-            LogService.Log($"未找到优化脚本: {id}", "优化");
-            return false;
-        }
+            return (false, $"未找到优化脚本: {id}");
 
         LogService.Log($"应用优化: {id}", "优化");
         return await RunPowerShellAsync(script);
     }
 
     // ============================================================
-    // 还原一项优化
+    // 还原
     // ============================================================
-    public static async Task<bool> RevertAsync(string id)
+    public static async Task<(bool Success, string Message)> RevertAsync(string id)
     {
         var script = GetRevertScript(id);
         if (string.IsNullOrEmpty(script))
-        {
-            LogService.Log($"未找到还原脚本: {id}", "优化");
-            return false;
-        }
+            return (false, $"未找到还原脚本: {id}");
 
         LogService.Log($"还原优化: {id}", "优化");
         return await RunPowerShellAsync(script);
     }
 
     // ============================================================
-    // 检查当前状态（true = 已优化）
+    // 检查状态
     // ============================================================
     public static async Task<bool> CheckStatusAsync(string id)
     {
         var script = GetCheckScript(id);
         if (string.IsNullOrEmpty(script)) return false;
 
-        var (exitCode, output, _) = await RunPowerShellRawAsync(script);
-        if (exitCode != 0) return false;
+        var result = await RunPowerShellRawAsync(script);
+        if (!result.Success) return false;
 
-        return output.Contains("TRUE", StringComparison.OrdinalIgnoreCase);
+        return result.StdOut.Contains("TRUE", StringComparison.OrdinalIgnoreCase);
     }
 
     // ============================================================
-    // 脚本分发
+    // 应用脚本
     // ============================================================
     private static string GetApplyScript(string id) => id switch
     {
-        // ---- 服务优化 ----
-        "svc_diagtrack" => "sc.exe config DiagTrack start= disabled; sc.exe stop DiagTrack",
-        "svc_dmwappush" => "sc.exe config dmwappushservice start= disabled; sc.exe stop dmwappushservice",
-        "svc_retaildemo" => "sc.exe config RetailDemo start= disabled; sc.exe stop RetailDemo",
-        "svc_mapsbroker" => "sc.exe config MapsBroker start= disabled; sc.exe stop MapsBroker",
-        "svc_sysmain" => "sc.exe config SysMain start= disabled; sc.exe stop SysMain",
-        "svc_wsearch" => "sc.exe config WSearch start= disabled; sc.exe stop WSearch",
-        "svc_print" => "sc.exe config Spooler start= disabled; sc.exe stop Spooler",
+        "svc_diagtrack" => WrapServiceDisable("DiagTrack"),
+        "svc_dmwappush" => WrapServiceDisable("dmwappushservice"),
+        "svc_retaildemo" => WrapServiceDisable("RetailDemo"),
+        "svc_mapsbroker" => WrapServiceDisable("MapsBroker"),
+        "svc_sysmain" => WrapServiceDisable("SysMain"),
+        "svc_wsearch" => WrapServiceDisable("WSearch"),
+        "svc_print" => WrapServiceDisable("Spooler"),
 
-        // ---- AI 组件 ----
-        "ai_copilot" => "Get-AppxPackage -AllUsers *Microsoft.Copilot* | Remove-AppxPackage -ErrorAction SilentlyContinue",
-        "ai_recall" => "Disable-WindowsOptionalFeature -Online -FeatureName 'Recall' -NoRestart -ErrorAction SilentlyContinue",
-        "ai_webexp" => "Get-AppxPackage -AllUsers *WindowsWebExperiencePack* | Remove-AppxPackage -ErrorAction SilentlyContinue",
-        "ai_bing" => @"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'BingSearchEnabled' -Value 0 -Type DWord -Force; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'CortanaConsent' -Value 0 -Type DWord -Force",
-        "ai_paint" => "Get-AppxPackage -AllUsers *Microsoft.Paint* | Remove-AppxPackage -ErrorAction SilentlyContinue",
+        "ai_copilot" => WrapAppxRemove("Microsoft.Copilot"),
+        "ai_webexp" => WrapAppxRemove("WindowsWebExperiencePack"),
+        "ai_paint" => WrapAppxRemove("Microsoft.Paint"),
+        "ai_recall" => WrapCommand(@"Disable-WindowsOptionalFeature -Online -FeatureName 'Recall' -NoRestart -ErrorAction SilentlyContinue"),
+        "ai_bing" => WrapCommand(@"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'BingSearchEnabled' -Value 0 -Type DWord -Force; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'CortanaConsent' -Value 0 -Type DWord -Force"),
 
-        // ---- 隐私 ----
-        "priv_telemetry" => @"New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Force | Out-Null; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name 'AllowTelemetry' -Value 0 -Type DWord -Force",
-        "priv_adid" => @"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo' -Name 'Enabled' -Value 0 -Type DWord -Force",
-        "priv_activity" => @"New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Force | Out-Null; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name 'EnableActivityFeed' -Value 0 -Type DWord -Force; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name 'PublishUserActivities' -Value 0 -Type DWord -Force; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name 'UploadUserActivities' -Value 0 -Type DWord -Force",
-        "priv_location" => "sc.exe config lfsvc start= disabled; sc.exe stop lfsvc",
-        "priv_cortana" => @"New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' -Force | Out-Null; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' -Name 'AllowCortana' -Value 0 -Type DWord -Force",
-        "priv_consumer" => @"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SubscribedContent-338388Enabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SubscribedContent-338389Enabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SystemPaneSuggestionsEnabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue",
+        "priv_telemetry" => WrapRegistrySet(
+            @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
+            "AllowTelemetry", 0),
+        "priv_adid" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo",
+            "Enabled", 0),
+        "priv_activity" => WrapCommand(@"
+$p = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System'
+if (-not (Test-Path $p)) { New-Item -Path $p -Force | Out-Null }
+Set-ItemProperty -Path $p -Name 'EnableActivityFeed' -Value 0 -Type DWord -Force
+Set-ItemProperty -Path $p -Name 'PublishUserActivities' -Value 0 -Type DWord -Force
+Set-ItemProperty -Path $p -Name 'UploadUserActivities' -Value 0 -Type DWord -Force
+"),
+        "priv_location" => WrapServiceDisable("lfsvc"),
+        "priv_cortana" => WrapRegistrySet(
+            @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+            "AllowCortana", 0),
+        "priv_consumer" => WrapCommand(@"
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SubscribedContent-338388Enabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SubscribedContent-338389Enabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SystemPaneSuggestionsEnabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+"),
 
-        // ---- 性能 ----
-        "perf_visual" => @"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Value 2 -Type DWord -Force",
-        "perf_power" => "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
-        "perf_startup_delay" => @"New-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize' -Force | Out-Null; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize' -Name 'StartupDelayInMSec' -Value 0 -Type DWord -Force",
-        "perf_game_mode" => @"New-Item -Path 'HKCU:\Software\Microsoft\GameBar' -Force | Out-Null; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\GameBar' -Name 'AutoGameModeEnabled' -Value 1 -Type DWord -Force",
-        "perf_transparency" => @"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'EnableTransparency' -Value 0 -Type DWord -Force",
+        "perf_visual" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
+            "VisualFXSetting", 2),
+        "perf_power" => WrapCommand("powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"),
+        "perf_startup_delay" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize",
+            "StartupDelayInMSec", 0),
+        "perf_game_mode" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\GameBar",
+            "AutoGameModeEnabled", 1),
+        "perf_transparency" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            "EnableTransparency", 0),
 
-        // ---- 清理 ----
-        "clean_temp" => "Remove-Item -Path \"$env:TEMP\\*\" -Recurse -Force -ErrorAction SilentlyContinue",
-        "clean_update" => "Stop-Service wuauserv -Force -ErrorAction SilentlyContinue; Remove-Item -Path \"$env:SystemRoot\\SoftwareDistribution\\Download\\*\" -Recurse -Force -ErrorAction SilentlyContinue; Start-Service wuauserv -ErrorAction SilentlyContinue",
-        "clean_thumb" => "Remove-Item -Path \"$env:LOCALAPPDATA\\Microsoft\\Windows\\Explorer\\thumbcache_*.db\" -Force -ErrorAction SilentlyContinue",
-        "clean_old" => "if (Test-Path 'C:\\Windows.old') { takeown /F 'C:\\Windows.old' /R /D Y | Out-Null; icacls 'C:\\Windows.old' /grant Administrators:F /T | Out-Null; Remove-Item 'C:\\Windows.old' -Recurse -Force -ErrorAction SilentlyContinue }",
-        "clean_delivery" => "Remove-Item -Path \"$env:SystemRoot\\SoftwareDistribution\\DeliveryOptimization\\*\" -Recurse -Force -ErrorAction SilentlyContinue",
+        "clean_temp" => WrapCommand(@"Remove-Item -Path ""$env:TEMP\*"" -Recurse -Force -ErrorAction SilentlyContinue"),
+        "clean_update" => WrapCommand(@"
+Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
+Remove-Item -Path ""$env:SystemRoot\SoftwareDistribution\Download\*"" -Recurse -Force -ErrorAction SilentlyContinue
+Start-Service wuauserv -ErrorAction SilentlyContinue
+"),
+        "clean_thumb" => WrapCommand(@"Remove-Item -Path ""$env:LOCALAPPDATA\Microsoft\Windows\Explorer\thumbcache_*.db"" -Force -ErrorAction SilentlyContinue"),
+        "clean_old" => WrapCommand(@"
+if (Test-Path 'C:\Windows.old') {
+    takeown /F 'C:\Windows.old' /R /D Y 2>&1 | Out-Null
+    icacls 'C:\Windows.old' /grant Administrators:F /T 2>&1 | Out-Null
+    Remove-Item 'C:\Windows.old' -Recurse -Force -ErrorAction SilentlyContinue
+}
+"),
+        "clean_delivery" => WrapCommand(@"Remove-Item -Path ""$env:SystemRoot\SoftwareDistribution\DeliveryOptimization\*"" -Recurse -Force -ErrorAction SilentlyContinue"),
 
         _ => ""
     };
 
+    // ============================================================
+    // 还原脚本
+    // ============================================================
     private static string GetRevertScript(string id) => id switch
     {
-        // 服务（恢复为手动）
-        "svc_diagtrack" => "sc.exe config DiagTrack start= auto; sc.exe start DiagTrack",
-        "svc_dmwappush" => "sc.exe config dmwappushservice start= demand",
-        "svc_retaildemo" => "sc.exe config RetailDemo start= demand",
-        "svc_mapsbroker" => "sc.exe config MapsBroker start= auto",
-        "svc_sysmain" => "sc.exe config SysMain start= auto; sc.exe start SysMain",
-        "svc_wsearch" => "sc.exe config WSearch start= delayed-auto; sc.exe start WSearch",
-        "svc_print" => "sc.exe config Spooler start= auto; sc.exe start Spooler",
+        "svc_diagtrack" => WrapServiceEnable("DiagTrack", "Automatic"),
+        "svc_dmwappush" => WrapServiceEnable("dmwappushservice", "Manual"),
+        "svc_retaildemo" => WrapServiceEnable("RetailDemo", "Manual"),
+        "svc_mapsbroker" => WrapServiceEnable("MapsBroker", "Automatic"),
+        "svc_sysmain" => WrapServiceEnable("SysMain", "Automatic"),
+        "svc_wsearch" => WrapServiceEnable("WSearch", "Automatic"),
+        "svc_print" => WrapServiceEnable("Spooler", "Automatic"),
 
-        // AI 组件（无法直接恢复卸载，仅能还原策略）
-        "ai_bing" => @"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'BingSearchEnabled' -Value 1 -Type DWord -Force",
-        "ai_recall" => "Enable-WindowsOptionalFeature -Online -FeatureName 'Recall' -NoRestart -ErrorAction SilentlyContinue",
+        "ai_recall" => WrapCommand(@"Enable-WindowsOptionalFeature -Online -FeatureName 'Recall' -NoRestart -ErrorAction SilentlyContinue"),
+        "ai_bing" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Search",
+            "BingSearchEnabled", 1),
 
-        // 隐私
-        "priv_telemetry" => "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection' -Name 'AllowTelemetry' -Value 3 -Type DWord -Force -ErrorAction SilentlyContinue",
-        "priv_adid" => "Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo' -Name 'Enabled' -Value 1 -Type DWord -Force",
-        "priv_activity" => "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System' -Name 'EnableActivityFeed' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue",
-        "priv_location" => "sc.exe config lfsvc start= demand",
-        "priv_cortana" => "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search' -Name 'AllowCortana' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue",
-        "priv_consumer" => @"Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SubscribedContent-338388Enabled' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SystemPaneSuggestionsEnabled' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue",
+        "priv_telemetry" => WrapRegistrySet(
+            @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
+            "AllowTelemetry", 3),
+        "priv_adid" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo",
+            "Enabled", 1),
+        "priv_location" => WrapServiceEnable("lfsvc", "Manual"),
+        "priv_cortana" => WrapRegistrySet(
+            @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+            "AllowCortana", 1),
 
-        // 性能
-        "perf_visual" => "Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects' -Name 'VisualFXSetting' -Value 0 -Type DWord -Force",
-        "perf_power" => "powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e",
-        "perf_startup_delay" => "Remove-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize' -Name 'StartupDelayInMSec' -Force -ErrorAction SilentlyContinue",
-        "perf_game_mode" => "Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\GameBar' -Name 'AutoGameModeEnabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue",
-        "perf_transparency" => "Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize' -Name 'EnableTransparency' -Value 1 -Type DWord -Force",
+        "perf_visual" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
+            "VisualFXSetting", 0),
+        "perf_power" => WrapCommand("powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e"),
+        "perf_game_mode" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\GameBar",
+            "AutoGameModeEnabled", 0),
+        "perf_transparency" => WrapRegistrySet(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            "EnableTransparency", 1),
 
-        // 清理（无法还原）
         _ => ""
     };
 
+    // ============================================================
+    // 检查脚本
+    // ============================================================
     private static string GetCheckScript(string id) => id switch
     {
-        "svc_diagtrack" => "(Get-Service DiagTrack).StartType -eq 'Disabled'",
-        "svc_sysmain" => "(Get-Service SysMain).StartType -eq 'Disabled'",
-        "svc_wsearch" => "(Get-Service WSearch).StartType -eq 'Disabled'",
-        "ai_bing" => "(Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search' -Name 'BingSearchEnabled' -ErrorAction SilentlyContinue).BingSearchEnabled -eq 0",
-        "priv_telemetry" => "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection' -Name 'AllowTelemetry' -ErrorAction SilentlyContinue).AllowTelemetry -eq 0",
-        "perf_transparency" => "(Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize' -Name 'EnableTransparency' -ErrorAction SilentlyContinue).EnableTransparency -eq 0",
+        "svc_diagtrack" => WrapCheckServiceDisabled("DiagTrack"),
+        "svc_dmwappush" => WrapCheckServiceDisabled("dmwappushservice"),
+        "svc_retaildemo" => WrapCheckServiceDisabled("RetailDemo"),
+        "svc_mapsbroker" => WrapCheckServiceDisabled("MapsBroker"),
+        "svc_sysmain" => WrapCheckServiceDisabled("SysMain"),
+        "svc_wsearch" => WrapCheckServiceDisabled("WSearch"),
+        "svc_print" => WrapCheckServiceDisabled("Spooler"),
+        "priv_location" => WrapCheckServiceDisabled("lfsvc"),
+
+        "priv_telemetry" => WrapCheckRegistryEquals(
+            @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
+            "AllowTelemetry", 0),
+        "priv_adid" => WrapCheckRegistryEquals(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo",
+            "Enabled", 0),
+        "priv_cortana" => WrapCheckRegistryEquals(
+            @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+            "AllowCortana", 0),
+
+        "perf_visual" => WrapCheckRegistryEquals(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
+            "VisualFXSetting", 2),
+        "perf_transparency" => WrapCheckRegistryEquals(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            "EnableTransparency", 0),
+        "perf_game_mode" => WrapCheckRegistryEquals(
+            @"HKCU:\Software\Microsoft\GameBar",
+            "AutoGameModeEnabled", 1),
+        "ai_bing" => WrapCheckRegistryEquals(
+            @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Search",
+            "BingSearchEnabled", 0),
+
         _ => ""
     };
 
     // ============================================================
-    // PowerShell 执行
+    // 脚本片段辅助
     // ============================================================
-    public static async Task<bool> RunPowerShellAsync(string script)
+    private static string WrapCommand(string body) => $@"
+$ErrorActionPreference = 'SilentlyContinue'
+{body}
+exit 0
+";
+
+    private static string WrapServiceDisable(string serviceName) => $@"
+$ErrorActionPreference = 'SilentlyContinue'
+$svc = Get-Service -Name '{serviceName}' -ErrorAction SilentlyContinue
+if ($null -eq $svc) {{
+    Write-Output 'SKIP: 服务不存在'
+    exit 0
+}}
+try {{
+    Set-Service -Name '{serviceName}' -StartupType Disabled -ErrorAction Stop
+    Stop-Service -Name '{serviceName}' -Force -ErrorAction SilentlyContinue
+    $after = Get-Service -Name '{serviceName}' -ErrorAction SilentlyContinue
+    if ($after.StartType -eq 'Disabled') {{
+        Write-Output 'SUCCESS'
+        exit 0
+    }} else {{
+        Write-Output ""FAILED: 状态未改变 ($($after.StartType))""
+        exit 1
+    }}
+}} catch {{
+    Write-Output ""FAILED: $($_.Exception.Message)""
+    exit 1
+}}
+";
+
+    private static string WrapServiceEnable(string serviceName, string startupType) => $@"
+$ErrorActionPreference = 'SilentlyContinue'
+$svc = Get-Service -Name '{serviceName}' -ErrorAction SilentlyContinue
+if ($null -eq $svc) {{
+    Write-Output 'SKIP: 服务不存在'
+    exit 0
+}}
+try {{
+    Set-Service -Name '{serviceName}' -StartupType {startupType} -ErrorAction Stop
+    Start-Service -Name '{serviceName}' -ErrorAction SilentlyContinue
+    Write-Output 'SUCCESS'
+    exit 0
+}} catch {{
+    Write-Output ""FAILED: $($_.Exception.Message)""
+    exit 1
+}}
+";
+
+    private static string WrapCheckServiceDisabled(string serviceName) => $@"
+$svc = Get-Service -Name '{serviceName}' -ErrorAction SilentlyContinue
+if ($null -eq $svc) {{
+    Write-Output 'FALSE'
+}} elseif ($svc.StartType -eq 'Disabled') {{
+    Write-Output 'TRUE'
+}} else {{
+    Write-Output 'FALSE'
+}}
+";
+
+    private static string WrapRegistrySet(string path, string name, int value) => $@"
+$ErrorActionPreference = 'Stop'
+try {{
+    if (-not (Test-Path '{path}')) {{
+        New-Item -Path '{path}' -Force | Out-Null
+    }}
+    Set-ItemProperty -Path '{path}' -Name '{name}' -Value {value} -Type DWord -Force -ErrorAction Stop
+    Write-Output 'SUCCESS'
+    exit 0
+}} catch {{
+    Write-Output ""FAILED: $($_.Exception.Message)""
+    exit 1
+}}
+";
+
+    private static string WrapCheckRegistryEquals(string path, string name, int expected) => $@"
+$val = (Get-ItemProperty -Path '{path}' -Name '{name}' -ErrorAction SilentlyContinue).{name}
+if ($val -eq {expected}) {{ Write-Output 'TRUE' }} else {{ Write-Output 'FALSE' }}
+";
+
+    private static string WrapAppxRemove(string packagePattern) => $@"
+$ErrorActionPreference = 'SilentlyContinue'
+$pkgs = Get-AppxPackage -AllUsers -Name '*{packagePattern}*' -ErrorAction SilentlyContinue
+if ($null -eq $pkgs) {{
+    Write-Output 'SKIP: 未安装该应用'
+    exit 0
+}}
+foreach ($p in $pkgs) {{
+    try {{
+        Remove-AppxPackage -Package $p.PackageFullName -AllUsers -ErrorAction Stop
+    }} catch {{
+        Write-Output ""FAILED: $($_.Exception.Message)""
+        exit 1
+    }}
+}}
+Write-Output 'SUCCESS'
+exit 0
+";
+
+    // ============================================================
+    // ★ 修复：元组解构和字段名对齐
+    // ============================================================
+    private static async Task<(bool Success, string Message)> RunPowerShellAsync(string script)
     {
-        var (exitCode, _, stderr) = await RunPowerShellRawAsync(script);
-        if (exitCode != 0)
-        {
-            LogService.Log($"执行失败: {stderr}", "优化");
-            return false;
-        }
-        return true;
+        // ★ 正确的解构：RunPowerShellRawAsync 返回 (bool Success, int ExitCode, string StdOut)
+        var result = await RunPowerShellRawAsync(script);
+
+        var stdout = result.StdOut ?? "";
+        var exitCode = result.ExitCode;
+
+        var output = stdout.Trim();
+
+        // 明确成功信号
+        if (output.Contains("SUCCESS"))
+            return (true, "成功");
+
+        // 明确跳过信号（服务/应用不存在也算成功）
+        if (output.Contains("SKIP:"))
+            return (true, output);
+
+        // 明确失败信号
+        if (output.Contains("FAILED:"))
+            return (false, output);
+
+        // 没有明确信号，根据退出码
+        if (exitCode == 0)
+            return (true, "成功");
+
+        return (false, $"退出码 {exitCode}");
     }
 
-    private static async Task<(int exitCode, string stdout, string stderr)> RunPowerShellRawAsync(string script)
+    /// <summary>
+    /// ★ 原始 PowerShell 执行：返回 (是否成功, 退出码, 标准输出)
+    /// </summary>
+    private static async Task<(bool Success, int ExitCode, string StdOut)> RunPowerShellRawAsync(string script)
     {
         try
         {
-            // 检查脚本里是否含判断 TRUE / 输出
-            bool checkMode = script.Contains(" -eq ") && !script.Contains("Set-ItemProperty") && !script.Contains("sc.exe");
+            // 写到临时文件，避免命令行转义问题
+            var tempFile = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                $"xiyue_opt_{Guid.NewGuid():N}.ps1");
+            await System.IO.File.WriteAllTextAsync(tempFile, script, System.Text.Encoding.UTF8);
 
             var psi = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = checkMode
-                    ? $"-NoProfile -ExecutionPolicy Bypass -Command \"if ({script.Replace("\"", "\\\"")}) {{ Write-Output 'TRUE' }} else {{ Write-Output 'FALSE' }}\""
-                    : $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{tempFile}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
+                StandardErrorEncoding = System.Text.Encoding.UTF8
             };
 
             using var proc = Process.Start(psi);
-            if (proc == null) return (-1, "", "无法启动 PowerShell");
+            if (proc == null)
+                return (false, -1, "");
 
             var stdout = await proc.StandardOutput.ReadToEndAsync();
             var stderr = await proc.StandardError.ReadToEndAsync();
             await proc.WaitForExitAsync();
 
-            return (proc.ExitCode, stdout, stderr);
+            // 清理临时文件
+            try { System.IO.File.Delete(tempFile); } catch { }
+
+            // 合并 stderr 到 stdout（如果 stdout 为空）
+            if (string.IsNullOrWhiteSpace(stdout) && !string.IsNullOrWhiteSpace(stderr))
+                stdout = "FAILED: " + stderr;
+
+            return (proc.ExitCode == 0, proc.ExitCode, stdout);
         }
         catch (Exception ex)
         {
-            return (-1, "", ex.Message);
+            return (false, -1, $"FAILED: {ex.Message}");
         }
     }
 }

@@ -1,7 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
@@ -21,12 +19,9 @@ public partial class MainWindow : Window
     private static MainWindow? _instance;
     private static PlaybackScheduler? _scheduler;
     private TrayIcon? _trayIcon;
-    private NetworkMonitor? _networkMonitor;
-    private WiFiAuthenticator? _authenticator;
-
     private bool _reallyQuit;
     private bool _closingDialogShown;
-    private bool _isHiddenToTray;
+    private readonly bool _startMinimized;
 
     private FullscreenPlayerWindow? _playerWindow;
 
@@ -36,6 +31,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _instance = this;
+        _startMinimized = startMinimized;
 
         NavView.SelectedItem = NavView.MenuItems[0];
         ContentFrame.Navigate(typeof(FeaturesView));
@@ -44,20 +40,20 @@ public partial class MainWindow : Window
         ApplyScheduleConfig();
 
         SetupTrayIcon();
-        InitNetworkMonitor();
-        InitUpdateService();
-
         Closing += OnWindowClosing;
 
-        if (startMinimized)
+        if (_startMinimized)
         {
-            _isHiddenToTray = true;
-            ShowInTaskbar = false;
-            LogService.Log("自启动模式：窗口保持隐藏", "启动");
+            Opened += (_, _) =>
+            {
+                Hide();
+                ShowInTaskbar = false;
+                LogService.Log("以自启动模式运行，已最小化到托盘", "启动");
+            };
         }
         else
         {
-            Opened += (_, _) => LogService.Log("程序已启动", "启动");
+            LogService.Log("程序已启动", "启动");
         }
     }
 
@@ -69,6 +65,7 @@ public partial class MainWindow : Window
         _scheduler.Enabled = ScheduleConfig.Enabled;
         _scheduler.StartTime = ScheduleConfig.StartTime;
         _scheduler.EndTime = ScheduleConfig.EndTime;
+
         LogService.Log(
             $"调度配置同步: 启用={ScheduleConfig.Enabled}, " +
             $"时段={ScheduleConfig.StartTime:hh\\:mm}-{ScheduleConfig.EndTime:hh\\:mm}, " +
@@ -77,176 +74,25 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 导航
-    // ============================================================
-    private void NavView_SelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
-    {
-        if (e.SelectedItem is NavigationViewItem item)
-        {
-            switch (item.Tag?.ToString())
-            {
-                case "features":
-                    ContentFrame.Navigate(typeof(FeaturesView));
-                    break;
-                case "network":
-                    ContentFrame.Navigate(typeof(NetworkView));
-                    break;
-                case "optimization":
-                    ContentFrame.Navigate(typeof(OptimizationView));
-                    break;
-                case "lab":
-                    ContentFrame.Navigate(typeof(LabView));
-                    break;
-                case "settings":
-                    ContentFrame.Navigate(typeof(SettingsView));
-                    break;
-                case "about":
-                    ContentFrame.Navigate(typeof(AboutView));
-                    break;
-            }
-        }
-    }
-
-    // ============================================================
-    // 网络监控
-    // ============================================================
-    private void InitNetworkMonitor()
-    {
-        try
-        {
-            var cfg = ConfigManager.Instance;
-            _authenticator = new WiFiAuthenticator(cfg.Username, cfg.Password);
-            _networkMonitor = new NetworkMonitor(_authenticator, 5);
-
-            _networkMonitor.StatusChanged += (connected) =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    LogService.Log($"网络状态变化: {(connected ? "已连接" : "断开")}", "网络");
-                });
-            };
-
-            _networkMonitor.Start();
-            LogService.Log("网络自动监控已启动", "网络");
-        }
-        catch (Exception ex)
-        {
-            LogService.Log($"网络监控启动失败: {ex.Message}", "网络");
-        }
-    }
-
-    public static void RefreshAuthenticator()
-    {
-        try
-        {
-            if (_instance?._authenticator == null) return;
-            var cfg = ConfigManager.Instance;
-            _instance._authenticator.UpdateCredentials(cfg.Username, cfg.Password);
-            LogService.Log("认证凭据已刷新", "网络");
-        }
-        catch { }
-    }
-
-    // ============================================================
-    // ★ 自动更新
-    // ============================================================
-    private void InitUpdateService()
-    {
-        try
-        {
-            var updater = UpdateService.Instance;
-
-            updater.UpdateAvailable += version =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    PushToast("发现新版本",
-                        $"v{version} 已发布，可在「关于」页检查更新。");
-                });
-            };
-
-            updater.CheckCompleted += hasUpdate =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (!hasUpdate)
-                        PushToast("检查更新", "当前已是最新版本。");
-                });
-            };
-
-            updater.DownloadProgressChanged += percent =>
-            {
-                if (percent == 25 || percent == 50 || percent == 75)
-                {
-                    Dispatcher.UIThread.Post(() =>
-                        PushToast("下载更新", $"已完成 {percent}%"));
-                }
-            };
-
-            updater.InstallCompleted += success =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (success)
-                        PushToast("更新就绪",
-                            "安装程序已启动，请按提示完成后重新打开汐月。");
-                    else
-                        PushToast("更新失败",
-                            "请稍后重试，或前往 GitHub 手动下载。");
-                });
-            };
-
-            LogService.Log("更新事件已订阅", "更新");
-        }
-        catch (Exception ex)
-        {
-            LogService.Log($"订阅更新事件失败: {ex.Message}", "更新");
-        }
-    }
-
-    // ============================================================
-    // 隐藏 / 恢复
-    // ============================================================
-    private void HideToTray()
-    {
-        try
-        {
-            _isHiddenToTray = true;
-            Hide();
-            ShowInTaskbar = false;
-            LogService.Log("窗口已隐藏到托盘", "窗口");
-        }
-        catch { }
-    }
-
-    private void RestoreMainWindow()
-    {
-        try
-        {
-            _isHiddenToTray = false;
-            ShowInTaskbar = true;
-            WindowState = WindowState.Normal;
-            Show();
-            Activate();
-            Topmost = true;
-            Topmost = false;
-            LogService.Log("窗口已恢复", "窗口");
-        }
-        catch { }
-    }
-
-    // ============================================================
-    // 关闭
+    // 关闭窗口
     // ============================================================
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_reallyQuit) return;
-        if (_closingDialogShown) { e.Cancel = true; return; }
+
+        if (_closingDialogShown)
+        {
+            e.Cancel = true;
+            return;
+        }
 
         if (ConfigManager.Instance.MinimizeToTrayOnClose)
         {
             e.Cancel = true;
-            HideToTray();
+            Hide();
+            ShowInTaskbar = false;
+            LogService.Log("已按「不再询问」配置，直接最小化到托盘", "窗口");
+            PushToast("已最小化", "汐月正在后台运行，双击托盘图标可恢复。");
             return;
         }
 
@@ -255,23 +101,20 @@ public partial class MainWindow : Window
 
         try
         {
-            if (_isHiddenToTray || !IsVisible)
-            {
-                RestoreMainWindow();
-                await Task.Delay(150);
-            }
-
+            LogService.Log("触发关闭询问对话框", "窗口");
             var dialog = new CloseConfirmDialog();
             var result = await dialog.ShowDialog<CloseAction>(this);
+            LogService.Log($"用户选择: {result}", "窗口");
 
             switch (result)
             {
                 case CloseAction.Quit:
                     _reallyQuit = true;
-                    QuitApplication();
+                    Close();
                     break;
                 case CloseAction.MinimizeToTray:
-                    HideToTray();
+                    Hide();
+                    ShowInTaskbar = false;
                     PushToast("已最小化", "汐月正在后台运行，双击托盘图标可恢复。");
                     break;
             }
@@ -280,38 +123,10 @@ public partial class MainWindow : Window
         {
             LogService.Log($"关闭询问异常: {ex.Message}", "窗口");
         }
-        finally { _closingDialogShown = false; }
-    }
-
-    // ============================================================
-    // 退出
-    // ============================================================
-    private void QuitApplication()
-    {
-        try
+        finally
         {
-            LogService.Log("准备退出程序", "退出");
-
-            ClosePlayerWindow();
-            _networkMonitor?.Stop();
-            _networkMonitor?.Dispose();
-            _networkMonitor = null;
-            _scheduler?.Dispose();
-            _scheduler = null;
-
-            try { UpdateService.Instance.StopAutoCheck(); } catch { }
-
-            if (_trayIcon != null)
-            {
-                _trayIcon.IsVisible = false;
-                _trayIcon.Dispose();
-                _trayIcon = null;
-            }
-
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime)
-                lifetime.Shutdown();
+            _closingDialogShown = false;
         }
-        catch { Environment.Exit(0); }
     }
 
     // ============================================================
@@ -329,6 +144,17 @@ public partial class MainWindow : Window
                          ?? CctvChannels.GetDefault();
 
                 LogService.Log($"定时触发播放: {ch.Name}", "调度");
+
+                var wasHidden = !IsVisible || WindowState == WindowState.Minimized;
+                if (wasHidden)
+                {
+                    ShowInTaskbar = false;
+                    Opacity = 0;
+                    Show();
+                    WindowState = WindowState.Normal;
+                    LogService.Log("临时激活主窗口以启动渲染循环", "调度");
+                }
+
                 await Task.Delay(150);
 
                 _playerWindow = new FullscreenPlayerWindow(ch);
@@ -338,6 +164,14 @@ public partial class MainWindow : Window
                     _playerWindow = null;
                 };
                 _playerWindow.Show();
+
+                if (wasHidden)
+                {
+                    await Task.Delay(300);
+                    Hide();
+                    ShowInTaskbar = false;
+                    Opacity = 1;
+                }
 
                 PushToast("定时播放", $"正在播放 {ch.Name}");
             }
@@ -358,7 +192,10 @@ public partial class MainWindow : Window
                 ClosePlayerWindow();
                 PushToast("定时播放", "播放时段结束，已关闭");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogService.Log($"关闭播放异常: {ex.Message}", "调度");
+            }
         });
     }
 
@@ -372,7 +209,10 @@ public partial class MainWindow : Window
                 _playerWindow = null;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            LogService.Log($"关闭窗口异常: {ex.Message}", "播放");
+        }
     }
 
     // ============================================================
@@ -398,21 +238,11 @@ public partial class MainWindow : Window
             var showItem = new NativeMenuItem("显示主窗口");
             showItem.Click += (_, _) => RestoreMainWindow();
             menu.Add(showItem);
+
             menu.Add(new NativeMenuItemSeparator());
 
             var connectItem = new NativeMenuItem("立即连接");
-            connectItem.Click += async (_, _) =>
-            {
-                try
-                {
-                    if (_authenticator != null)
-                    {
-                        var ok = await _authenticator.Authenticate();
-                        PushToast(ok ? "认证成功" : "认证失败", ok ? "校园网已连接" : "请检查账号密码");
-                    }
-                }
-                catch { }
-            };
+            connectItem.Click += (_, _) => PushToast("手动连接", "正在尝试连接校园网...");
             menu.Add(connectItem);
 
             var testPlayItem = new NativeMenuItem("测试播放 CCTV-13");
@@ -422,10 +252,15 @@ public partial class MainWindow : Window
             var stopPlayItem = new NativeMenuItem("关闭播放");
             stopPlayItem.Click += (_, _) => OnScheduleStop();
             menu.Add(stopPlayItem);
+
             menu.Add(new NativeMenuItemSeparator());
 
             var quitItem = new NativeMenuItem("退出");
-            quitItem.Click += (_, _) => { _reallyQuit = true; QuitApplication(); };
+            quitItem.Click += (_, _) =>
+            {
+                _reallyQuit = true;
+                Close();
+            };
             menu.Add(quitItem);
 
             _trayIcon.Menu = menu;
@@ -437,8 +272,39 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RestoreMainWindow()
+    {
+        try
+        {
+            ShowInTaskbar = true;
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+        catch { }
+    }
+
     // ============================================================
-    // 通知
+    // 导航（★ 用 Frame.Navigate，不是你之前给我的 TransitioningContentControl）
+    // ============================================================
+    private void NavView_SelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
+    {
+        if (e.SelectedItem is NavigationViewItem item)
+        {
+            switch (item.Tag?.ToString())
+            {
+                case "features":     ContentFrame.Navigate(typeof(FeaturesView));     break;
+                case "network":      ContentFrame.Navigate(typeof(NetworkView));      break;
+                case "optimization": ContentFrame.Navigate(typeof(OptimizationView)); break;
+                case "lab":          ContentFrame.Navigate(typeof(LabView));          break;
+                case "settings":     ContentFrame.Navigate(typeof(SettingsView));     break;
+                case "about":        ContentFrame.Navigate(typeof(AboutView));        break;
+            }
+        }
+    }
+
+    // ============================================================
+    // 全局通知
     // ============================================================
     public static void PushToast(string title, string message, int durationSeconds = 5)
     {
@@ -451,7 +317,7 @@ public partial class MainWindow : Window
                 var window = _instance;
                 if (window == null) return;
 
-                if (window.IsVisible && !window._isHiddenToTray)
+                if (window.IsVisible && window.WindowState != WindowState.Minimized)
                 {
                     var host = window.FindControl<ToastHost>("GlobalToastHost");
                     if (host != null)
@@ -513,6 +379,7 @@ public partial class MainWindow : Window
             };
 
             toast.Closed += (_, _) => { try { win.Close(); } catch { } };
+
             win.Show();
             _ = SafeShowAsync(toast, durationSeconds);
         }
@@ -527,10 +394,6 @@ public partial class MainWindow : Window
         try
         {
             ClosePlayerWindow();
-            _networkMonitor?.Stop();
-            _networkMonitor?.Dispose();
-            _networkMonitor = null;
-
             if (_trayIcon != null)
             {
                 _trayIcon.IsVisible = false;
@@ -544,6 +407,7 @@ public partial class MainWindow : Window
         _scheduler = null;
         _instance = null;
 
+        LogService.Log("程序已退出", "退出");
         base.OnClosed(e);
     }
 }

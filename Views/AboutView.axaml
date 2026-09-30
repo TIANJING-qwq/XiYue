@@ -2,67 +2,52 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SBtools.Views.AboutView">
     <UserControl.Styles>
-        <Style Selector="Button.glass">
-            <Setter Property="Background" Value="#18FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#30FFFFFF"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="24,10"/>
+        <!-- 主要按钮：蓝色实底 -->
+        <Style Selector="Button.primaryBtn">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="22,10"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
-                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/>
-                </Transitions>
-            </Setter>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.primaryBtn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FF3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.primaryBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FF2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.primaryBtn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FF1D4ED8"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.primaryBtn:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FF6B7280"/>
+            <Setter Property="Foreground" Value="#FFDDDDDD"/>
         </Style>
 
-        <Style Selector="Button.glass:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#28FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#50FFFFFF"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-        </Style>
-        <Style Selector="Button.glass:pointerover">
-            <Setter Property="RenderTransform" Value="translateY(-1px)"/>
-        </Style>
-
-        <Style Selector="Button.glass:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#10FFFFFF"/>
-            <Setter Property="RenderTransform" Value="scale(0.97)"/>
-        </Style>
-
-        <Style Selector="Button.accentGlass">
-            <Setter Property="Background" Value="#18FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#30FFFFFF"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="24,10"/>
+        <!-- 次要按钮：灰色实底 -->
+        <Style Selector="Button.secondaryBtn">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="22,10"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
-                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/>
-                </Transitions>
-            </Setter>
+            <Setter Property="CornerRadius" Value="8"/>
         </Style>
-
-        <Style Selector="Button.accentGlass:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#30FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#60FFFFFF"/>
+        <Style Selector="Button.secondaryBtn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FF4B5563"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
         </Style>
-        <Style Selector="Button.accentGlass:pointerover">
-            <Setter Property="RenderTransform" Value="translateY(-1px)"/>
+        <Style Selector="Button.secondaryBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FF374151"/>
+            <Setter Property="Foreground" Value="White"/>
         </Style>
-
-        <Style Selector="Button.accentGlass:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#0CFFFFFF"/>
-            <Setter Property="RenderTransform" Value="scale(0.97)"/>
+        <Style Selector="Button.secondaryBtn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FF1F2937"/>
+            <Setter Property="Foreground" Value="White"/>
         </Style>
     </UserControl.Styles>
 
@@ -71,7 +56,7 @@
                     VerticalAlignment="Center"
                     Spacing="8"
                     Margin="0,40,0,40"
-                    MaxWidth="480">
+                    MaxWidth="520">
 
             <Image x:Name="AppIcon"
                    Width="96" Height="96"
@@ -83,48 +68,50 @@
                        Text="XY"
                        FontSize="36"
                        FontWeight="Bold"
+                       Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
                        HorizontalAlignment="Center"/>
 
             <TextBlock x:Name="ChineseName"
                        Text="汐月"
                        FontSize="16"
-                       Opacity="0.85"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,4"/>
 
             <Border x:Name="Divider"
                     Height="1"
                     Width="200"
-                    Background="#30808080"
+                    Background="{DynamicResource SystemControlForegroundBaseLowBrush}"
                     Margin="0,12,0,12"/>
 
             <TextBlock x:Name="LineAuthor"
                        Text="SchoolBusytools 项目组 · tianjing &amp; deepseek"
                        FontSize="13"
+                       Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
                        HorizontalAlignment="Center"/>
 
             <TextBlock x:Name="LineTeam"
                        Text="校园网自动认证 · 轻量校园工具集"
                        FontSize="12"
-                       Opacity="0.6"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                        HorizontalAlignment="Center"/>
 
             <TextBlock x:Name="LineBuild"
                        Text="基于 C# / .NET 8 + Avalonia UI 构建"
                        FontSize="12"
-                       Opacity="0.7"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                        HorizontalAlignment="Center"/>
 
             <TextBlock x:Name="LineVersion"
                        Text="版本 Dev0.3.1"
                        FontSize="12"
-                       Opacity="0.5"
+                       Foreground="{DynamicResource SystemControlForegroundBaseLowBrush}"
                        HorizontalAlignment="Center"/>
 
             <TextBlock x:Name="LineDesc"
                        Text="纯客户端工具，不收集任何用户数据"
                        FontSize="12"
-                       Opacity="0.6"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,8,0,0"/>
 
@@ -134,31 +121,21 @@
                         Margin="0,28,0,0">
 
                 <Button x:Name="GitHubButton"
-                        Classes="glass"
+                        Classes="secondaryBtn"
                         Click="GitHubButton_Click">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21C14.5,21.27 14.66,21.59 15.17,21.5C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z"
-                                  Width="16" Height="16"
-                                  Foreground="#E0E0E0"/>
-                        <TextBlock Text="GitHub 仓库" VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <TextBlock Text="GitHub 仓库" VerticalAlignment="Center"/>
                 </Button>
 
                 <Button x:Name="CheckUpdateButton"
-                        Classes="accentGlass"
+                        Classes="primaryBtn"
                         Click="CheckUpdateButton_Click">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"
-                                  Width="16" Height="16"
-                                  Foreground="#FFFFFF"/>
-                        <TextBlock Text="检查更新" VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <TextBlock Text="检查更新" VerticalAlignment="Center"/>
                 </Button>
             </StackPanel>
 
             <TextBlock x:Name="UpdateStatusText"
                        FontSize="11"
-                       Opacity="0.5"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,10,0,0"
                        TextWrapping="Wrap"

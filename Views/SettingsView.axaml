@@ -2,132 +2,88 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SBtools.Views.SettingsView">
     <ScrollViewer>
-        <StackPanel Margin="32" Spacing="16">
+        <StackPanel Margin="24" Spacing="20" MaxWidth="640">
 
-            <TextBlock Text="设置" FontSize="28" FontWeight="Bold" />
-            <TextBlock Text="配置账号、通知与程序选项"
-                       FontSize="14" Opacity="0.6"
-                       Margin="0,0,0,8" />
+            <!-- 网络认证 -->
+            <TextBlock Text="网络认证" FontSize="16" FontWeight="SemiBold"/>
+            <StackPanel Spacing="10">
+                <TextBlock Text="用户名" FontSize="13"/>
+                <TextBox x:Name="UsernameBox" Watermark="请输入校园网账号"/>
 
-            <!-- ============ WiFi 认证（可折叠） ============ -->
-            <Expander Header="WiFi 认证"
-                      IsExpanded="True"
-                      HorizontalAlignment="Stretch">
-                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="0,0,8,8"
-                        Padding="20">
-                    <StackPanel Spacing="14">
-                        <TextBlock Text="认证凭据将以 AES 加密后保存在本地。"
-                                   FontSize="12" Opacity="0.6" />
+                <TextBlock Text="密码" FontSize="13" Margin="0,8,0,0"/>
+                <TextBox x:Name="PasswordBox" PasswordChar="*" Watermark="请输入密码"/>
 
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="账号" FontSize="13" />
-                            <TextBox Name="UsernameBox" Watermark="输入账号" />
-                        </StackPanel>
+                <Button Content="保存凭据"
+                        HorizontalAlignment="Left"
+                        Padding="20,8"
+                        Margin="0,8,0,0"
+                        Click="SaveCredentials_Click"/>
+            </StackPanel>
 
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="密码" FontSize="13" />
-                            <TextBox Name="PasswordBox" PasswordChar="*" Watermark="输入密码" />
-                        </StackPanel>
+            <!-- ★ 主题 -->
+            <TextBlock Text="主题" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
+            <StackPanel Spacing="10">
+                <TextBlock Text="外观模式" FontSize="13"/>
+                <ComboBox x:Name="ThemeModeComboBox"
+                          Width="200"
+                          HorizontalAlignment="Left"
+                          SelectionChanged="ThemeModeComboBox_SelectionChanged">
+                    <ComboBoxItem Content="浅色"/>
+                    <ComboBoxItem Content="深色"/>
+                    <ComboBoxItem Content="跟随系统"/>
+                </ComboBox>
+            </StackPanel>
 
-                        <Button Content="保存"
-                                Click="SaveCredentials_Click"
-                                HorizontalAlignment="Left" />
-                    </StackPanel>
-                </Border>
-            </Expander>
+            <!-- 通知 -->
+            <TextBlock Text="通知" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="新通知到达时自动折叠堆叠" FontSize="13"/>
+                    <TextBlock Text="多条通知时只显示最新一条，其余收起"
+                               FontSize="11" Opacity="0.5"/>
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              x:Name="AutoCollapseSwitch"
+                              IsCheckedChanged="AutoCollapseSwitch_Changed"/>
+            </Grid>
 
-            <!-- ============ 通知（可折叠） ============ -->
-            <Expander Header="通知"
-                      IsExpanded="True"
-                      HorizontalAlignment="Stretch">
-                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="0,0,8,8"
-                        Padding="20">
-                    <StackPanel Spacing="12">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Text="新通知到达时自动折叠堆叠"
-                                       VerticalAlignment="Center"
-                                       Width="260" />
-                            <ToggleSwitch Name="AutoCollapseSwitch"
-                                          OnContent=""
-                                          OffContent=""
-                                          IsCheckedChanged="AutoCollapseSwitch_Changed" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </Expander>
+            <!-- 程序选项 -->
+            <TextBlock Text="程序选项" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
 
-            <!-- ============ 程序选项（可折叠） ============ -->
-            <Expander Header="程序选项"
-                      IsExpanded="True"
-                      HorizontalAlignment="Stretch">
-                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="0,0,8,8"
-                        Padding="20">
-                    <StackPanel Spacing="12">
-                        <!-- 开机自启动 -->
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Text="开机自启动"
-                                       VerticalAlignment="Center"
-                                       Width="260" />
-                            <ToggleSwitch Name="AutoStartSwitch"
-                                          OnContent=""
-                                          OffContent=""
-                                          IsCheckedChanged="AutoStartSwitch_Changed" />
-                        </StackPanel>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="开机自启动" FontSize="13"/>
+                    <TextBlock Text="登录系统后自动启动汐月"
+                               FontSize="11" Opacity="0.5"/>
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              x:Name="AutoStartSwitch"
+                              IsCheckedChanged="AutoStartSwitch_Changed"/>
+            </Grid>
 
-                        <!-- 自启动时隐藏到托盘 -->
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Text="开机自启动时隐藏到托盘"
-                                       VerticalAlignment="Center"
-                                       Width="260" />
-                            <ToggleSwitch Name="AutoStartMinimizedSwitch"
-                                          OnContent=""
-                                          OffContent=""
-                                          IsCheckedChanged="AutoStartMinimizedSwitch_Changed" />
-                        </StackPanel>
-                        <TextBlock Text="关闭此项时，开机后主窗口会直接显示。"
-                                   FontSize="11" Opacity="0.55"
-                                   Margin="0,-6,0,0"
-                                   TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="自启动时隐藏到托盘" FontSize="13"/>
+                    <TextBlock Text="开机后不显示主窗口，仅在托盘中运行"
+                               FontSize="11" Opacity="0.5"/>
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              x:Name="AutoStartMinimizedSwitch"
+                              IsCheckedChanged="AutoStartMinimizedSwitch_Changed"/>
+            </Grid>
 
-                        <!-- 关闭时最小化到托盘 -->
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Text="关闭时最小化到托盘"
-                                       VerticalAlignment="Center"
-                                       Width="260" />
-                            <ToggleSwitch Name="MinTraySwitch"
-                                          OnContent=""
-                                          OffContent=""
-                                          IsCheckedChanged="MinTraySwitch_Changed" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </Expander>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="关闭时直接最小化到托盘" FontSize="13"/>
+                    <TextBlock Text="不再弹出询问对话框"
+                               FontSize="11" Opacity="0.5"/>
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              x:Name="MinTraySwitch"
+                              IsCheckedChanged="MinTraySwitch_Changed"/>
+            </Grid>
 
-            <!-- ============ 提示（可折叠） ============ -->
-            <Expander Header="💡 定时播放设置"
-                      IsExpanded="False"
-                      HorizontalAlignment="Stretch">
-                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="0,0,8,8"
-                        Padding="20">
-                    <TextBlock Text="定时播放 CCTV 的时段、频道、测试等选项已移至「网络 → 定时播放」标签页。"
-                               FontSize="12"
-                               Opacity="0.7"
-                               TextWrapping="Wrap" />
-                </Border>
-            </Expander>
-
+            <Border Height="24"/>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

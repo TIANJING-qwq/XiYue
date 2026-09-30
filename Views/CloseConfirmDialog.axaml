@@ -1,89 +1,137 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ea="using:Avalonia.Animation.Easings"
         x:Class="SBtools.Views.CloseConfirmDialog"
-        Width="460"
+        Title="关闭汐月"
+        Width="440"
         SizeToContent="Height"
-        SystemDecorations="None"
+        WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner"
-        Background="Transparent"
-        TransparencyLevelHint="Transparent">
+        SystemDecorations="BorderOnly">
 
-    <Border Name="RootCard"
-            BorderBrush="#E0E0E0"
+    <Border x:Name="RootCard"
+            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
             CornerRadius="10"
-            Background="#F3F3F3"
-            Padding="24"
-            Opacity="0"
-            RenderTransformOrigin="50%,50%"
-            BoxShadow="0 16 48 0 #60000000">
+            Padding="28">
+
         <Border.Transitions>
             <Transitions>
-                <DoubleTransition Property="Opacity" Duration="0:0:0.22">
+                <DoubleTransition Property="Opacity" Duration="0:0:0.25">
                     <DoubleTransition.Easing>
-                        <CubicEaseOut />
+                        <ea:CubicEaseOut/>
                     </DoubleTransition.Easing>
                 </DoubleTransition>
-                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28">
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.35">
                     <TransformOperationsTransition.Easing>
-                        <BackEaseOut />
+                        <ea:QuinticEaseOut/>
                     </TransformOperationsTransition.Easing>
                 </TransformOperationsTransition>
             </Transitions>
         </Border.Transitions>
 
-        <StackPanel Spacing="14">
+        <Border.Styles>
+            <!-- 取消按钮 -->
+            <Style Selector="Button.cancel">
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <Setter Property="Padding" Value="20,8"/>
+                <Setter Property="MinWidth" Value="88"/>
+                <Setter Property="CornerRadius" Value="6"/>
+            </Style>
+            <Style Selector="Button.cancel /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="6"/>
+            </Style>
+            <Style Selector="Button.cancel:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+            </Style>
 
-            <!-- 标题 -->
-            <TextBlock Text="关闭 汐月"
-                       FontSize="20"
-                       FontWeight="SemiBold" />
+            <!-- 最小化按钮：蓝色 -->
+            <Style Selector="Button.minimize">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Padding" Value="20,8"/>
+                <Setter Property="MinWidth" Value="130"/>
+                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+            <Style Selector="Button.minimize /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="#FF0078D4"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="CornerRadius" Value="6"/>
+            </Style>
+            <Style Selector="Button.minimize:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="#FF106EBE"/>
+                <Setter Property="Foreground" Value="White"/>
+            </Style>
+            <Style Selector="Button.minimize:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="#FF005A9E"/>
+                <Setter Property="Foreground" Value="White"/>
+            </Style>
 
-            <!-- 说明 -->
-            <TextBlock Text="你想退出程序，还是最小化到系统托盘继续运行？"
-                       FontSize="14"
-                       Foreground="#606060"
-                       TextWrapping="Wrap" />
+            <!-- 退出按钮：红色 -->
+            <Style Selector="Button.quit">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Padding" Value="20,8"/>
+                <Setter Property="MinWidth" Value="88"/>
+                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+            <Style Selector="Button.quit /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="#FFE81123"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="CornerRadius" Value="6"/>
+            </Style>
+            <Style Selector="Button.quit:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="#FFC50F1F"/>
+                <Setter Property="Foreground" Value="White"/>
+            </Style>
+            <Style Selector="Button.quit:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="#FFA8001A"/>
+                <Setter Property="Foreground" Value="White"/>
+            </Style>
+        </Border.Styles>
 
-            <!-- ★ 不再询问 -->
-            <CheckBox Name="DontAskAgainCheckbox"
-                      Content="下次不再询问，直接最小化到托盘"
-                      FontSize="13" />
+        <StackPanel Spacing="16">
 
-            <!-- 按钮组 -->
+            <TextBlock Text="关闭汐月"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+
+            <TextBlock Text="请选择关闭方式："
+                       FontSize="13"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+
+            <CheckBox x:Name="DontAskAgainCheckbox"
+                      Content="不再询问"
+                      FontSize="12"
+                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Spacing="10"
-                        Margin="0,10,0,0">
+                        Margin="0,4,0,0">
 
-                <Button Name="CancelButton"
+                <Button x:Name="CancelButton"
+                        Classes="cancel"
                         Content="取消"
-                        Padding="18,8"
-                        CornerRadius="6"
-                        Background="Transparent"
-                        BorderBrush="#D0D0D0"
-                        BorderThickness="1"
-                        Click="CancelButton_Click" />
+                        Click="CancelButton_Click"/>
 
-                <Button Name="MinimizeButton"
+                <Button x:Name="MinimizeButton"
+                        Classes="minimize"
                         Content="最小化到托盘"
-                        Padding="18,8"
-                        CornerRadius="6"
-                        Background="Transparent"
-                        BorderBrush="#D0D0D0"
-                        BorderThickness="1"
-                        Click="MinimizeButton_Click" />
+                        Click="MinimizeButton_Click"/>
 
-                <Button Name="QuitButton"
+                <Button x:Name="QuitButton"
+                        Classes="quit"
                         Content="退出"
-                        Padding="18,8"
-                        CornerRadius="6"
-                        Background="#0078D4"
-                        Foreground="White"
-                        BorderThickness="0"
-                        Click="QuitButton_Click" />
+                        Click="QuitButton_Click"/>
             </StackPanel>
         </StackPanel>
     </Border>

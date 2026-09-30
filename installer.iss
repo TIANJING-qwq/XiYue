@@ -1,6 +1,6 @@
 [Setup]
 AppName=汐月 XiYue
-AppVersion=1.2.0
+AppVersion=0.3.1
 AppPublisher=SchoolBusytools
 DefaultDirName={autopf}\XiYue
 DefaultGroupName=汐月
@@ -10,7 +10,7 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 OutputDir=.\publish\installer
-OutputBaseFilename=XiYue_Setup_v1.2.0
+OutputBaseFilename=XiYue_Setup_v0.3.1
 SetupIconFile=Assets\app.ico
 ArchitecturesInstallIn64BitMode=x64
 
@@ -21,7 +21,6 @@ Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.i
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加图标:"
 
 [Files]
-; ★ 整个 publish 目录（含 LibVLC DLL 和 plugins）
 Source: "publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -34,6 +33,3 @@ Filename: "{app}\SBtools.exe"; Description: "立即启动"; Flags: nowait postin
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
-
-; ★ 安装时不需要管理权限写数据（数据都在 %APPDATA%）
-; ★ 但安装到 Program Files 需要管理员权限

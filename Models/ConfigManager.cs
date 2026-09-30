@@ -132,6 +132,19 @@ public class ConfigManager
         set { _data.LastVolume = Math.Clamp(value, 0, 100); Save(); }
     }
 
+    // ---------------- ★ 自动更新 ----------------
+    /// <summary>是否开启定时自动检查更新（默认 true）</summary>
+    public bool AutoCheckUpdate
+    {
+        get => _data.AutoCheckUpdate;
+        set
+        {
+            if (_data.AutoCheckUpdate == value) return;
+            _data.AutoCheckUpdate = value;
+            Save();
+        }
+    }
+
     // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
@@ -167,7 +180,10 @@ public class ConfigManager
         public bool AutoStartMinimized { get; set; } = true;
         public bool MinimizeToTrayOnClose { get; set; } = false;
 
-        // ★★★ 关键：这里必须有 LastVolume
+        // ★ 自动更新
+        public bool AutoCheckUpdate { get; set; } = true;
+
+        // ★ 音量
         public int LastVolume { get; set; } = 80;
     }
 }

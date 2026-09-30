@@ -27,6 +27,7 @@ public class ConfigManager
 
         _data = Load() ?? new ConfigData();
 
+        // 同步到 ScheduleConfig
         try
         {
             Services.ScheduleConfig.Enabled = _data.ScheduleEnabled;
@@ -37,6 +38,7 @@ public class ConfigManager
         catch { }
     }
 
+    // ---------------- WiFi 认证 ----------------
     public string Username
     {
         get => _data.Username;
@@ -49,12 +51,14 @@ public class ConfigManager
         set { _data.EncryptedPassword = SecureStorage.Encrypt(value); Save(); }
     }
 
+    // ---------------- 通知 ----------------
     public bool AutoCollapseOnNewToast
     {
         get => _data.AutoCollapseOnNewToast;
         set { _data.AutoCollapseOnNewToast = value; Save(); }
     }
 
+    // ---------------- 定时播放 ----------------
     public bool ScheduleEnabled
     {
         get => _data.ScheduleEnabled;
@@ -99,6 +103,7 @@ public class ConfigManager
         }
     }
 
+    // ---------------- 程序选项 ----------------
     public bool AutoStartOnBoot
     {
         get => _data.AutoStartOnBoot;
@@ -117,6 +122,7 @@ public class ConfigManager
         set { _data.MinimizeToTrayOnClose = value; Save(); }
     }
 
+    // ---------------- 音量 ----------------
     public int LastVolume
     {
         get => _data.LastVolume;
@@ -124,6 +130,7 @@ public class ConfigManager
     }
 
     // ---------------- ★ 自动更新 ----------------
+    /// <summary>是否开启定时自动检查更新（默认 true）</summary>
     public bool AutoCheckUpdate
     {
         get => _data.AutoCheckUpdate;
@@ -135,6 +142,20 @@ public class ConfigManager
         }
     }
 
+    // ---------------- ★ 主题模式 ----------------
+    /// <summary>主题：Light / Dark / Default</summary>
+    public string ThemeMode
+    {
+        get => string.IsNullOrWhiteSpace(_data.ThemeMode) ? "Default" : _data.ThemeMode;
+        set
+        {
+            if (_data.ThemeMode == value) return;
+            _data.ThemeMode = value;
+            Save();
+        }
+    }
+
+    // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
         if (!File.Exists(_path)) return null;
@@ -169,8 +190,12 @@ public class ConfigManager
         public bool AutoStartMinimized { get; set; } = true;
         public bool MinimizeToTrayOnClose { get; set; } = false;
 
+        public int LastVolume { get; set; } = 80;
+
+        // ★ 自动更新
         public bool AutoCheckUpdate { get; set; } = true;
 
-        public int LastVolume { get; set; } = 80;
+        // ★ 主题模式
+        public string ThemeMode { get; set; } = "Default";
     }
 }

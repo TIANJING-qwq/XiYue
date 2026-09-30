@@ -10,10 +10,12 @@ namespace SBtools.Views;
 public partial class SettingsView : UserControl
 {
     private readonly ConfigManager _config = ConfigManager.Instance;
+    private bool _isInitializing;
 
     public SettingsView()
     {
         InitializeComponent();
+        _isInitializing = true;
 
         // WiFi 认证
         var usernameBox = this.FindControl<TextBox>("UsernameBox");
@@ -38,6 +40,20 @@ public partial class SettingsView : UserControl
             autoStartMinimizedSwitch.IsChecked = _config.AutoStartMinimized;
         if (minTraySwitch != null)
             minTraySwitch.IsChecked = _config.MinimizeToTrayOnClose;
+
+        // 主题下拉框初始化
+        var themeCombo = this.FindControl<ComboBox>("ThemeModeComboBox");
+        if (themeCombo != null)
+        {
+            themeCombo.SelectedIndex = _config.ThemeMode switch
+            {
+                "Light" => 0,
+                "Dark"  => 1,
+                _       => 2,
+            };
+        }
+
+        _isInitializing = false;
     }
 
     // ============ WiFi 认证 ============
@@ -53,16 +69,16 @@ public partial class SettingsView : UserControl
             MainWindow.PushToast("保存失败", "账号和密码不能为空");
             return;
         }
-    
+
         _config.Username = u;
         _config.Password = p;
         MainWindow.PushToast("设置已保存", "认证凭据已更新并加密存储。");
-        MainWindow.RefreshAuthenticator();
     }
 
     // ============ 通知 ============
     private void AutoCollapseSwitch_Changed(object? sender, RoutedEventArgs e)
     {
+        if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("AutoCollapseSwitch");
         var value = sw?.IsChecked == true;
         ToastHost.AutoCollapseOnNew = value;
@@ -72,6 +88,7 @@ public partial class SettingsView : UserControl
     // ============ 程序选项 ============
     private void AutoStartSwitch_Changed(object? sender, RoutedEventArgs e)
     {
+        if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("AutoStartSwitch");
         var value = sw?.IsChecked == true;
         _config.AutoStartOnBoot = value;
@@ -89,6 +106,7 @@ public partial class SettingsView : UserControl
 
     private void AutoStartMinimizedSwitch_Changed(object? sender, RoutedEventArgs e)
     {
+        if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("AutoStartMinimizedSwitch");
         var value = sw?.IsChecked == true;
         _config.AutoStartMinimized = value;
@@ -99,7 +117,35 @@ public partial class SettingsView : UserControl
 
     private void MinTraySwitch_Changed(object? sender, RoutedEventArgs e)
     {
+        if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("MinTraySwitch");
         _config.MinimizeToTrayOnClose = sw?.IsChecked == true;
+    }
+
+    // ============ 主题切换 ============
+    private void ThemeModeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        var combo = sender as ComboBox;
+        if (combo == null) return;
+
+        string mode = combo.SelectedIndex switch
+        {
+            0 => "Light",
+            1 => "Dark",
+            _ => "Default",
+        };
+
+        _config.ThemeMode = mode;
+        App.ApplyTheme(mode);
+
+        string display = mode switch
+        {
+            "Light" => "浅色",
+            "Dark"  => "深色",
+            _       => "跟随系统",
+        };
+        MainWindow.PushToast("主题", $"已切换为{display}模式");
     }
 }

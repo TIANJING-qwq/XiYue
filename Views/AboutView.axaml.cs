@@ -4,6 +4,7 @@ using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media.Transformation;
+using SBtools.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,25 +15,29 @@ namespace SBtools.Views;
 public partial class AboutView : UserControl
 {
     private const string GitHubUrl = "https://github.com/TIANJING-qwq/XiYue";
+    private const string DisplayVersion = "Dev0.3";
 
     private readonly List<Control> _fadeTargets = new();
     private readonly List<string> _titleStages = new() { "XY", "XiY", "XiYu", "XiYue" };
 
     private readonly Dictionary<string, double> _targetOpacity = new()
     {
-        ["AppIcon"]      = 1.0,
-        ["TitleText"]    = 1.0,
-        ["ChineseName"]  = 0.85,
-        ["Divider"]      = 1.0,
-        ["LineAuthor"]   = 1.0,
-        ["LineTeam"]     = 0.6,
-        ["LineBuild"]    = 0.7,
-        ["LineVersion"]  = 0.5,
-        ["LineDesc"]     = 0.6,
-        ["GitHubButton"] = 1.0
+        ["AppIcon"]          = 1.0,
+        ["TitleText"]        = 1.0,
+        ["ChineseName"]      = 0.85,
+        ["Divider"]          = 1.0,
+        ["LineAuthor"]       = 1.0,
+        ["LineTeam"]         = 0.6,
+        ["LineBuild"]        = 0.7,
+        ["LineVersion"]      = 0.5,
+        ["LineDesc"]         = 0.6,
+        ["GitHubButton"]     = 1.0,
+        ["CheckUpdateButton"]= 1.0,
+        ["UpdateStatusText"] = 0.5,
     };
 
     private bool _played;
+    private bool _isCheckingUpdate;
 
     public AboutView()
     {
@@ -42,7 +47,7 @@ public partial class AboutView : UserControl
         {
             AppIcon, TitleText, ChineseName, Divider,
             LineAuthor, LineTeam, LineBuild, LineVersion, LineDesc,
-            GitHubButton
+            GitHubButton, CheckUpdateButton
         });
 
         foreach (var t in _fadeTargets)
@@ -66,6 +71,9 @@ public partial class AboutView : UserControl
                 }
             };
         }
+
+        // 初始化版本号显示
+        LineVersion.Text = $"版本 {DisplayVersion}";
 
         AttachedToVisualTree += async (_, __) =>
         {
@@ -106,7 +114,8 @@ public partial class AboutView : UserControl
                      LineBuild,
                      LineVersion,
                      LineDesc,
-                     GitHubButton
+                     GitHubButton,
+                     CheckUpdateButton
                  })
         {
             Fade(target);
@@ -127,6 +136,9 @@ public partial class AboutView : UserControl
         return 1.0;
     }
 
+    // ============================================================
+    // GitHub
+    // ============================================================
     private void GitHubButton_Click(object? sender, RoutedEventArgs e)
     {
         try
@@ -139,5 +151,60 @@ public partial class AboutView : UserControl
                 Process.Start("xdg-open", GitHubUrl);
         }
         catch { }
+    }
+
+    // ============================================================
+    // ★ 检查更新
+    // ============================================================
+    private async void CheckUpdateButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_isCheckingUpdate) return;
+        _isCheckingUpdate = true;
+
+        var button = sender as Button;
+        if (button != null) button.IsEnabled = false;
+
+        try
+        {
+            UpdateStatusText.Text = "正在检查更新...";
+
+            var hasUpdate = await UpdateService.Instance.CheckForUpdatesAsync();
+
+            if (!hasUpdate)
+            {
+                UpdateStatusText.Text = $"当前已是最新版本（{DisplayVersion}）";
+                MainWindow.PushToast("检查更新", "当前已是最新版本。");
+                return;
+            }
+
+            var latest = UpdateService.Instance.LatestVersion ?? "未知";
+            var changelog = UpdateService.Instance.GetChangelog();
+
+            UpdateStatusText.Text = $"发现新版本 {latest}，正在下载...";
+            MainWindow.PushToast("发现新版本", $"v{latest} 正在下载...");
+
+            var success = await UpdateService.Instance.DownloadAndInstallAsync();
+
+            if (success)
+            {
+                UpdateStatusText.Text = "安装程序已启动，请按提示完成更新";
+                MainWindow.PushToast("更新就绪", "安装程序已启动，请按提示完成后重新打开汐月。");
+            }
+            else
+            {
+                UpdateStatusText.Text = "更新失败，请稍后重试或前往 GitHub 手动下载";
+                MainWindow.PushToast("更新失败", "请稍后重试或前往 GitHub 手动下载。");
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = $"检查更新异常: {ex.Message}";
+            LogService.Log($"检查更新异常: {ex.Message}", "更新");
+        }
+        finally
+        {
+            if (button != null) button.IsEnabled = true;
+            _isCheckingUpdate = false;
+        }
     }
 }

@@ -30,6 +30,10 @@ public partial class MainWindow : Window
 
     private FullscreenPlayerWindow? _playerWindow;
 
+    // ★ 更新相关
+    private bool _hasPendingUpdate;
+    private string? _pendingVersion;
+
     public MainWindow() : this(false) { }
 
     public MainWindow(bool startMinimized)
@@ -45,6 +49,7 @@ public partial class MainWindow : Window
 
         SetupTrayIcon();
         InitNetworkMonitor();
+        InitUpdateService();
 
         Closing += OnWindowClosing;
 
@@ -147,6 +152,70 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
+    // ★ 自动更新
+    // ============================================================
+    private void InitUpdateService()
+    {
+        try
+        {
+            var updater = UpdateService.Instance;
+
+            updater.UpdateAvailable += version =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _hasPendingUpdate = true;
+                    _pendingVersion = version;
+                    PushToast("发现新版本",
+                        $"v{version} 已发布，托盘菜单 →「立即更新」可安装。");
+                });
+            };
+
+            updater.CheckCompleted += hasUpdate =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!hasUpdate)
+                        PushToast("检查更新", "当前已是最新版本。");
+                });
+            };
+
+            updater.DownloadProgressChanged += percent =>
+            {
+                if (percent == 25 || percent == 50 || percent == 75)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                        PushToast("下载更新", $"已完成 {percent}%"));
+                }
+            };
+
+            updater.InstallCompleted += success =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (success)
+                    {
+                        _hasPendingUpdate = false;
+                        PushToast("更新就绪",
+                            "安装程序已启动，请按提示完成后重新打开汐月。");
+                    }
+                    else
+                    {
+                        PushToast("更新失败",
+                            "请稍后重试，或前往 GitHub 手动下载。");
+                    }
+                });
+            };
+
+            LogService.Log("更新事件已订阅", "更新");
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"订阅更新事件失败: {ex.Message}", "更新");
+        }
+    }
+
+    // ============================================================
     // 隐藏 / 恢复
     // ============================================================
     private void HideToTray()
@@ -240,6 +309,8 @@ public partial class MainWindow : Window
             _networkMonitor = null;
             _scheduler?.Dispose();
             _scheduler = null;
+
+            try { UpdateService.Instance.StopAutoCheck(); } catch { }
 
             if (_trayIcon != null)
             {
@@ -362,6 +433,55 @@ public partial class MainWindow : Window
             var stopPlayItem = new NativeMenuItem("关闭播放");
             stopPlayItem.Click += (_, _) => OnScheduleStop();
             menu.Add(stopPlayItem);
+
+            // ★ 检查更新
+            var checkUpdateItem = new NativeMenuItem("检查更新");
+            checkUpdateItem.Click += async (_, _) =>
+            {
+                try
+                {
+                    PushToast("检查更新", "正在检查，请稍候...");
+                    await UpdateService.Instance.CheckForUpdatesAsync();
+                }
+                catch (Exception ex)
+                {
+                    PushToast("检查失败", ex.Message);
+                }
+            };
+            menu.Add(checkUpdateItem);
+
+            // ★ 立即更新
+            var installUpdateItem = new NativeMenuItem("立即更新");
+            installUpdateItem.IsEnabled = false;
+            installUpdateItem.Click += async (_, _) =>
+            {
+                if (!_hasPendingUpdate)
+                {
+                    PushToast("暂无更新", "请先检查更新。");
+                    return;
+                }
+
+                try
+                {
+                    PushToast("开始下载", $"正在下载 v{_pendingVersion} ...");
+                    await UpdateService.Instance.DownloadAndInstallAsync();
+                }
+                catch (Exception ex)
+                {
+                    PushToast("更新失败", ex.Message);
+                }
+            };
+            menu.Add(installUpdateItem);
+
+            // 有更新时自动启用“立即更新”
+            UpdateService.Instance.UpdateAvailable += version =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    installUpdateItem.IsEnabled = true;
+                });
+            };
+
             menu.Add(new NativeMenuItemSeparator());
 
             var quitItem = new NativeMenuItem("退出");

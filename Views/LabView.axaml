@@ -3,39 +3,17 @@
              x:Class="SBtools.Views.LabView">
     <Grid RowDefinitions="Auto,*">
 
+        <!-- 标题 -->
         <StackPanel Grid.Row="0" Margin="32,24,32,12" Spacing="4">
             <TextBlock Text="实验室" FontSize="28" FontWeight="Bold" />
-            <TextBlock Text="实验性功能与工具"
+            <TextBlock Text="实验性功能、日志与工具"
                        FontSize="14" Opacity="0.6" />
         </StackPanel>
 
+        <!-- 标签页 -->
         <TabControl Grid.Row="1" Margin="24,0,24,24">
 
-            <!-- ========== 通知测试 ========== -->
-            <TabItem Header="通知测试">
-                <ScrollViewer>
-                    <StackPanel Margin="16,20" Spacing="20">
-                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="8" Padding="20">
-                            <StackPanel Spacing="14">
-                                <TextBlock Text="通知测试" FontSize="16" FontWeight="SemiBold" />
-                                <TextBlock Text="通知会从右侧滑入，5 秒后自动消失。连续点击按钮，通知会向下堆叠；超出窗口高度时自动压缩，点击通知区域可展开/折叠。"
-                                           FontSize="13" Opacity="0.7"
-                                           TextWrapping="Wrap" />
-
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <Button Content="显示 1 条" Click="TestNotification_Click" />
-                                    <Button Content="显示 5 条" Click="BurstNotification_Click" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- ========== 实时日志 ========== -->
+            <!-- ============ 实时日志 ============ -->
             <TabItem Header="实时日志">
                 <Grid RowDefinitions="Auto,*,Auto" Margin="16,20">
 
@@ -84,6 +62,129 @@
                                Text="就绪" />
                 </Grid>
             </TabItem>
+
+            <!-- ============ 通知测试 ============ -->
+            <TabItem Header="通知测试">
+                <ScrollViewer>
+                    <StackPanel Margin="16,20" Spacing="20">
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="通知测试" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="通知会从右侧滑入，5 秒后自动消失。连续点击按钮，通知会向下堆叠；超出窗口高度时自动压缩，点击通知区域可展开/折叠。"
+                                           FontSize="13" Opacity="0.7"
+                                           TextWrapping="Wrap" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="显示 1 条" Click="TestNotification_Click" />
+                                    <Button Content="显示 5 条" Click="BurstNotification_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ============ 日志管理 ============ -->
+            <TabItem Header="日志管理">
+                <ScrollViewer>
+                    <StackPanel Margin="16,20" Spacing="20">
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="日志文件" FontSize="16" FontWeight="SemiBold" />
+
+                                <TextBlock Name="LogPathText"
+                                           FontSize="12"
+                                           Opacity="0.7"
+                                           TextWrapping="Wrap"
+                                           Text="正在检测日志目录..." />
+
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="打开日志文件夹" Click="OpenLogFolder_Click" />
+                                    <Button Content="打开最新日志文件" Click="OpenLatestLog_Click" />
+                                    <Button Content="复制日志路径" Click="CopyLogPath_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ============ 内置扩展 ============ -->
+            <TabItem Header="内置扩展">
+                <ScrollViewer>
+                    <StackPanel Margin="16,20" Spacing="20">
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="14">
+
+                                <TextBlock Text="汐月附带一个浏览器扩展（.crx），用于 Bing 关键词演示。"
+                                           FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+
+                                <Border Background="#20FFAA00"
+                                        CornerRadius="6" Padding="12">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="⚠️ 使用须知" FontWeight="SemiBold" FontSize="13" Foreground="#FF8800" />
+                                        <TextBlock Text="• 扩展独立存在，不会被汐月自动安装"
+                                                   FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
+                                        <TextBlock Text="• 现代 Edge 会阻止 crx 双击安装，需手动拖拽"
+                                                   FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
+                                        <TextBlock Text="• 仅限自己的设备或明确授权的演示环境"
+                                                   FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
+                                        <TextBlock Text="• 不要安装到他人电脑，不要发布到扩展商店"
+                                                   FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Name="ExtensionInfoText"
+                                           FontSize="12"
+                                           Opacity="0.7"
+                                           TextWrapping="Wrap"
+                                           Text="正在检测 crx 文件..." />
+
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="打开扩展文件夹"
+                                            Click="OpenExtensionFolder_Click" />
+                                    <Button Content="打开 Edge 扩展页"
+                                            Click="OpenEdgeExtensions_Click" />
+                                    <Button Content="复制 crx 路径"
+                                            Click="CopyExtensionPath_Click" />
+                                </StackPanel>
+
+                                <Border Background="#20808080"
+                                        CornerRadius="6" Padding="12">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="安装步骤：" FontWeight="SemiBold" FontSize="13" />
+                                        <TextBlock Text="1. 点击「打开 Edge 扩展页」"
+                                                   FontSize="12" Opacity="0.75" />
+                                        <TextBlock Text="2. 打开左下角「开发人员模式」"
+                                                   FontSize="12" Opacity="0.75" />
+                                        <TextBlock Text="3. 点击「打开扩展文件夹」，把 .crx 文件拖到 Edge 扩展页"
+                                                   FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
+                                        <TextBlock Text="4. Edge 会提示「是否添加扩展」，点确定"
+                                                   FontSize="12" Opacity="0.75" />
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Name="EdgeStatusText"
+                                           FontSize="11"
+                                           Opacity="0.55"
+                                           TextWrapping="Wrap"
+                                           Text="提示：如果 Edge 拒绝安装 crx，可改用加载解压缩文件夹的方式。" />
+
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
         </TabControl>
     </Grid>
 </UserControl>

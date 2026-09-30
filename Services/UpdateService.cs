@@ -20,33 +20,26 @@ public sealed class UpdateService
     private bool _initialized;
     private UpdatumDownloadedAsset? _downloadedAsset;
 
-    /// <summary>发现新版本（参数：最新版本号）。</summary>
     public event Action<string>? UpdateAvailable;
-
-    /// <summary>检查完成（参数：是否有更新）。</summary>
     public event Action<bool>? CheckCompleted;
-
-    /// <summary>下载进度（0-100）。</summary>
     public event Action<int>? DownloadProgressChanged;
-
-    /// <summary>安装完成（参数：是否成功）。</summary>
     public event Action<bool>? InstallCompleted;
 
     public string CurrentVersion => _updater.CurrentVersion.ToString();
-
-    /// <summary>最新版本号（仅在检查到更新后有效）。</summary>
-    public string? LatestVersion => _updater.LatestRelease?.TagName?.TrimStart('v');
+    public string? LatestVersion  => _updater.LatestRelease?.TagName?.TrimStart('v');
 
     private UpdateService()
     {
         _updater = new UpdatumManager(GithubOwner, GithubRepo)
         {
             InstallUpdateWindowsExeType = UpdatumWindowsExeType.Installer,
-            AssetRegexPattern = @"XiYue.*win-x64.*\.(exe|zip)$",
+
+            // ★ 同时匹配 XiYue_Setup_v0.3.1.exe 和 XiYue_win-x64_v0.3.1.zip
+            AssetRegexPattern = @"XiYue.*\.(exe|zip)$",
+
             DownloadProgressUpdateFrequencySeconds = 0.5,
         };
 
-        // 订阅 UpdateFound 事件
         _updater.UpdateFound += (sender, e) =>
         {
             var version = _updater.LatestRelease?.TagName ?? "未知";
@@ -54,7 +47,6 @@ public sealed class UpdateService
             UpdateAvailable?.Invoke(version.TrimStart('v'));
         };
 
-        // ★ 订阅 PropertyChanged，转发下载进度
         _updater.PropertyChanged += OnUpdaterPropertyChanged;
     }
 
@@ -65,7 +57,6 @@ public sealed class UpdateService
         LogService.Log($"更新服务已初始化，当前版本 {CurrentVersion}", "更新");
     }
 
-    /// <summary>启动时静默检查（不弹 UI）。</summary>
     public void CheckQuietly()
     {
         try
@@ -79,7 +70,6 @@ public sealed class UpdateService
         }
     }
 
-    /// <summary>手动检查更新。</summary>
     public async Task<bool> CheckForUpdatesAsync()
     {
         try
@@ -104,7 +94,6 @@ public sealed class UpdateService
         }
     }
 
-    /// <summary>下载并安装更新。</summary>
     public async Task<bool> DownloadAndInstallAsync()
     {
         try
@@ -167,9 +156,6 @@ public sealed class UpdateService
         catch { }
     }
 
-    // ============================================================
-    // 属性变化 → 下载进度
-    // ============================================================
     private void OnUpdaterPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(UpdatumManager.DownloadedPercentage))

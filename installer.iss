@@ -1,4 +1,4 @@
-[Setup]
+﻿[Setup]
 AppName=汐月 XiYue
 AppVersion=0.3.1
 AppPublisher=SchoolBusytools

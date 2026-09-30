@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 Write-Host "===== 1. 清理 =====" -ForegroundColor Cyan
 dotnet clean -c Release
@@ -38,7 +38,7 @@ if ($missing.Count -gt 0) {
 }
 
 Write-Host "`n===== 4. Inno Setup 打包 =====" -ForegroundColor Cyan
-$inno = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+$inno = "C:\Program Files\Inno Setup 7\ISIDE.exe"
 if (Test-Path $inno) {
     & $inno .\installer.iss
     Write-Host "`n✓ 安装包：publish\installer\XiYue_Setup_v1.2.0.exe" -ForegroundColor Green

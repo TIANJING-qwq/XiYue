@@ -12,17 +12,25 @@ using System.Threading;
 
 namespace SBtools.Controls;
 
+/// <summary>
+/// VLC 回调渲染视图：
+/// - 1280×720 分辨率
+/// - 双缓冲（避免画面撕裂）
+/// - 60fps 上限（跟得上高帧率源）
+/// - 丢帧保护（避免 UI 线程队列堆积）
+/// </summary>
 public class VlcVideoView : Control
 {
-    // ★ 降到 960x540（数据量少 44%）
-    private const int VideoWidth = 960;
-    private const int VideoHeight = 540;
+    private const int VideoWidth = 1280;
+    private const int VideoHeight = 720;
     private const int VideoPitch = VideoWidth * 4;
 
-    private WriteableBitmap? _bitmap;
-    private IntPtr _vlcBuffer = IntPtr.Zero;   // VLC 写入的临时缓冲
+    private WriteableBitmap _frontBitmap;
+    private WriteableBitmap _backBitmap;
+    private readonly object _swapLock = new();
 
-    private readonly object _sync = new();
+    private IntPtr _vlcBuffer = IntPtr.Zero;
+
     private MediaPlayer? _player;
     private volatile bool _disposed;
 
@@ -31,13 +39,26 @@ public class VlcVideoView : Control
     private int _droppedCount;
     private int _renderedCount;
 
-    // ★ 30fps
-    private const int MinRenderIntervalMs = 33;
+    // ★ 60fps（16.67ms 间隔）
+    private const int MinRenderIntervalMs = 16;
 
     public VlcVideoView()
     {
         ClipToBounds = true;
         RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.LowQuality);
+        RenderOptions.SetEdgeMode(this, EdgeMode.Aliased);
+
+        _frontBitmap = CreateBitmap();
+        _backBitmap = CreateBitmap();
+    }
+
+    private static WriteableBitmap CreateBitmap()
+    {
+        return new WriteableBitmap(
+            new PixelSize(VideoWidth, VideoHeight),
+            new Vector(96, 96),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Premul);
     }
 
     public void Attach(MediaPlayer player)
@@ -48,24 +69,12 @@ public class VlcVideoView : Control
         {
             _player.SetVideoFormat("RV32", VideoWidth, VideoHeight, VideoPitch);
             _player.SetVideoCallbacks(Lock, Unlock, Display);
+            LogService.Log($"视频视图初始化 {VideoWidth}x{VideoHeight} @ 60fps 双缓冲", "VLC");
         }
         catch (Exception ex)
         {
             LogService.Log($"设置视频回调失败: {ex.Message}", "VLC");
         }
-
-        EnsureBitmap();
-        LogService.Log($"视频视图: {VideoWidth}x{VideoHeight} @ 30fps", "VLC");
-    }
-
-    private void EnsureBitmap()
-    {
-        if (_bitmap != null) return;
-        _bitmap = new WriteableBitmap(
-            new PixelSize(VideoWidth, VideoHeight),
-            new Vector(96, 96),
-            PixelFormat.Bgra8888,
-            AlphaFormat.Premul);
     }
 
     private IntPtr Lock(IntPtr opaque, IntPtr planes)
@@ -83,14 +92,14 @@ public class VlcVideoView : Control
     {
         if (_disposed) return;
 
-        // ★ 上一帧还没渲染完，直接丢
+        // 丢帧保护
         if (Interlocked.CompareExchange(ref _pendingRender, 1, 0) != 0)
         {
             _droppedCount++;
             return;
         }
 
-        // ★ 帧率限制
+        // 60fps 上限
         var now = Environment.TickCount;
         if (now - _lastRenderTick < MinRenderIntervalMs)
         {
@@ -100,43 +109,57 @@ public class VlcVideoView : Control
         }
         _lastRenderTick = now;
 
-        // ★ 用 Send 优先级，避免被其他任务插队
-        Dispatcher.UIThread.Post(() =>
+        try
         {
-            try
+            lock (_swapLock)
             {
-                if (_bitmap == null || _disposed) return;
+                using var fb = _backBitmap.Lock();
+                long copySize = (long)VideoPitch * VideoHeight;
+                Buffer.MemoryCopy(
+                    (void*)_vlcBuffer,
+                    (void*)fb.Address,
+                    copySize,
+                    copySize);
+            }
 
-                lock (_sync)
+            lock (_swapLock)
+            {
+                (_frontBitmap, _backBitmap) = (_backBitmap, _frontBitmap);
+            }
+
+            _renderedCount++;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                try
                 {
-                    using var fb = _bitmap.Lock();
-                    // 一次拷贝：VLC buffer → WriteableBitmap framebuffer
-                    Buffer.MemoryCopy(
-                        (void*)_vlcBuffer,
-                        (void*)fb.Address,
-                        (long)fb.RowBytes * VideoHeight,
-                        (long)VideoPitch * VideoHeight);
+                    if (!_disposed)
+                        InvalidateVisual();
                 }
-
-                _renderedCount++;
-                InvalidateVisual();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[VLC] 渲染失败: {ex.Message}");
-            }
-            finally
-            {
-                Interlocked.Exchange(ref _pendingRender, 0);
-            }
-        }, DispatcherPriority.Send);
+                catch { }
+                finally
+                {
+                    Interlocked.Exchange(ref _pendingRender, 0);
+                }
+            }, DispatcherPriority.Render);
+        }
+        catch
+        {
+            Interlocked.Exchange(ref _pendingRender, 0);
+        }
     }
 
     public override void Render(DrawingContext context)
     {
-        if (_bitmap != null)
+        WriteableBitmap? bmp;
+        lock (_swapLock)
         {
-            context.DrawImage(_bitmap, new Rect(0, 0, Bounds.Width, Bounds.Height));
+            bmp = _frontBitmap;
+        }
+
+        if (bmp != null)
+        {
+            context.DrawImage(bmp, new Rect(0, 0, Bounds.Width, Bounds.Height));
         }
         base.Render(context);
     }
@@ -152,9 +175,14 @@ public class VlcVideoView : Control
             _vlcBuffer = IntPtr.Zero;
         }
 
-        _bitmap?.Dispose();
-        _bitmap = null;
+        lock (_swapLock)
+        {
+            _frontBitmap?.Dispose();
+            _backBitmap?.Dispose();
+        }
 
-        LogService.Log($"视频视图销毁：渲染 {_renderedCount} 帧，丢弃 {_droppedCount} 帧", "VLC");
+        LogService.Log(
+            $"视频视图销毁：渲染 {_renderedCount} 帧，丢弃 {_droppedCount} 帧，丢帧率 {(float)_droppedCount / Math.Max(1, _renderedCount + _droppedCount) * 100:F1}%",
+            "VLC");
     }
 }

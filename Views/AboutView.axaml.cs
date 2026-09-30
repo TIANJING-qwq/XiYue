@@ -15,29 +15,41 @@ namespace SBtools.Views;
 public partial class AboutView : UserControl
 {
     private const string GitHubUrl = "https://github.com/TIANJING-qwq/XiYue";
-    private const string DisplayVersion = "Dev0.3";
 
     private readonly List<Control> _fadeTargets = new();
     private readonly List<string> _titleStages = new() { "XY", "XiY", "XiYu", "XiYue" };
 
     private readonly Dictionary<string, double> _targetOpacity = new()
     {
-        ["AppIcon"]          = 1.0,
-        ["TitleText"]        = 1.0,
-        ["ChineseName"]      = 0.85,
-        ["Divider"]          = 1.0,
-        ["LineAuthor"]       = 1.0,
-        ["LineTeam"]         = 0.6,
-        ["LineBuild"]        = 0.7,
-        ["LineVersion"]      = 0.5,
-        ["LineDesc"]         = 0.6,
-        ["GitHubButton"]     = 1.0,
-        ["CheckUpdateButton"]= 1.0,
-        ["UpdateStatusText"] = 0.5,
+        ["AppIcon"]           = 1.0,
+        ["TitleText"]         = 1.0,
+        ["ChineseName"]       = 0.85,
+        ["Divider"]           = 1.0,
+        ["LineAuthor"]        = 1.0,
+        ["LineTeam"]          = 0.6,
+        ["LineBuild"]         = 0.7,
+        ["LineVersion"]       = 0.5,
+        ["LineDesc"]          = 0.6,
+        ["GitHubButton"]      = 1.0,
+        ["CheckUpdateButton"] = 1.0,
+        ["UpdateStatusText"]  = 0.5,
     };
 
     private bool _played;
     private bool _isCheckingUpdate;
+
+    private static string DisplayVersion
+    {
+        get
+        {
+            try
+            {
+                var v = typeof(AboutView).Assembly.GetName().Version;
+                return v != null ? $"Dev{v.Major}.{v.Minor}.{v.Build}" : "Dev0.0.0";
+            }
+            catch { return "Dev0.0.0"; }
+        }
+    }
 
     public AboutView()
     {
@@ -72,7 +84,6 @@ public partial class AboutView : UserControl
             };
         }
 
-        // 初始化版本号显示
         LineVersion.Text = $"版本 {DisplayVersion}";
 
         AttachedToVisualTree += async (_, __) =>
@@ -85,27 +96,22 @@ public partial class AboutView : UserControl
 
     private async Task PlayAnimationAsync()
     {
-        // 1. 顶部图标先出现
         Fade(AppIcon);
         await Task.Delay(400);
 
-        // 2. 标题：XY 淡入
         TitleText.Text = "XY";
         Fade(TitleText);
         await Task.Delay(500);
 
-        // 3. XY → XiYue 逐字符展开
         for (int i = 0; i < _titleStages.Count; i++)
         {
             TitleText.Text = _titleStages[i];
             await Task.Delay(120);
         }
 
-        // 4. 中文名
         Fade(ChineseName);
         await Task.Delay(200);
 
-        // 5. 其余控件逐条
         foreach (var target in new Control[]
                  {
                      Divider,
@@ -136,9 +142,6 @@ public partial class AboutView : UserControl
         return 1.0;
     }
 
-    // ============================================================
-    // GitHub
-    // ============================================================
     private void GitHubButton_Click(object? sender, RoutedEventArgs e)
     {
         try
@@ -153,9 +156,6 @@ public partial class AboutView : UserControl
         catch { }
     }
 
-    // ============================================================
-    // ★ 检查更新
-    // ============================================================
     private async void CheckUpdateButton_Click(object? sender, RoutedEventArgs e)
     {
         if (_isCheckingUpdate) return;
@@ -167,6 +167,7 @@ public partial class AboutView : UserControl
         try
         {
             UpdateStatusText.Text = "正在检查更新...";
+            LogService.Log("用户点击检查更新", "更新");
 
             var hasUpdate = await UpdateService.Instance.CheckForUpdatesAsync();
 
@@ -178,28 +179,32 @@ public partial class AboutView : UserControl
             }
 
             var latest = UpdateService.Instance.LatestVersion ?? "未知";
-            var changelog = UpdateService.Instance.GetChangelog();
 
             UpdateStatusText.Text = $"发现新版本 {latest}，正在下载...";
-            MainWindow.PushToast("发现新版本", $"v{latest} 正在下载...");
+            MainWindow.PushToast("发现新版本", $"v{latest} 正在下载，请稍候...");
+
+            LogService.Log($"开始下载 v{latest}", "更新");
 
             var success = await UpdateService.Instance.DownloadAndInstallAsync();
 
             if (success)
             {
                 UpdateStatusText.Text = "安装程序已启动，请按提示完成更新";
-                MainWindow.PushToast("更新就绪", "安装程序已启动，请按提示完成后重新打开汐月。");
+                MainWindow.PushToast("更新就绪",
+                    "安装程序已启动，请按提示完成后重新打开汐月。");
             }
             else
             {
                 UpdateStatusText.Text = "更新失败，请稍后重试或前往 GitHub 手动下载";
-                MainWindow.PushToast("更新失败", "请稍后重试或前往 GitHub 手动下载。");
+                MainWindow.PushToast("更新失败",
+                    "请稍后重试或前往 GitHub 手动下载。");
             }
         }
         catch (Exception ex)
         {
             UpdateStatusText.Text = $"检查更新异常: {ex.Message}";
             LogService.Log($"检查更新异常: {ex.Message}", "更新");
+            MainWindow.PushToast("检查更新异常", ex.Message);
         }
         finally
         {

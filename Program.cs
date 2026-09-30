@@ -1,4 +1,4 @@
-﻿﻿using Avalonia;
+﻿﻿﻿using Avalonia;
 using LibVLCSharp.Shared;
 using SBtools.Models;
 using SBtools.Services;
@@ -30,6 +30,7 @@ class Program
         };
 
         LogInfo($"=== 程序启动，参数: {string.Join(" ", args)} ===");
+        LogInfo($"版本: {typeof(Program).Assembly.GetName().Version}");
 
         bool isAnotherInstanceActive = CheckExistingInstance();
 
@@ -52,7 +53,6 @@ class Program
             LogException("VLC", ex);
         }
 
-        // ★★★ 自动更新初始化 ★★★
         try
         {
             var updater = UpdateService.Instance;

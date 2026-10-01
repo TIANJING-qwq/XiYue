@@ -30,9 +30,8 @@ public partial class AboutView : UserControl
         ["LineBuild"]         = 0.7,
         ["LineVersion"]       = 0.5,
         ["LineDesc"]          = 0.6,
-        ["GitHubButton"]      = 1.0,
-        ["CheckUpdateButton"] = 1.0,
-        ["UpdateStatusText"]  = 0.5,
+        ["ButtonRow"]         = 1.0,
+        ["UpdateStatusText"]  = 0.6,
     };
 
     private bool _played;
@@ -59,7 +58,7 @@ public partial class AboutView : UserControl
         {
             AppIcon, TitleText, ChineseName, Divider,
             LineAuthor, LineTeam, LineBuild, LineVersion, LineDesc,
-            GitHubButton, CheckUpdateButton
+            ButtonRow
         });
 
         foreach (var t in _fadeTargets)
@@ -120,8 +119,8 @@ public partial class AboutView : UserControl
                      LineBuild,
                      LineVersion,
                      LineDesc,
-                     GitHubButton,
-                     CheckUpdateButton
+                     ButtonRow,
+                     UpdateStatusText
                  })
         {
             Fade(target);
@@ -142,6 +141,9 @@ public partial class AboutView : UserControl
         return 1.0;
     }
 
+    // ============================================================
+    // GitHub
+    // ============================================================
     private void GitHubButton_Click(object? sender, RoutedEventArgs e)
     {
         try
@@ -157,7 +159,7 @@ public partial class AboutView : UserControl
     }
 
     // ============================================================
-    // 手动检查更新
+    // 检查更新
     // ============================================================
     private async void CheckUpdateButton_Click(object? sender, RoutedEventArgs e)
     {
@@ -169,7 +171,6 @@ public partial class AboutView : UserControl
 
         try
         {
-            // ★ 标记为手动检查 → UpdateAvailable 事件会弹对话框
             MainWindow.SetAutoChecking(false);
 
             UpdateStatusText.Text = "正在检查更新...";
@@ -180,11 +181,9 @@ public partial class AboutView : UserControl
             if (!hasUpdate)
             {
                 UpdateStatusText.Text = $"当前已是最新版本（{DisplayVersion}）";
-                // Toast 由 MainWindow.CheckCompleted 事件弹出
                 return;
             }
 
-            // 有新版本 → MainWindow.UpdateAvailable 事件会弹对话框
             UpdateStatusText.Text = "已发现新版本，请查看弹窗";
         }
         catch (Exception ex)

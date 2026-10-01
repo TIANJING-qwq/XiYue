@@ -50,7 +50,46 @@
                         FontSize="11" Opacity="0.5"
                         TextWrapping="Wrap"/>
             </StackPanel>
+            <!-- ★ 点击音效 -->
+            <TextBlock Text="点击音效" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="启用点击音效" FontSize="13"/>
+                        <TextBlock Text="点击任意控件时播放内置音效"
+                                FontSize="11" Opacity="0.5"/>
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1"
+                                x:Name="ClickSoundSwitch"
+                                IsCheckedChanged="ClickSoundSwitch_Changed"/>
+                </Grid>
 
+                <Grid ColumnDefinitions="*,Auto,60">
+                    <TextBlock Grid.Column="0"
+                            Text="音量"
+                            FontSize="13"
+                            VerticalAlignment="Center"/>
+                    <Slider Grid.Column="1"
+                            x:Name="ClickSoundVolumeSlider"
+                            Width="200"
+                            Minimum="0" Maximum="100"
+                            Value="80"
+                            VerticalAlignment="Center"
+                            ValueChanged="ClickSoundVolumeSlider_ValueChanged"/>
+                    <TextBlock Grid.Column="2"
+                            x:Name="ClickSoundVolumeText"
+                            Text="80"
+                            FontSize="13"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"/>
+                </Grid>
+
+                <Button Content="测试音效"
+                        HorizontalAlignment="Left"
+                        Padding="20,8"
+                        Margin="0,4,0,0"
+                        Click="TestClickSound_Click"/>
+            </StackPanel>
             <!-- 更新代理 -->
             <TextBlock Text="更新代理" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
             <StackPanel Spacing="10">

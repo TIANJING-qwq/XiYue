@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Transformation;
@@ -54,6 +55,15 @@ public partial class MainWindow : Window
         _scheduler = new PlaybackScheduler(OnScheduleStart, OnScheduleStop);
         ApplyScheduleConfig();
 
+        // ★★★ 全局点击音效监听（handledEventsToo=true 才能捕获被控件消费的点击）
+        // 用 PointerReleased 更可靠：ToggleSwitch、Tab、ComboBox 等控件在 Pressed 阶段
+        // 会 set e.Handled=true，只有加 handledEventsToo 才能收到。
+        this.AddHandler(
+            PointerReleasedEvent,
+            OnGlobalPointerReleased,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+
         SetupTrayIcon();
         InitNetworkMonitor();
         InitUpdateService();
@@ -68,14 +78,12 @@ public partial class MainWindow : Window
 
             Opened += (_, _) =>
             {
-                // 自启动模式：不播动画，直接隐藏
                 Hide();
                 Opacity = 1;
                 if (RootGrid != null)
                     RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
                 LogService.Log("自启动模式：窗口保持隐藏", "启动");
 
-                // 自启动也照样延迟检查更新
                 StartUpdateCheckDelayed();
             };
         }
@@ -83,7 +91,6 @@ public partial class MainWindow : Window
         {
             Opened += async (_, _) =>
             {
-                // 播放进入动画
                 await Task.Delay(30);
 
                 Opacity = 1;
@@ -92,10 +99,25 @@ public partial class MainWindow : Window
 
                 LogService.Log("程序已启动", "启动");
 
-                // 界面显示后再检查更新
                 StartUpdateCheckDelayed();
             };
         }
+    }
+
+    // ============================================================
+    // ★ 全局点击音效
+    // ============================================================
+    private void OnGlobalPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        try
+        {
+            // 只处理鼠标左键（触屏和笔也走这里，若不需要可自行过滤）
+            if (e.InitialPressMouseButton == MouseButton.Left)
+            {
+                ClickSoundService.Instance.Play();
+            }
+        }
+        catch { }
     }
 
     /// <summary>延迟检查更新，等主界面完全显示后</summary>
@@ -391,6 +413,7 @@ public partial class MainWindow : Window
 
             try { UpdateService.Instance.StopAutoCheck(); } catch { }
             try { LocalIpcServer.Instance.Stop(); } catch { }
+            try { ClickSoundService.Instance.Dispose(); } catch { }
 
             if (_trayIcon != null)
             {

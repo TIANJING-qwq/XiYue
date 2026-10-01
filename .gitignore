@@ -10,3 +10,5 @@ obj/
 *.dll
 *.exe
 .fake
+bili.zip
+*.part

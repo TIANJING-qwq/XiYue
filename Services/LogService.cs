@@ -29,6 +29,7 @@ public static class LogService
     }
 
     /// <summary>新日志事件（UI 层订阅，注意自行切回 UI 线程）</summary>
+    
     public static event Action<string>? LogAdded;
 
     public static void Log(string message, string source = "App")

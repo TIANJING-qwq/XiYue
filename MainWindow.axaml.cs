@@ -181,6 +181,7 @@ public partial class MainWindow : Window
                 case "optimization": ContentFrame.Navigate(typeof(OptimizationView)); break;
                 case "lab":          ContentFrame.Navigate(typeof(LabView));          break;
                 case "gallery":      ContentFrame.Navigate(typeof(GalleryView));      break;
+                case "plugins":      ContentFrame.Navigate(typeof(PluginsView));      break;
                 case "settings":     ContentFrame.Navigate(typeof(SettingsView));     break;
                 case "about":        ContentFrame.Navigate(typeof(AboutView));        break;
             }

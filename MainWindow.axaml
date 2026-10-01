@@ -71,6 +71,12 @@
                     </fluent:NavigationViewItem.IconSource>
                 </fluent:NavigationViewItem>
 
+                <fluent:NavigationViewItem Content="插件" Tag="plugins">
+                    <fluent:NavigationViewItem.IconSource>
+                        <fluent:SymbolIconSource Symbol="AllApps" />
+                    </fluent:NavigationViewItem.IconSource>
+                </fluent:NavigationViewItem>
+
                 <fluent:NavigationViewItemSeparator />
 
                 <fluent:NavigationViewItem Content="设置" Tag="settings">

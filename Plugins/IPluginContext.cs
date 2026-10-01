@@ -1,0 +1,66 @@
+using System;
+
+namespace SBtools.Plugins;
+
+/// <summary>
+/// 插件上下文，提供插件可用的所有 API。
+/// </summary>
+public interface IPluginContext
+{
+    // ============================================================
+    // 基本信息
+    // ============================================================
+    /// <summary>当前插件 ID</summary>
+    string PluginId { get; }
+
+    /// <summary>汐月主程序版本，如 "0.3.1"</summary>
+    string AppVersion { get; }
+
+    /// <summary>
+    /// 当前插件的数据目录。已自动创建，可以安全读写文件。
+    /// 路径：%APPDATA%\SchoolBusytools\plugins\{PluginId}\
+    /// </summary>
+    string DataDirectory { get; }
+
+    // ============================================================
+    // 日志与通知
+    // ============================================================
+    /// <summary>写日志。会出现在「实验室」的日志列表里，同时写入文件</summary>
+    void Log(string message);
+
+    /// <summary>弹出右下角通知</summary>
+    void Toast(string title, string message, int durationSeconds = 5);
+
+    // ============================================================
+    // 系统操作
+    // ============================================================
+    /// <summary>用默认浏览器打开 URL</summary>
+    void OpenUrl(string url);
+
+    /// <summary>播放 Sounds 目录下的 .wav 文件</summary>
+    void PlaySound(string wavFileName);
+
+    /// <summary>设置系统音量（0-100）</summary>
+    void SetSystemVolume(int level);
+
+    // ============================================================
+    // 配置读写（持久化到 plugins\{PluginId}\config.json）
+    // ============================================================
+    string GetConfig(string key, string defaultValue = "");
+    void SetConfig(string key, string value);
+
+    bool GetConfigBool(string key, bool defaultValue = false);
+    void SetConfigBool(string key, bool value);
+
+    int GetConfigInt(string key, int defaultValue = 0);
+    void SetConfigInt(string key, int value);
+
+    // ============================================================
+    // 事件
+    // ============================================================
+    /// <summary>浏览器插件命中关键词时触发。参数为关键词</summary>
+    event Action<string>? KeywordMatched;
+
+    /// <summary>网络状态变化时触发。true=已连接</summary>
+    event Action<bool>? NetworkStatusChanged;
+}

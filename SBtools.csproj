@@ -24,10 +24,6 @@
     <Content Include="Extensions\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <!-- ★ 声音文件（复制到输出目录） -->
-  <ItemGroup>
     <Content Include="Sounds\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

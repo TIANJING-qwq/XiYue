@@ -13,21 +13,16 @@ using SBtools.Views;
 
 namespace SBtools.Services;
 
-/// <summary>
-/// 本地 IPC 服务器。监听 127.0.0.1:18520，接收浏览器插件消息。
-/// 收到消息后弹密码框：密码错误/超时 → 执行自动动作；密码正确 → 取消。
-/// </summary>
 public sealed class LocalIpcServer
 {
     private const int Port = 18520;
     private const string Prefix = "http://127.0.0.1:18520/";
 
-    // ★ 密码框配置
-    private const string CancelPassword = "1145";
-    private const int PasswordTimeoutSeconds = 10;
-
     private static readonly Lazy<LocalIpcServer> _lazy = new(() => new LocalIpcServer());
     public static LocalIpcServer Instance => _lazy.Value;
+
+    /// <summary>收到插件关键词命中时触发（参数：关键词）</summary>
+    public event Action<string>? KeywordMatched;
 
     private HttpListener? _listener;
     private CancellationTokenSource? _cts;
@@ -154,9 +149,17 @@ public sealed class LocalIpcServer
                 MainWindow.PushToast(title, message);
             });
 
+            // ★ 通知插件系统
+            try
+            {
+                var keyword = title.Replace("关键词命中：", "").Trim();
+                KeywordMatched?.Invoke(keyword);
+            }
+            catch { }
+
             if (ConfigManager.Instance.AutoActionOnNotify)
             {
-                _ = Task.Run(() => PromptThenExecute());
+                _ = Task.Run(() => ExecuteAutoAction());
             }
 
             response.StatusCode = 200;
@@ -169,59 +172,6 @@ public sealed class LocalIpcServer
         }
     }
 
-    // ============================================================
-    // ★ 先弹密码框，再决定是否执行
-    // ============================================================
-    private async Task PromptThenExecute()
-    {
-        bool shouldExecute;
-
-        try
-        {
-            shouldExecute = await ShowPasswordPromptAsync(
-                PasswordTimeoutSeconds, CancelPassword);
-        }
-        catch (Exception ex)
-        {
-            LogService.Log($"密码框异常，默认执行: {ex.Message}", "IPC");
-            shouldExecute = true;
-        }
-
-        if (!shouldExecute)
-        {
-            LogService.Log("用户输入正确密码，已取消自动动作", "IPC");
-            return;
-        }
-
-        LogService.Log("密码错误或超时，开始执行自动动作", "IPC");
-        await ExecuteAutoAction();
-    }
-
-    private static Task<bool> ShowPasswordPromptAsync(int timeoutSeconds, string correctPassword)
-    {
-        var tcs = new TaskCompletionSource<bool>();
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            try
-            {
-                var win = new PasswordPromptWindow(timeoutSeconds, correctPassword);
-                win.ResultReady += (shouldExecute) => tcs.TrySetResult(shouldExecute);
-                win.Show();
-            }
-            catch (Exception ex)
-            {
-                LogService.Log($"密码框创建失败: {ex.Message}", "IPC");
-                tcs.TrySetResult(true);   // 出错就直接执行
-            }
-        });
-
-        return tcs.Task;
-    }
-
-    // ============================================================
-    // 自动动作
-    // ============================================================
     private async Task ExecuteAutoAction()
     {
         try
@@ -240,14 +190,10 @@ public sealed class LocalIpcServer
                 $"执行自动动作：打开 {count} 个窗口, 音量 {cfg.AutoActionVolume}%, 保持 {holdSeconds}s, 遮罩 {showOverlay}",
                 "IPC");
 
-            // 1. 音量
             SystemVolume.SetVolume(targetVolume);
             if (holdSeconds > 0)
-            {
                 SystemVolume.HoldVolumeFor(targetVolume, holdSeconds);
-            }
 
-            // 2. 遮罩
             if (showOverlay)
             {
                 Dispatcher.UIThread.Post(() =>
@@ -267,7 +213,6 @@ public sealed class LocalIpcServer
                 });
             }
 
-            // 3. 打开窗口
             var browserExe = FindBrowserExe();
             LogService.Log($"使用浏览器: {browserExe ?? "(系统默认)"}", "IPC");
 

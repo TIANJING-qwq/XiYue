@@ -1,6 +1,7 @@
 ﻿﻿﻿using Avalonia;
 using LibVLCSharp.Shared;
 using SBtools.Models;
+using SBtools.Plugins;
 using SBtools.Services;
 using System;
 using System.Diagnostics;
@@ -53,8 +54,6 @@ class Program
             LogException("VLC", ex);
         }
 
-        // ★ 只初始化更新服务，不做实际检查
-        // 检查推迟到 MainWindow.Opened 事件里（主界面显示后）
         try
         {
             UpdateService.Instance.Initialize();
@@ -63,6 +62,16 @@ class Program
         catch (Exception ex)
         {
             LogException("UpdateService", ex);
+        }
+
+        // ★ 加载插件
+        try
+        {
+            PluginManager.Instance.LoadAll();
+        }
+        catch (Exception ex)
+        {
+            LogException("PluginManager", ex);
         }
 
         try
@@ -78,6 +87,7 @@ class Program
         }
         finally
         {
+            try { PluginManager.Instance.UnloadAll(); } catch { }
             try { UpdateService.Instance.StopAutoCheck(); } catch { }
             try { _mutex?.ReleaseMutex(); } catch { }
             _mutex?.Dispose();

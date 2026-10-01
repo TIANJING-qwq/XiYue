@@ -5,7 +5,6 @@ using SBtools.Controls;
 using SBtools.Models;
 using SBtools.Services;
 using System;
-using System.Linq;
 
 namespace SBtools.Views;
 
@@ -62,7 +61,7 @@ public partial class SettingsView : UserControl
         if (clickSoundText != null)
             clickSoundText.Text = _config.ClickSoundVolume.ToString();
 
-        // ★ 音效文件下拉框
+        // 音效文件下拉框
         LoadSoundFiles();
 
         // 更新代理
@@ -128,7 +127,7 @@ public partial class SettingsView : UserControl
     }
 
     // ============================================================
-    // ★ 音效文件管理
+    // 音效文件
     // ============================================================
     private void LoadSoundFiles()
     {
@@ -138,14 +137,12 @@ public partial class SettingsView : UserControl
             if (combo == null) return;
 
             var files = ClickSoundService.GetAvailableSounds();
-
             combo.ItemsSource = files;
 
             var current = _config.ClickSoundFile;
             var idx = Array.IndexOf(files, current);
             if (idx < 0)
             {
-                // 配置里的文件不在列表中，选第一个可用的
                 idx = files.Length > 0 ? 0 : -1;
                 if (idx >= 0) _config.ClickSoundFile = files[idx];
             }
@@ -167,13 +164,11 @@ public partial class SettingsView : UserControl
     private void ClickSoundFileComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;
-
         var combo = sender as ComboBox;
         if (combo?.SelectedItem is string fileName)
         {
             _config.ClickSoundFile = fileName;
             ClickSoundService.Instance.Reload();
-
             MainWindow.PushToast("点击音效", $"已切换到: {fileName}");
         }
     }
@@ -231,6 +226,7 @@ public partial class SettingsView : UserControl
         _config.ThemeMode = mode;
         App.ApplyTheme(mode);
 
+        // 主题切换后重新应用材质
         WindowBackdropService.RefreshAll();
 
         string display = mode switch

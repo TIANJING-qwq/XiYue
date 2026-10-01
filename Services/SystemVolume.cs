@@ -53,13 +53,12 @@ public static class SystemVolume
     [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
     private class MMDeviceEnumeratorComObject { }
 
-    /// <summary>设置系统主音量（0.0 - 1.0）。</summary>
-    public static bool SetVolume(float level)
+    // ============================================================
+    // 获取 IAudioEndpointVolume 接口
+    // ============================================================
+    private static IAudioEndpointVolume? GetEndpointVolume()
     {
-        if (!OperatingSystem.IsWindows()) return false;
-
-        if (level < 0f) level = 0f;
-        if (level > 1f) level = 1f;
+        if (!OperatingSystem.IsWindows()) return null;
 
         try
         {
@@ -68,12 +67,32 @@ public static class SystemVolume
 
             var iid = typeof(IAudioEndpointVolume).GUID;
             device.Activate(ref iid, 23, IntPtr.Zero, out object obj);
-            var volume = (IAudioEndpointVolume)obj;
+            return (IAudioEndpointVolume)obj;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
-            volume.SetMasterVolumeLevelScalar(level, Guid.Empty);
+    // ============================================================
+    // 设置主音量（0.0 - 1.0），同时取消静音
+    // ============================================================
+    public static bool SetVolume(float level)
+    {
+        if (level < 0f) level = 0f;
+        if (level > 1f) level = 1f;
 
+        var vol = GetEndpointVolume();
+        if (vol == null) return false;
+
+        try
+        {
+            vol.SetMasterVolumeLevelScalar(level, Guid.Empty);
+
+            // ★ 只要 level > 0 就强制取消静音
             if (level > 0f)
-                volume.SetMute(false, Guid.Empty);
+                vol.SetMute(false, Guid.Empty);
 
             return true;
         }
@@ -86,18 +105,12 @@ public static class SystemVolume
     /// <summary>获取系统主音量（0.0 - 1.0）。失败返回 -1。</summary>
     public static float GetVolume()
     {
-        if (!OperatingSystem.IsWindows()) return -1f;
+        var vol = GetEndpointVolume();
+        if (vol == null) return -1f;
 
         try
         {
-            var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
-            enumerator.GetDefaultAudioEndpoint(0, 1, out IMMDevice device);
-
-            var iid = typeof(IAudioEndpointVolume).GUID;
-            device.Activate(ref iid, 23, IntPtr.Zero, out object obj);
-            var volume = (IAudioEndpointVolume)obj;
-
-            volume.GetMasterVolumeLevelScalar(out float v);
+            vol.GetMasterVolumeLevelScalar(out float v);
             return v;
         }
         catch
@@ -106,17 +119,58 @@ public static class SystemVolume
         }
     }
 
+    /// <summary>获取当前是否静音。</summary>
+    public static bool GetMute()
+    {
+        var vol = GetEndpointVolume();
+        if (vol == null) return false;
+
+        try
+        {
+            vol.GetMute(out bool mute);
+            return mute;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>取消静音。</summary>
+    public static bool Unmute()
+    {
+        var vol = GetEndpointVolume();
+        if (vol == null) return false;
+
+        try
+        {
+            vol.SetMute(false, Guid.Empty);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // ============================================================
+    // 音量保持
+    // ============================================================
     private static CancellationTokenSource? _holdCts;
 
     /// <summary>
-    /// 在指定秒数内持续把系统音量保持在指定水平。
-    /// 用户手动调整音量后会被自动拉回。重复调用会取消上一次。
+    /// 在指定秒数内持续把系统音量保持在指定水平，并且强制取消静音。
+    /// 用户手动调音量或静音都会被自动拉回。重复调用会取消上一次。
     /// </summary>
     public static void HoldVolumeFor(float level, int seconds)
     {
         _holdCts?.Cancel();
         _holdCts = new CancellationTokenSource();
         var token = _holdCts.Token;
+
+        // 立即设置一次
+        SetVolume(level);
+        if (level > 0f) Unmute();
 
         Task.Run(async () =>
         {
@@ -126,19 +180,40 @@ public static class SystemVolume
             {
                 while (DateTime.Now < endTime && !token.IsCancellationRequested)
                 {
-                    var current = GetVolume();
-                    // 偏差超过 2% 就拉回
-                    if (current >= 0 && Math.Abs(current - level) > 0.02f)
+                    // ★ 每次循环都检查静音 + 音量
+                    if (level > 0f)
                     {
-                        SetVolume(level);
+                        var isMuted = GetMute();
+                        if (isMuted)
+                        {
+                            Unmute();
+                        }
+
+                        var current = GetVolume();
+                        if (current >= 0 && Math.Abs(current - level) > 0.01f)
+                        {
+                            SetVolume(level);
+                        }
+                    }
+                    else
+                    {
+                        // level = 0 时只保证音量为 0，不管静音
+                        var current = GetVolume();
+                        if (current > 0.01f)
+                        {
+                            SetVolume(0f);
+                        }
                     }
 
-                    await Task.Delay(200, token);
+                    await Task.Delay(100, token);
                 }
 
                 // 最后一次确保到达目标值
-                if (!token.IsCancellationRequested)
+                if (!token.IsCancellationRequested && level > 0f)
+                {
+                    Unmute();
                     SetVolume(level);
+                }
             }
             catch (TaskCanceledException) { }
             catch { }

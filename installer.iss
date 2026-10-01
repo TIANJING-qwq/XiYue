@@ -1,6 +1,6 @@
 ﻿[Setup]
 AppName=汐月 XiYue
-AppVersion=0.3.1
+AppVersion=0.3.5
 AppPublisher=SchoolBusytools
 DefaultDirName={autopf}\XiYue
 DefaultGroupName=汐月
@@ -10,7 +10,7 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 OutputDir=.\publish\installer
-OutputBaseFilename=XiYue_Setup_v0.3.1
+OutputBaseFilename=XiYue_Setup_v0.3.5
 SetupIconFile=Assets\app.ico
 ArchitecturesInstallIn64BitMode=x64
 

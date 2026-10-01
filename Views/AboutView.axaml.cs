@@ -157,7 +157,7 @@ public partial class AboutView : UserControl
     }
 
     // ============================================================
-    // 检查更新
+    // 手动检查更新
     // ============================================================
     private async void CheckUpdateButton_Click(object? sender, RoutedEventArgs e)
     {
@@ -169,6 +169,9 @@ public partial class AboutView : UserControl
 
         try
         {
+            // ★ 标记为手动检查 → UpdateAvailable 事件会弹对话框
+            MainWindow.SetAutoChecking(false);
+
             UpdateStatusText.Text = "正在检查更新...";
             LogService.Log("用户点击检查更新", "更新");
 
@@ -177,48 +180,12 @@ public partial class AboutView : UserControl
             if (!hasUpdate)
             {
                 UpdateStatusText.Text = $"当前已是最新版本（{DisplayVersion}）";
-                MainWindow.PushToast("检查更新", "当前已是最新版本。");
+                // Toast 由 MainWindow.CheckCompleted 事件弹出
                 return;
             }
 
-            var latest = UpdateService.Instance.LatestVersion ?? "未知";
-            var changelog = UpdateService.Instance.GetChangelog();
-
-            UpdateStatusText.Text = $"发现新版本 {latest}";
-
-            // ★ 弹更新确认对话框
-            var owner = TopLevel.GetTopLevel(this) as Window;
-            if (owner == null) return;
-
-            var dialog = new UpdateAvailableDialog(latest, changelog);
-            var confirmed = await dialog.ShowDialog<bool>(owner);
-
-            if (!confirmed)
-            {
-                UpdateStatusText.Text = $"已忽略新版本 {latest}";
-                return;
-            }
-
-            // ★ 弹下载进度对话框
-            var progressDialog = new UpdateDownloadDialog();
-            progressDialog.Show(owner);
-
-            var success = await UpdateService.Instance.DownloadAndInstallAsync();
-
-            try { progressDialog.Close(); } catch { }
-
-            if (success)
-            {
-                UpdateStatusText.Text = "安装程序已启动，请按提示完成更新";
-                MainWindow.PushToast("更新就绪",
-                    "安装程序已启动，请按提示完成后重新打开汐月。");
-            }
-            else
-            {
-                UpdateStatusText.Text = "更新失败，请稍后重试或前往 GitHub 手动下载";
-                MainWindow.PushToast("更新失败",
-                    "请稍后重试或前往 GitHub 手动下载。");
-            }
+            // 有新版本 → MainWindow.UpdateAvailable 事件会弹对话框
+            UpdateStatusText.Text = "已发现新版本，请查看弹窗";
         }
         catch (Exception ex)
         {

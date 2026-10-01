@@ -61,16 +61,20 @@ public sealed class UpdateService
         LogService.Log($"更新服务已初始化，当前版本 {CurrentVersion}", "更新");
     }
 
+    // ============================================================
+    // ★ 启动时自动检查（会触发 UpdateAvailable 事件 → MainWindow 弹 Toast）
+    // ============================================================
     public void CheckQuietly()
     {
         try
         {
-            LogService.Log("启动静默检查更新...", "更新");
-            _ = _updater.CheckForUpdatesAsync();
+            LogService.Log("启动自动检查更新...", "更新");
+            // 用 CheckForUpdatesAsync，确保 UpdateFound 事件被触发
+            _ = CheckForUpdatesAsync();
         }
         catch (Exception ex)
         {
-            LogService.Log($"静默检查失败: {ex.Message}", "更新");
+            LogService.Log($"自动检查失败: {ex.Message}", "更新");
         }
     }
 
@@ -99,7 +103,7 @@ public sealed class UpdateService
     }
 
     // ============================================================
-    // ★ 下载并安装（走代理）
+    // 下载并安装（走代理）
     // ============================================================
     public async Task<bool> DownloadAndInstallAsync()
     {
@@ -110,7 +114,6 @@ public sealed class UpdateService
         {
             LogService.Log("开始下载更新...", "更新");
 
-            // 1. 从 Release 里挑出 .exe 资产
             var release = _updater.LatestRelease;
             if (release?.Assets == null || release.Assets.Count == 0)
             {
@@ -119,7 +122,6 @@ public sealed class UpdateService
                 return false;
             }
 
-            // 优先选安装包 .exe，其次 .zip
             var asset =
                 release.Assets.FirstOrDefault(a =>
                     a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) ??
@@ -133,7 +135,6 @@ public sealed class UpdateService
                 return false;
             }
 
-            // 2. 拼接代理
             var originalUrl = asset.BrowserDownloadUrl;
             var proxy = ConfigManager.Instance.UpdateProxy ?? "";
             var downloadUrl = string.IsNullOrWhiteSpace(proxy)
@@ -142,7 +143,6 @@ public sealed class UpdateService
 
             LogService.Log($"下载地址: {downloadUrl}", "更新");
 
-            // 3. 下载到临时文件
             var tempFile = Path.Combine(
                 Path.GetTempPath(),
                 $"XiYue_Update_{Guid.NewGuid():N}{Path.GetExtension(asset.Name)}");
@@ -151,7 +151,6 @@ public sealed class UpdateService
 
             LogService.Log($"下载完成: {tempFile}", "更新");
 
-            // 4. 启动安装程序
             var ext = Path.GetExtension(tempFile).ToLowerInvariant();
             if (ext == ".exe")
             {
@@ -164,7 +163,6 @@ public sealed class UpdateService
             }
             else
             {
-                // zip 直接用资源管理器打开所在目录
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
@@ -245,7 +243,6 @@ public sealed class UpdateService
     {
         using var http = new HttpClient();
         http.Timeout = TimeSpan.FromMinutes(30);
-
         http.DefaultRequestHeaders.UserAgent.ParseAdd("XiYue/1.0");
 
         using var response = await http.GetAsync(
@@ -279,7 +276,6 @@ public sealed class UpdateService
             var elapsed = (now - lastReportTime).TotalSeconds;
             if (elapsed >= 0.3)
             {
-                // 进度
                 if (totalBytes > 0)
                 {
                     var percent = (int)(totalRead * 100 / totalBytes);
@@ -290,7 +286,6 @@ public sealed class UpdateService
                     }
                 }
 
-                // 速度
                 var bytesPerSec = (totalRead - lastReportBytes) / elapsed;
                 DownloadSpeedChanged?.Invoke(FormatSpeed(bytesPerSec));
 

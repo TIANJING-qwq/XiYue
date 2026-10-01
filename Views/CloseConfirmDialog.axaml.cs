@@ -18,6 +18,9 @@ public enum CloseAction
 
 public partial class CloseConfirmDialog : Window
 {
+    private bool _allowClose;
+    private bool _closingAnimated;
+
     public CloseConfirmDialog()
     {
         InitializeComponent();
@@ -31,15 +34,33 @@ public partial class CloseConfirmDialog : Window
             RootCard.Opacity = 1;
             RootCard.RenderTransform = TransformOperations.Parse("scale(1.0)");
         };
+
+        Closing += async (_, e) =>
+        {
+            if (_allowClose) return;
+
+            e.Cancel = true;
+
+            if (_closingAnimated) return;
+            _closingAnimated = true;
+
+            RootCard.Opacity = 0;
+            RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
+
+            await Task.Delay(220);
+
+            _allowClose = true;
+            Close(CloseAction.Cancel);
+        };
     }
 
-    private void CancelButton_Click(object? sender, RoutedEventArgs e)
+    private async void CancelButton_Click(object? sender, RoutedEventArgs e)
     {
         LogService.Log("对话框：取消", "窗口");
-        Close(CloseAction.Cancel);
+        await CloseWithAnimationAsync(CloseAction.Cancel);
     }
 
-    private void MinimizeButton_Click(object? sender, RoutedEventArgs e)
+    private async void MinimizeButton_Click(object? sender, RoutedEventArgs e)
     {
         bool dontAsk = DontAskAgainCheckbox.IsChecked == true;
         LogService.Log($"对话框：最小化到托盘（不再询问={dontAsk}）", "窗口");
@@ -57,13 +78,28 @@ public partial class CloseConfirmDialog : Window
             }
         }
 
-        Close(CloseAction.MinimizeToTray);
+        await CloseWithAnimationAsync(CloseAction.MinimizeToTray);
     }
 
-    private void QuitButton_Click(object? sender, RoutedEventArgs e)
+    private async void QuitButton_Click(object? sender, RoutedEventArgs e)
     {
         bool dontAsk = DontAskAgainCheckbox.IsChecked == true;
         LogService.Log($"对话框：退出（不再询问={dontAsk}）", "窗口");
-        Close(CloseAction.Quit);
+        await CloseWithAnimationAsync(CloseAction.Quit);
+    }
+
+    private async Task CloseWithAnimationAsync(CloseAction result)
+    {
+        if (_allowClose) return;
+        if (_closingAnimated) return;
+        _closingAnimated = true;
+
+        RootCard.Opacity = 0;
+        RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
+
+        await Task.Delay(220);
+
+        _allowClose = true;
+        Close(result);
     }
 }

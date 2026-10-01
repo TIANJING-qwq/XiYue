@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ea="using:Avalonia.Animation.Easings"
         x:Class="SBtools.Views.UpdateAvailableDialog"
         Title="发现新版本"
         Width="480"
@@ -11,12 +12,29 @@
         Background="Transparent"
         TransparencyLevelHint="Transparent">
 
-    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+    <Border x:Name="RootCard"
+            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
             CornerRadius="12"
             Padding="28"
             Margin="1">
+
+        <Border.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.22">
+                    <DoubleTransition.Easing>
+                        <ea:CubicEaseOut/>
+                    </DoubleTransition.Easing>
+                </DoubleTransition>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28">
+                    <TransformOperationsTransition.Easing>
+                        <ea:QuinticEaseOut/>
+                    </TransformOperationsTransition.Easing>
+                </TransformOperationsTransition>
+            </Transitions>
+        </Border.Transitions>
+
         <StackPanel Spacing="16">
 
             <TextBlock Text="发现新版本"

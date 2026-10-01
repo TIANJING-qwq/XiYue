@@ -1,13 +1,18 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Updatum;
+using SBtools.Models;
 
 namespace SBtools.Services;
 
 /// <summary>
-/// 自动更新服务（单例）。封装 Updatum 对 GitHub Releases 的检查、下载与安装。
+/// 自动更新服务（单例）。检查用 Updatum，下载走自定义 HttpClient（支持代理）。
 /// </summary>
 public sealed class UpdateService
 {
@@ -17,14 +22,8 @@ public sealed class UpdateService
     private const string GithubOwner = "TIANJING-qwq";
     private const string GithubRepo  = "XiYue";
 
-    // ★ 用于估算 MB/s 的资产大小（字节）。
-    // 实际的便携版 ZIP 大小，会根据发布内容略有浮动，这里取大约值。
-    // 想更准的话，每次发布新版本时改成实际大小。
-    private const double ApproxTotalBytes = 145.0 * 1024 * 1024;
-
     private readonly UpdatumManager _updater;
     private bool _initialized;
-    private UpdatumDownloadedAsset? _downloadedAsset;
 
     private CancellationTokenSource? _downloadCts;
 
@@ -37,11 +36,6 @@ public sealed class UpdateService
 
     public string CurrentVersion => _updater.CurrentVersion.ToString();
     public string? LatestVersion  => _updater.LatestRelease?.TagName?.TrimStart('v');
-
-    // 速度采样
-    private DateTime _lastSampleTime = DateTime.MinValue;
-    private double _lastPercent;
-    private double _smoothedBytesPerSec;
 
     private UpdateService()
     {
@@ -58,8 +52,6 @@ public sealed class UpdateService
             LogService.Log($"发现新版本: {version}", "更新");
             UpdateAvailable?.Invoke(version.TrimStart('v'));
         };
-
-        _updater.PropertyChanged += OnUpdaterPropertyChanged;
     }
 
     public void Initialize()
@@ -106,45 +98,91 @@ public sealed class UpdateService
         }
     }
 
+    // ============================================================
+    // ★ 下载并安装（走代理）
+    // ============================================================
     public async Task<bool> DownloadAndInstallAsync()
     {
+        _downloadCts = new CancellationTokenSource();
+        var token = _downloadCts.Token;
+
         try
         {
             LogService.Log("开始下载更新...", "更新");
 
-            _lastSampleTime = DateTime.MinValue;
-            _lastPercent = 0;
-            _smoothedBytesPerSec = 0;
-
-            _downloadCts = new CancellationTokenSource();
-            var token = _downloadCts.Token;
-
-            try
+            // 1. 从 Release 里挑出 .exe 资产
+            var release = _updater.LatestRelease;
+            if (release?.Assets == null || release.Assets.Count == 0)
             {
-                _downloadedAsset = await _updater.DownloadUpdateAsync(token);
-            }
-            catch (OperationCanceledException)
-            {
-                LogService.Log("用户取消了下载", "更新");
-                DownloadCancelled?.Invoke();
+                LogService.Log("Release 里没有资产", "更新");
                 InstallCompleted?.Invoke(false);
                 return false;
             }
 
-            if (_downloadedAsset == null)
+            // 优先选安装包 .exe，其次 .zip
+            var asset =
+                release.Assets.FirstOrDefault(a =>
+                    a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) ??
+                release.Assets.FirstOrDefault(a =>
+                    a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+
+            if (asset == null)
             {
-                LogService.Log("更新下载失败", "更新");
+                LogService.Log("没有找到可下载的 .exe / .zip", "更新");
                 InstallCompleted?.Invoke(false);
                 return false;
             }
 
-            LogService.Log("更新下载完成，准备安装...", "更新");
+            // 2. 拼接代理
+            var originalUrl = asset.BrowserDownloadUrl;
+            var proxy = ConfigManager.Instance.UpdateProxy ?? "";
+            var downloadUrl = string.IsNullOrWhiteSpace(proxy)
+                ? originalUrl
+                : proxy + originalUrl;
 
-            await _updater.InstallUpdateAsync(_downloadedAsset);
+            LogService.Log($"下载地址: {downloadUrl}", "更新");
 
-            LogService.Log("安装程序已启动", "更新");
+            // 3. 下载到临时文件
+            var tempFile = Path.Combine(
+                Path.GetTempPath(),
+                $"XiYue_Update_{Guid.NewGuid():N}{Path.GetExtension(asset.Name)}");
+
+            await DownloadFileAsync(downloadUrl, tempFile, token);
+
+            LogService.Log($"下载完成: {tempFile}", "更新");
+
+            // 4. 启动安装程序
+            var ext = Path.GetExtension(tempFile).ToLowerInvariant();
+            if (ext == ".exe")
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = tempFile,
+                    UseShellExecute = true
+                });
+                LogService.Log("安装程序已启动", "更新");
+            }
+            else
+            {
+                // zip 直接用资源管理器打开所在目录
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{tempFile}\"",
+                    UseShellExecute = true
+                });
+                LogService.Log("已打开 ZIP 所在目录，请手动解压", "更新");
+            }
+
             InstallCompleted?.Invoke(true);
             return true;
+        }
+        catch (OperationCanceledException)
+        {
+            LogService.Log("用户取消了下载", "更新");
+            DownloadCancelled?.Invoke();
+            InstallCompleted?.Invoke(false);
+            return false;
         }
         catch (Exception ex)
         {
@@ -201,47 +239,68 @@ public sealed class UpdateService
     }
 
     // ============================================================
-    // 属性变化 → 进度 + 速度（基于百分比换算）
+    // 自定义下载（带进度 + 速度）
     // ============================================================
-    private void OnUpdaterPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private async Task DownloadFileAsync(string url, string destPath, CancellationToken token)
     {
-        if (e.PropertyName != nameof(UpdatumManager.DownloadedPercentage)) return;
+        using var http = new HttpClient();
+        http.Timeout = TimeSpan.FromMinutes(30);
 
-        try
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("XiYue/1.0");
+
+        using var response = await http.GetAsync(
+            url, HttpCompletionOption.ResponseHeadersRead, token);
+
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength ?? 0;
+
+        using var stream = await response.Content.ReadAsStreamAsync(token);
+        using var fileStream = File.Create(destPath);
+
+        var buffer = new byte[81920];
+        long totalRead = 0;
+
+        var lastReportTime = DateTime.Now;
+        long lastReportBytes = 0;
+        var lastPercent = -1;
+
+        while (true)
         {
-            var percent = _updater.DownloadedPercentage;
-            DownloadProgressChanged?.Invoke((int)percent);
+            token.ThrowIfCancellationRequested();
+
+            var read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), token);
+            if (read == 0) break;
+
+            await fileStream.WriteAsync(buffer.AsMemory(0, read), token);
+            totalRead += read;
 
             var now = DateTime.Now;
-
-            if (_lastSampleTime == DateTime.MinValue)
+            var elapsed = (now - lastReportTime).TotalSeconds;
+            if (elapsed >= 0.3)
             {
-                _lastSampleTime = now;
-                _lastPercent = percent;
-                DownloadSpeedChanged?.Invoke("计算中...");
-                return;
+                // 进度
+                if (totalBytes > 0)
+                {
+                    var percent = (int)(totalRead * 100 / totalBytes);
+                    if (percent != lastPercent)
+                    {
+                        lastPercent = percent;
+                        DownloadProgressChanged?.Invoke(percent);
+                    }
+                }
+
+                // 速度
+                var bytesPerSec = (totalRead - lastReportBytes) / elapsed;
+                DownloadSpeedChanged?.Invoke(FormatSpeed(bytesPerSec));
+
+                lastReportTime = now;
+                lastReportBytes = totalRead;
             }
-
-            var elapsed = (now - _lastSampleTime).TotalSeconds;
-            if (elapsed < 0.3) return;
-
-            var deltaPercent = percent - _lastPercent;
-            if (deltaPercent < 0) deltaPercent = 0;
-
-            // 百分比/秒 → 字节/秒
-            var bytesPerSec = ApproxTotalBytes * (deltaPercent / 100.0) / elapsed;
-
-            // 指数平滑
-            _smoothedBytesPerSec = _smoothedBytesPerSec <= 0
-                ? bytesPerSec
-                : _smoothedBytesPerSec * 0.6 + bytesPerSec * 0.4;
-
-            DownloadSpeedChanged?.Invoke(FormatSpeed(_smoothedBytesPerSec));
-
-            _lastSampleTime = now;
-            _lastPercent = percent;
         }
-        catch { }
+
+        DownloadProgressChanged?.Invoke(100);
+        DownloadSpeedChanged?.Invoke("完成");
     }
 
     private static string FormatSpeed(double bytesPerSec)
@@ -251,11 +310,8 @@ public sealed class UpdateService
         const double KB = 1024;
         const double MB = 1024 * 1024;
 
-        if (bytesPerSec >= MB)
-            return $"{bytesPerSec / MB:F2} MB/s";
-        if (bytesPerSec >= KB)
-            return $"{bytesPerSec / KB:F0} KB/s";
-
+        if (bytesPerSec >= MB) return $"{bytesPerSec / MB:F2} MB/s";
+        if (bytesPerSec >= KB) return $"{bytesPerSec / KB:F0} KB/s";
         return $"{bytesPerSec:F0} B/s";
     }
 }

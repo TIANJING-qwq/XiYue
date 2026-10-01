@@ -53,16 +53,12 @@ class Program
             LogException("VLC", ex);
         }
 
+        // ★ 只初始化更新服务，不做实际检查
+        // 检查推迟到 MainWindow.Opened 事件里（主界面显示后）
         try
         {
-            var updater = UpdateService.Instance;
-            updater.Initialize();
-            updater.CheckQuietly();
-
-            if (ConfigManager.Instance.AutoCheckUpdate)
-                updater.StartAutoCheck();
-
-            LogInfo("更新服务初始化完成");
+            UpdateService.Instance.Initialize();
+            LogInfo("更新服务已初始化（检查推迟到主窗口显示后）");
         }
         catch (Exception ex)
         {

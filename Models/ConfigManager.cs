@@ -90,6 +90,24 @@ public class ConfigManager
 
     // ---------------- ★ 更新下载代理 ----------------
     /// <summary>代理前缀，空字符串表示直连</summary>
+
+
+    // ---------------- ★ 窗口背景材质 ----------------
+    /// <summary>
+    /// "None"    - 不透明背景
+    /// "Acrylic" - 亚克力（实时模糊）
+    /// "Mica"    - 云母（Win11）
+    /// </summary>
+    public string WindowBackdrop
+    {
+        get => string.IsNullOrWhiteSpace(_data.WindowBackdrop) ? "Mica" : _data.WindowBackdrop;
+        set
+        {
+            if (_data.WindowBackdrop == value) return;
+            _data.WindowBackdrop = value;
+            Save();
+        }
+    }
     public string UpdateProxy
     {
         get => _data.UpdateProxy ?? "";
@@ -165,6 +183,9 @@ public class ConfigManager
         public string Username { get; set; } = "x2110";
         public string EncryptedPassword { get; set; } = "";
         public bool AutoCollapseOnNewToast { get; set; } = true;
+
+                // ★ 窗口背景材质
+        public string WindowBackdrop { get; set; } = "Mica";
 
         public bool ScheduleEnabled { get; set; } = false;
         public int ScheduleStartMinutes { get; set; } = 19 * 60;

@@ -8,15 +8,16 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="None"
+        SystemDecorations="BorderOnly"
+        TransparencyLevelHint="Mica"
         Background="Transparent"
-        TransparencyLevelHint="Transparent">
+        TransparencyBackgroundFallback="#F3F3F3">
 
     <Border x:Name="RootCard"
-            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+            Background="{DynamicResource AcrylicBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
-            CornerRadius="12"
+            CornerRadius="8"
             Padding="28"
             Margin="1">
 
@@ -36,7 +37,6 @@
         </Border.Transitions>
 
         <Border.Styles>
-            <!-- 取消按钮 -->
             <Style Selector="Button.cancel">
                 <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
                 <Setter Property="Padding" Value="20,8"/>
@@ -53,7 +53,6 @@
                 <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
             </Style>
 
-            <!-- 最小化按钮：蓝色 -->
             <Style Selector="Button.minimize">
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Padding" Value="20,8"/>
@@ -76,7 +75,6 @@
                 <Setter Property="Foreground" Value="White"/>
             </Style>
 
-            <!-- 退出按钮：红色 -->
             <Style Selector="Button.quit">
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Padding" Value="20,8"/>

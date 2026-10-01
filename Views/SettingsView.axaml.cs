@@ -35,7 +35,20 @@ public partial class SettingsView : UserControl
             };
         }
 
-        // ★ 更新代理
+        // ★ 窗口材质
+        var backdropCombo = this.FindControl<ComboBox>("WindowBackdropComboBox");
+        if (backdropCombo != null)
+        {
+            backdropCombo.SelectedIndex = _config.WindowBackdrop switch
+            {
+                "Mica"    => 0,
+                "Acrylic" => 1,
+                "Blur"    => 2,
+                _         => 3,
+            };
+        }
+
+        // 更新代理
         var proxyCombo = this.FindControl<ComboBox>("UpdateProxyComboBox");
         if (proxyCombo != null)
         {
@@ -134,6 +147,9 @@ public partial class SettingsView : UserControl
         _config.ThemeMode = mode;
         App.ApplyTheme(mode);
 
+        // ★ 主题切换后重新应用材质（因为 None 模式下的背景色跟随主题）
+        WindowBackdropService.RefreshAll();
+
         string display = mode switch
         {
             "Light" => "浅色",
@@ -143,7 +159,50 @@ public partial class SettingsView : UserControl
         MainWindow.PushToast("主题", $"已切换为{display}模式");
     }
 
-    // ============ ★ 更新代理 ============
+    // ============ ★ 窗口材质 ============
+    private void WindowBackdropComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        var combo = sender as ComboBox;
+        if (combo == null) return;
+
+        string mode = combo.SelectedIndex switch
+        {
+            0 => "Mica",
+            1 => "Acrylic",
+            _ => "None",
+        };
+
+        _config.WindowBackdrop = mode;
+
+        if (Avalonia.Application.Current?.ApplicationLifetime is
+            Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            if (desktop.MainWindow is Avalonia.Controls.Window main)
+            {
+                // ★ 浅色模式下提示
+                if (!WindowBackdropService.IsTransparentModeSupported(main) &&
+                    (mode == "Mica" || mode == "Acrylic"))
+                {
+                    MainWindow.PushToast("窗口材质",
+                        "浅色模式下云母/亚克力不可用，已回退到不透明背景");
+                }
+
+                WindowBackdropService.Apply(main, mode);
+            }
+        }
+
+        string display = mode switch
+        {
+            "Mica"    => "云母",
+            "Acrylic" => "亚克力",
+            _         => "无",
+        };
+        MainWindow.PushToast("窗口材质", $"已切换为: {display}");
+    }
+
+    // ============ 更新代理 ============
     private void UpdateProxyComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;

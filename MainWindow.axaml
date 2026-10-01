@@ -2,17 +2,42 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:fluent="using:FluentAvalonia.UI.Controls"
         xmlns:controls="clr-namespace:SBtools.Controls"
+        xmlns:ea="using:Avalonia.Animation.Easings"
         x:Class="SBtools.MainWindow"
         Title="汐月 · XiYue"
         Icon="/Assets/app.ico"
         Width="1100" Height="720"
-        MinWidth="800" MinHeight="560">
+        MinWidth="800" MinHeight="560"
+        Background="Transparent">
 
-    <Grid>
+    <!-- 窗口整体淡入 -->
+    <Window.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.35">
+                <DoubleTransition.Easing>
+                    <ea:CubicEaseOut/>
+                </DoubleTransition.Easing>
+            </DoubleTransition>
+        </Transitions>
+    </Window.Transitions>
+
+    <Grid x:Name="RootGrid">
+        <!-- 内容区微缩放 -->
+        <Grid.Transitions>
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.45">
+                    <TransformOperationsTransition.Easing>
+                        <ea:QuinticEaseOut/>
+                    </TransformOperationsTransition.Easing>
+                </TransformOperationsTransition>
+            </Transitions>
+        </Grid.Transitions>
+
         <fluent:NavigationView x:Name="NavView"
                                PaneDisplayMode="Left"
                                IsSettingsVisible="False"
                                IsBackButtonVisible="False"
+                               Background="Transparent"
                                SelectionChanged="NavView_SelectionChanged">
 
             <fluent:NavigationView.MenuItems>
@@ -55,7 +80,8 @@
                 </fluent:NavigationViewItem>
             </fluent:NavigationView.MenuItems>
 
-            <fluent:Frame x:Name="ContentFrame" />
+            <fluent:Frame x:Name="ContentFrame"
+                          Background="Transparent" />
         </fluent:NavigationView>
 
         <controls:ToastHost Name="GlobalToastHost"

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Media.Transformation;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using FluentAvalonia.UI.Controls;
@@ -30,7 +31,6 @@ public partial class MainWindow : Window
 
     private FullscreenPlayerWindow? _playerWindow;
 
-    // ★ 自动检查标志（true=自动 → Toast；false=手动 → 对话框）
     private static bool _isAutoChecking = true;
 
     public MainWindow() : this(false) { }
@@ -39,6 +39,14 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _instance = this;
+
+        // ★ 应用窗口材质（放在最前面）
+        WindowBackdropService.Apply(this, ConfigManager.Instance.WindowBackdrop);
+
+        // 初始状态：窗口透明 + 内容微缩
+        Opacity = 0;
+        if (RootGrid != null)
+            RootGrid.RenderTransform = TransformOperations.Parse("scale(0.97)");
 
         NavView.SelectedItem = NavView.MenuItems[0];
         ContentFrame.Navigate(typeof(FeaturesView));
@@ -57,17 +65,68 @@ public partial class MainWindow : Window
         {
             _isHiddenToTray = true;
             ShowInTaskbar = false;
-            LogService.Log("自启动模式：窗口保持隐藏", "启动");
+
+            Opened += (_, _) =>
+            {
+                // 自启动模式：不播动画，直接隐藏
+                Hide();
+                Opacity = 1;
+                if (RootGrid != null)
+                    RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
+                LogService.Log("自启动模式：窗口保持隐藏", "启动");
+
+                // 自启动也照样延迟检查更新
+                StartUpdateCheckDelayed();
+            };
         }
         else
         {
-            Opened += (_, _) => LogService.Log("程序已启动", "启动");
+            Opened += async (_, _) =>
+            {
+                // 播放进入动画
+                await Task.Delay(30);
+
+                Opacity = 1;
+                if (RootGrid != null)
+                    RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
+
+                LogService.Log("程序已启动", "启动");
+
+                // 界面显示后再检查更新
+                StartUpdateCheckDelayed();
+            };
         }
+    }
+
+    /// <summary>延迟检查更新，等主界面完全显示后</summary>
+    private void StartUpdateCheckDelayed()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1500);
+
+                LogService.Log("主界面已就绪，开始自动检查更新", "更新");
+
+                _isAutoChecking = true;
+
+                await UpdateService.Instance.CheckForUpdatesAsync();
+
+                if (ConfigManager.Instance.AutoCheckUpdate)
+                {
+                    UpdateService.Instance.StartAutoCheck();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.Log($"自动检查更新失败: {ex.Message}", "更新");
+            }
+        });
     }
 
     public static PlaybackScheduler? Scheduler => _scheduler;
 
-    /// <summary>设置下一次检查是否为自动模式（true=Toast；false=对话框）</summary>
     public static void SetAutoChecking(bool value)
     {
         _isAutoChecking = value;
@@ -87,7 +146,7 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // ★ 导航
+    // 导航
     // ============================================================
     private void NavView_SelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
     {
@@ -154,7 +213,6 @@ public partial class MainWindow : Window
         {
             var updater = UpdateService.Instance;
 
-            // 发现新版本：自动 → Toast；手动 → 弹对话框
             updater.UpdateAvailable += version =>
             {
                 Dispatcher.UIThread.Post(async () =>
@@ -169,7 +227,6 @@ public partial class MainWindow : Window
                             return;
                         }
 
-                        // 手动检查模式 → 弹对话框
                         if (_isHiddenToTray || !IsVisible)
                             RestoreMainWindow();
 
@@ -190,7 +247,7 @@ public partial class MainWindow : Window
 
                         var success = await updater.DownloadAndInstallAsync();
 
-                        try { progressDialog.Close(); } catch { }
+                        try { await progressDialog.CloseWithAnimationAsync(); } catch { }
 
                         if (success)
                             PushToast("更新就绪",
@@ -210,11 +267,8 @@ public partial class MainWindow : Window
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    // 手动检查且无更新时弹 Toast
                     if (!hasUpdate && !_isAutoChecking)
                         PushToast("检查更新", "当前已是最新版本。");
-
-                    // 检查完毕后重置为自动模式
                     _isAutoChecking = true;
                 });
             };

@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SBtools.Views.SettingsView">
     <ScrollViewer>
-        <StackPanel Margin="24" Spacing="20" MaxWidth="640">
+        <StackPanel Margin="24" Spacing="20" MaxWidth="700">
 
             <!-- 网络认证 -->
             <TextBlock Text="网络认证" FontSize="16" FontWeight="SemiBold"/>
@@ -20,7 +20,7 @@
                         Click="SaveCredentials_Click"/>
             </StackPanel>
 
-            <!-- ★ 主题 -->
+            <!-- 主题 -->
             <TextBlock Text="主题" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
             <StackPanel Spacing="10">
                 <TextBlock Text="外观模式" FontSize="13"/>
@@ -46,6 +46,103 @@
                               x:Name="AutoCollapseSwitch"
                               IsCheckedChanged="AutoCollapseSwitch_Changed"/>
             </Grid>
+
+            <!-- ★ 插件联动 -->
+            <TextBlock Text="插件联动" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="收到插件通知时执行自动动作" FontSize="13"/>
+                    <TextBlock Text="打开多个浏览器窗口 + 音量保持"
+                               FontSize="11" Opacity="0.5"/>
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              x:Name="AutoActionSwitch"
+                              IsCheckedChanged="AutoActionSwitch_Changed"/>
+            </Grid>
+
+            <StackPanel Spacing="10">
+                <TextBlock Text="自动打开的 URL" FontSize="13"/>
+                <TextBox x:Name="AutoActionUrlBox"
+                         Watermark="https://..."
+                         LostFocus="AutoActionUrlBox_LostFocus"/>
+
+                <Grid ColumnDefinitions="*,140">
+                    <TextBlock Grid.Column="0"
+                               Text="打开窗口数量"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1"
+                                   x:Name="AutoActionCountBox"
+                                   Minimum="1" Maximum="50"
+                                   Increment="1"
+                                   FormatString="0"
+                                   ValueChanged="AutoActionCountBox_ValueChanged"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,140">
+                    <TextBlock Grid.Column="0"
+                               Text="打开间隔（毫秒）"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1"
+                                   x:Name="AutoActionIntervalBox"
+                                   Minimum="100" Maximum="3000"
+                                   Increment="50"
+                                   FormatString="0"
+                                   ValueChanged="AutoActionIntervalBox_ValueChanged"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,140">
+                    <TextBlock Grid.Column="0"
+                               Text="目标音量（0-100）"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1"
+                                   x:Name="AutoActionVolumeBox"
+                                   Minimum="0" Maximum="100"
+                                   Increment="5"
+                                   FormatString="0"
+                                   ValueChanged="AutoActionVolumeBox_ValueChanged"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,140">
+                    <TextBlock Grid.Column="0"
+                               Text="音量保持时间（秒）"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1"
+                                   x:Name="AutoActionHoldBox"
+                                   Minimum="0" Maximum="600"
+                                   Increment="5"
+                                   FormatString="0"
+                                   ValueChanged="AutoActionHoldBox_ValueChanged"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="显示置顶遮罩" FontSize="13"/>
+                        <TextBlock Text="执行时全屏遮罩挡住关闭按钮"
+                                   FontSize="11" Opacity="0.5"/>
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1"
+                                  x:Name="OverlaySwitch"
+                                  IsCheckedChanged="OverlaySwitch_Changed"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,140">
+                    <TextBlock Grid.Column="0"
+                               Text="遮罩显示时间（秒）"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1"
+                                   x:Name="OverlaySecondsBox"
+                                   Minimum="1" Maximum="300"
+                                   Increment="1"
+                                   FormatString="0"
+                                   ValueChanged="OverlaySecondsBox_ValueChanged"/>
+                </Grid>
+            </StackPanel>
 
             <!-- 程序选项 -->
             <TextBlock Text="程序选项" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>

@@ -40,6 +40,9 @@ public partial class MainWindow : Window
         ApplyScheduleConfig();
 
         SetupTrayIcon();
+
+        // ★ 启动本地 IPC
+        LocalIpcServer.Instance.Start();
         Closing += OnWindowClosing;
 
         if (_startMinimized)

@@ -156,6 +156,9 @@ public partial class AboutView : UserControl
         catch { }
     }
 
+    // ============================================================
+    // 检查更新
+    // ============================================================
     private async void CheckUpdateButton_Click(object? sender, RoutedEventArgs e)
     {
         if (_isCheckingUpdate) return;
@@ -179,13 +182,30 @@ public partial class AboutView : UserControl
             }
 
             var latest = UpdateService.Instance.LatestVersion ?? "未知";
+            var changelog = UpdateService.Instance.GetChangelog();
 
-            UpdateStatusText.Text = $"发现新版本 {latest}，正在下载...";
-            MainWindow.PushToast("发现新版本", $"v{latest} 正在下载，请稍候...");
+            UpdateStatusText.Text = $"发现新版本 {latest}";
 
-            LogService.Log($"开始下载 v{latest}", "更新");
+            // ★ 弹更新确认对话框
+            var owner = TopLevel.GetTopLevel(this) as Window;
+            if (owner == null) return;
+
+            var dialog = new UpdateAvailableDialog(latest, changelog);
+            var confirmed = await dialog.ShowDialog<bool>(owner);
+
+            if (!confirmed)
+            {
+                UpdateStatusText.Text = $"已忽略新版本 {latest}";
+                return;
+            }
+
+            // ★ 弹下载进度对话框
+            var progressDialog = new UpdateDownloadDialog();
+            progressDialog.Show(owner);
 
             var success = await UpdateService.Instance.DownloadAndInstallAsync();
+
+            try { progressDialog.Close(); } catch { }
 
             if (success)
             {

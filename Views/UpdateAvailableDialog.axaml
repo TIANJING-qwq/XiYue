@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SBtools.Views.UpdateAvailableDialog"
+        Title="发现新版本"
+        Width="480"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+
+    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="28"
+            Margin="1">
+        <StackPanel Spacing="16">
+
+            <TextBlock Text="发现新版本"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+
+            <TextBlock x:Name="VersionText"
+                       FontSize="14"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    CornerRadius="8"
+                    Padding="14"
+                    MaxHeight="220">
+                <ScrollViewer>
+                    <TextBlock x:Name="ChangelogText"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                </ScrollViewer>
+            </Border>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10"
+                        Margin="0,4,0,0">
+
+                <Button x:Name="LaterButton"
+                        Content="稍后再说"
+                        Padding="20,8"
+                        MinWidth="96"
+                        CornerRadius="6"
+                        Click="LaterButton_Click"/>
+
+                <Button x:Name="DownloadButton"
+                        Content="立即更新"
+                        Padding="20,8"
+                        MinWidth="96"
+                        CornerRadius="6"
+                        FontWeight="SemiBold"
+                        Click="DownloadButton_Click">
+                    <Button.Styles>
+                        <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="#FF0078D4"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="#FF106EBE"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                        <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="#FF005A9E"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

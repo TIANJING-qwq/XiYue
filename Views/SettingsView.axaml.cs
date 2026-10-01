@@ -23,6 +23,32 @@ public partial class SettingsView : UserControl
         if (usernameBox != null) usernameBox.Text = _config.Username;
         if (passwordBox != null) passwordBox.Text = _config.Password;
 
+        // 主题
+        var themeCombo = this.FindControl<ComboBox>("ThemeModeComboBox");
+        if (themeCombo != null)
+        {
+            themeCombo.SelectedIndex = _config.ThemeMode switch
+            {
+                "Light" => 0,
+                "Dark"  => 1,
+                _       => 2,
+            };
+        }
+
+        // ★ 更新代理
+        var proxyCombo = this.FindControl<ComboBox>("UpdateProxyComboBox");
+        if (proxyCombo != null)
+        {
+            proxyCombo.SelectedIndex = _config.UpdateProxy switch
+            {
+                "https://gh-proxy.com/"    => 1,
+                "https://gh-proxy.org/"    => 2,
+                "https://v4.gh-proxy.org/" => 3,
+                "https://v6.gh-proxy.org/" => 4,
+                _ => 0,
+            };
+        }
+
         // 通知
         var autoCollapseSwitch = this.FindControl<ToggleSwitch>("AutoCollapseSwitch");
         if (autoCollapseSwitch != null)
@@ -68,18 +94,6 @@ public partial class SettingsView : UserControl
         if (minTraySwitch != null)
             minTraySwitch.IsChecked = _config.MinimizeToTrayOnClose;
 
-        // 主题
-        var themeCombo = this.FindControl<ComboBox>("ThemeModeComboBox");
-        if (themeCombo != null)
-        {
-            themeCombo.SelectedIndex = _config.ThemeMode switch
-            {
-                "Light" => 0,
-                "Dark"  => 1,
-                _       => 2,
-            };
-        }
-
         _isInitializing = false;
     }
 
@@ -100,6 +114,63 @@ public partial class SettingsView : UserControl
         _config.Username = u;
         _config.Password = p;
         MainWindow.PushToast("设置已保存", "认证凭据已更新并加密存储。");
+    }
+
+    // ============ 主题 ============
+    private void ThemeModeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        var combo = sender as ComboBox;
+        if (combo == null) return;
+
+        string mode = combo.SelectedIndex switch
+        {
+            0 => "Light",
+            1 => "Dark",
+            _ => "Default",
+        };
+
+        _config.ThemeMode = mode;
+        App.ApplyTheme(mode);
+
+        string display = mode switch
+        {
+            "Light" => "浅色",
+            "Dark"  => "深色",
+            _       => "跟随系统",
+        };
+        MainWindow.PushToast("主题", $"已切换为{display}模式");
+    }
+
+    // ============ ★ 更新代理 ============
+    private void UpdateProxyComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        var combo = sender as ComboBox;
+        if (combo == null) return;
+
+        string proxy = combo.SelectedIndex switch
+        {
+            1 => "https://gh-proxy.com/",
+            2 => "https://gh-proxy.org/",
+            3 => "https://v4.gh-proxy.org/",
+            4 => "https://v6.gh-proxy.org/",
+            _ => "",
+        };
+
+        _config.UpdateProxy = proxy;
+
+        string display = combo.SelectedIndex switch
+        {
+            1 => "gh-proxy.com",
+            2 => "gh-proxy.org",
+            3 => "v4.gh-proxy.org",
+            4 => "v6.gh-proxy.org",
+            _ => "直连",
+        };
+        MainWindow.PushToast("更新代理", $"已切换为: {display}");
     }
 
     // ============ 通知 ============
@@ -206,32 +277,5 @@ public partial class SettingsView : UserControl
         if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("MinTraySwitch");
         _config.MinimizeToTrayOnClose = sw?.IsChecked == true;
-    }
-
-    // ============ 主题 ============
-    private void ThemeModeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (_isInitializing) return;
-
-        var combo = sender as ComboBox;
-        if (combo == null) return;
-
-        string mode = combo.SelectedIndex switch
-        {
-            0 => "Light",
-            1 => "Dark",
-            _ => "Default",
-        };
-
-        _config.ThemeMode = mode;
-        App.ApplyTheme(mode);
-
-        string display = mode switch
-        {
-            "Light" => "浅色",
-            "Dark"  => "深色",
-            _       => "跟随系统",
-        };
-        MainWindow.PushToast("主题", $"已切换为{display}模式");
     }
 }

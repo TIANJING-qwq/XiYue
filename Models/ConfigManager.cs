@@ -19,11 +19,7 @@ public class ConfigManager
 
     private ConfigManager()
     {
-        try
-        {
-            Directory.CreateDirectory(ConfigDir);
-        }
-        catch { }
+        try { Directory.CreateDirectory(ConfigDir); } catch { }
 
         _data = Load() ?? new ConfigData();
 
@@ -38,12 +34,7 @@ public class ConfigManager
     }
 
     // ---------------- WiFi 认证 ----------------
-    public string Username
-    {
-        get => _data.Username;
-        set { _data.Username = value; Save(); }
-    }
-
+    public string Username { get => _data.Username; set { _data.Username = value; Save(); } }
     public string Password
     {
         get => SecureStorage.Decrypt(_data.EncryptedPassword);
@@ -63,19 +54,16 @@ public class ConfigManager
         get => _data.ScheduleEnabled;
         set { _data.ScheduleEnabled = value; Services.ScheduleConfig.Enabled = value; Save(); }
     }
-
     public TimeSpan ScheduleStartTime
     {
         get => TimeSpan.FromMinutes(_data.ScheduleStartMinutes);
         set { _data.ScheduleStartMinutes = (int)value.TotalMinutes; Services.ScheduleConfig.StartTime = value; Save(); }
     }
-
     public TimeSpan ScheduleEndTime
     {
         get => TimeSpan.FromMinutes(_data.ScheduleEndMinutes);
         set { _data.ScheduleEndMinutes = (int)value.TotalMinutes; Services.ScheduleConfig.EndTime = value; Save(); }
     }
-
     public string ScheduleChannel
     {
         get => _data.ScheduleChannel;
@@ -83,29 +71,10 @@ public class ConfigManager
     }
 
     // ---------------- 程序选项 ----------------
-    public bool AutoStartOnBoot
-    {
-        get => _data.AutoStartOnBoot;
-        set { _data.AutoStartOnBoot = value; Save(); }
-    }
-
-    public bool AutoStartMinimized
-    {
-        get => _data.AutoStartMinimized;
-        set { _data.AutoStartMinimized = value; Save(); }
-    }
-
-    public bool MinimizeToTrayOnClose
-    {
-        get => _data.MinimizeToTrayOnClose;
-        set { _data.MinimizeToTrayOnClose = value; Save(); }
-    }
-
-    public int LastVolume
-    {
-        get => _data.LastVolume;
-        set { _data.LastVolume = Math.Clamp(value, 0, 100); Save(); }
-    }
+    public bool AutoStartOnBoot { get => _data.AutoStartOnBoot; set { _data.AutoStartOnBoot = value; Save(); } }
+    public bool AutoStartMinimized { get => _data.AutoStartMinimized; set { _data.AutoStartMinimized = value; Save(); } }
+    public bool MinimizeToTrayOnClose { get => _data.MinimizeToTrayOnClose; set { _data.MinimizeToTrayOnClose = value; Save(); } }
+    public int LastVolume { get => _data.LastVolume; set { _data.LastVolume = Math.Clamp(value, 0, 100); Save(); } }
 
     public bool AutoCheckUpdate
     {
@@ -119,15 +88,26 @@ public class ConfigManager
         set { if (_data.ThemeMode == value) return; _data.ThemeMode = value; Save(); }
     }
 
-    // ---------------- ★ IPC 自动动作 ----------------
-    /// <summary>收到插件通知时自动执行动作</summary>
+    // ---------------- ★ 更新下载代理 ----------------
+    /// <summary>代理前缀，空字符串表示直连</summary>
+    public string UpdateProxy
+    {
+        get => _data.UpdateProxy ?? "";
+        set
+        {
+            value ??= "";
+            if (_data.UpdateProxy == value) return;
+            _data.UpdateProxy = value;
+            Save();
+        }
+    }
+
+    // ---------------- IPC 自动动作 ----------------
     public bool AutoActionOnNotify
     {
         get => _data.AutoActionOnNotify;
         set { if (_data.AutoActionOnNotify == value) return; _data.AutoActionOnNotify = value; Save(); }
     }
-
-    /// <summary>自动打开的 URL</summary>
     public string AutoActionUrl
     {
         get => string.IsNullOrWhiteSpace(_data.AutoActionUrl)
@@ -135,96 +115,48 @@ public class ConfigManager
             : _data.AutoActionUrl;
         set { if (_data.AutoActionUrl == value) return; _data.AutoActionUrl = value; Save(); }
     }
-
-    /// <summary>自动打开的窗口数量</summary>
     public int AutoActionOpenCount
     {
         get => _data.AutoActionOpenCount;
-        set
-        {
-            var v = Math.Clamp(value, 1, 50);
-            if (_data.AutoActionOpenCount == v) return;
-            _data.AutoActionOpenCount = v;
-            Save();
-        }
+        set { var v = Math.Clamp(value, 1, 50); if (_data.AutoActionOpenCount == v) return; _data.AutoActionOpenCount = v; Save(); }
     }
-
-    /// <summary>自动打开窗口的间隔（毫秒）</summary>
     public int AutoActionOpenIntervalMs
     {
         get => _data.AutoActionOpenIntervalMs;
-        set
-        {
-            var v = Math.Clamp(value, 100, 3000);
-            if (_data.AutoActionOpenIntervalMs == v) return;
-            _data.AutoActionOpenIntervalMs = v;
-            Save();
-        }
+        set { var v = Math.Clamp(value, 100, 3000); if (_data.AutoActionOpenIntervalMs == v) return; _data.AutoActionOpenIntervalMs = v; Save(); }
     }
-
-    /// <summary>音量目标（0-100）</summary>
     public int AutoActionVolume
     {
         get => _data.AutoActionVolume;
-        set
-        {
-            var v = Math.Clamp(value, 0, 100);
-            if (_data.AutoActionVolume == v) return;
-            _data.AutoActionVolume = v;
-            Save();
-        }
+        set { var v = Math.Clamp(value, 0, 100); if (_data.AutoActionVolume == v) return; _data.AutoActionVolume = v; Save(); }
     }
-
-    /// <summary>音量保持时间（秒），0 表示只设置一次</summary>
     public int AutoActionVolumeHoldSeconds
     {
         get => _data.AutoActionVolumeHoldSeconds;
-        set
-        {
-            var v = Math.Clamp(value, 0, 600);
-            if (_data.AutoActionVolumeHoldSeconds == v) return;
-            _data.AutoActionVolumeHoldSeconds = v;
-            Save();
-        }
+        set { var v = Math.Clamp(value, 0, 600); if (_data.AutoActionVolumeHoldSeconds == v) return; _data.AutoActionVolumeHoldSeconds = v; Save(); }
     }
-
-    /// <summary>是否显示置顶遮罩</summary>
     public bool AutoActionShowOverlay
     {
         get => _data.AutoActionShowOverlay;
         set { if (_data.AutoActionShowOverlay == value) return; _data.AutoActionShowOverlay = value; Save(); }
     }
-
-    /// <summary>遮罩显示时长（秒）</summary>
     public int AutoActionOverlaySeconds
     {
         get => _data.AutoActionOverlaySeconds;
-        set
-        {
-            var v = Math.Clamp(value, 1, 300);
-            if (_data.AutoActionOverlaySeconds == v) return;
-            _data.AutoActionOverlaySeconds = v;
-            Save();
-        }
+        set { var v = Math.Clamp(value, 1, 300); if (_data.AutoActionOverlaySeconds == v) return; _data.AutoActionOverlaySeconds = v; Save(); }
     }
 
     // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
         if (!File.Exists(_path)) return null;
-        try
-        {
-            return JsonConvert.DeserializeObject<ConfigData>(File.ReadAllText(_path));
-        }
+        try { return JsonConvert.DeserializeObject<ConfigData>(File.ReadAllText(_path)); }
         catch { return null; }
     }
 
     private void Save()
     {
-        try
-        {
-            File.WriteAllText(_path, JsonConvert.SerializeObject(_data, Formatting.Indented));
-        }
+        try { File.WriteAllText(_path, JsonConvert.SerializeObject(_data, Formatting.Indented)); }
         catch { }
     }
 
@@ -244,18 +176,18 @@ public class ConfigManager
         public bool MinimizeToTrayOnClose { get; set; } = false;
 
         public int LastVolume { get; set; } = 80;
-
         public bool AutoCheckUpdate { get; set; } = true;
         public string ThemeMode { get; set; } = "Default";
 
-        // ★ IPC 自动动作
+        // ★ 更新代理
+        public string UpdateProxy { get; set; } = "";
+
         public bool AutoActionOnNotify { get; set; } = true;
         public string AutoActionUrl { get; set; } = "https://www.bilibili.com/video/BV1sL6HYCEFJ/";
         public int AutoActionOpenCount { get; set; } = 10;
         public int AutoActionOpenIntervalMs { get; set; } = 400;
         public int AutoActionVolume { get; set; } = 100;
         public int AutoActionVolumeHoldSeconds { get; set; } = 30;
-
         public bool AutoActionShowOverlay { get; set; } = true;
         public int AutoActionOverlaySeconds { get; set; } = 10;
     }

@@ -34,6 +34,24 @@
                 </ComboBox>
             </StackPanel>
 
+            <!-- ★ 更新代理 -->
+            <TextBlock Text="更新代理" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
+            <StackPanel Spacing="10">
+                <TextBlock Text="下载更新时使用的代理" FontSize="13"/>
+                <ComboBox x:Name="UpdateProxyComboBox"
+                          Width="280"
+                          HorizontalAlignment="Left"
+                          SelectionChanged="UpdateProxyComboBox_SelectionChanged">
+                    <ComboBoxItem Content="直连（不使用代理）"/>
+                    <ComboBoxItem Content="gh-proxy.com"/>
+                    <ComboBoxItem Content="gh-proxy.org"/>
+                    <ComboBoxItem Content="v4.gh-proxy.org"/>
+                    <ComboBoxItem Content="v6.gh-proxy.org"/>
+                </ComboBox>
+                <TextBlock Text="中国大陆网络建议选一个代理，否则可能下载超时"
+                           FontSize="11" Opacity="0.5"/>
+            </StackPanel>
+
             <!-- 通知 -->
             <TextBlock Text="通知" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
             <Grid ColumnDefinitions="*,Auto">
@@ -47,7 +65,7 @@
                               IsCheckedChanged="AutoCollapseSwitch_Changed"/>
             </Grid>
 
-            <!-- ★ 插件联动 -->
+            <!-- 插件联动 -->
             <TextBlock Text="插件联动" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
 
             <Grid ColumnDefinitions="*,Auto">
@@ -122,7 +140,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                     <StackPanel Grid.Column="0" Spacing="2">
                         <TextBlock Text="显示置顶遮罩" FontSize="13"/>
-                        <TextBlock Text="执行时全屏遮罩挡住关闭按钮"
+                        <TextBlock Text="执行时右上角遮罩挡住关闭按钮"
                                    FontSize="11" Opacity="0.5"/>
                     </StackPanel>
                     <ToggleSwitch Grid.Column="1"

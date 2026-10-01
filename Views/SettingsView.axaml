@@ -25,7 +25,7 @@
             <StackPanel Spacing="10">
                 <TextBlock Text="外观模式" FontSize="13"/>
                 <ComboBox x:Name="ThemeModeComboBox"
-                          Width="200"
+                          Width="220"
                           HorizontalAlignment="Left"
                           SelectionChanged="ThemeModeComboBox_SelectionChanged">
                     <ComboBoxItem Content="浅色"/>
@@ -34,7 +34,24 @@
                 </ComboBox>
             </StackPanel>
 
-            <!-- ★ 更新代理 -->
+            <!-- ★ 窗口材质 -->
+            <TextBlock Text="窗口材质" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
+            <StackPanel Spacing="10">
+                <TextBlock Text="窗口背景效果" FontSize="13"/>
+                <ComboBox x:Name="WindowBackdropComboBox"
+                        Width="280"
+                        HorizontalAlignment="Left"
+                        SelectionChanged="WindowBackdropComboBox_SelectionChanged">
+                    <ComboBoxItem Content="云母（Win11，仅深色）"/>
+                    <ComboBoxItem Content="亚克力（仅深色）"/>
+                    <ComboBoxItem Content="无（不透明）"/>
+                </ComboBox>
+                <TextBlock Text="云母/亚克力仅在深色模式下生效，浅色模式自动回退到不透明"
+                        FontSize="11" Opacity="0.5"
+                        TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- 更新代理 -->
             <TextBlock Text="更新代理" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0"/>
             <StackPanel Spacing="10">
                 <TextBlock Text="下载更新时使用的代理" FontSize="13"/>

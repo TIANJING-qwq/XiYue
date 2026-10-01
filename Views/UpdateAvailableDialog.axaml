@@ -8,15 +8,16 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="None"
+        SystemDecorations="BorderOnly"
+        TransparencyLevelHint="Mica"
         Background="Transparent"
-        TransparencyLevelHint="Transparent">
+        TransparencyBackgroundFallback="#F3F3F3">
 
     <Border x:Name="RootCard"
-            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+            Background="{DynamicResource AcrylicBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
-            CornerRadius="12"
+            CornerRadius="8"
             Padding="28"
             Margin="1">
 
@@ -71,28 +72,13 @@
                         Click="LaterButton_Click"/>
 
                 <Button x:Name="DownloadButton"
+                        Classes="accent"
                         Content="立即更新"
                         Padding="20,8"
                         MinWidth="96"
                         CornerRadius="6"
                         FontWeight="SemiBold"
-                        Click="DownloadButton_Click">
-                    <Button.Styles>
-                        <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
-                            <Setter Property="Background" Value="#FF0078D4"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="CornerRadius" Value="6"/>
-                        </Style>
-                        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                            <Setter Property="Background" Value="#FF106EBE"/>
-                            <Setter Property="Foreground" Value="White"/>
-                        </Style>
-                        <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
-                            <Setter Property="Background" Value="#FF005A9E"/>
-                            <Setter Property="Foreground" Value="White"/>
-                        </Style>
-                    </Button.Styles>
-                </Button>
+                        Click="DownloadButton_Click"/>
             </StackPanel>
         </StackPanel>
     </Border>

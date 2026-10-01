@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SBtools.Views.OverlayWindow"
+        Title=""
+        WindowStartupLocation="Manual"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Width="460"
+        Height="220">
+
+    <Border Background="#D9000000"
+            CornerRadius="10"
+            Padding="18,14">
+        <StackPanel Spacing="8">
+            <TextBlock x:Name="TitleText"
+                       Text="自动动作执行中"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Foreground="White"
+                       TextWrapping="Wrap"/>
+
+            <ProgressBar x:Name="CountdownBar"
+                         Height="5"
+                         Minimum="0"
+                         Maximum="100"
+                         Value="100"/>
+
+            <TextBlock x:Name="HintText"
+                       Text="10 秒后自动关闭"
+                       FontSize="12"
+                       Foreground="#BBFFFFFF"/>
+        </StackPanel>
+    </Border>
+</Window>

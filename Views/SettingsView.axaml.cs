@@ -29,6 +29,33 @@ public partial class SettingsView : UserControl
             autoCollapseSwitch.IsChecked = _config.AutoCollapseOnNewToast;
         ToastHost.AutoCollapseOnNew = _config.AutoCollapseOnNewToast;
 
+        // 插件联动
+        var autoActionSwitch = this.FindControl<ToggleSwitch>("AutoActionSwitch");
+        if (autoActionSwitch != null)
+            autoActionSwitch.IsChecked = _config.AutoActionOnNotify;
+
+        var urlBox = this.FindControl<TextBox>("AutoActionUrlBox");
+        if (urlBox != null) urlBox.Text = _config.AutoActionUrl;
+
+        var countBox = this.FindControl<NumericUpDown>("AutoActionCountBox");
+        if (countBox != null) countBox.Value = _config.AutoActionOpenCount;
+
+        var intervalBox = this.FindControl<NumericUpDown>("AutoActionIntervalBox");
+        if (intervalBox != null) intervalBox.Value = _config.AutoActionOpenIntervalMs;
+
+        var volumeBox = this.FindControl<NumericUpDown>("AutoActionVolumeBox");
+        if (volumeBox != null) volumeBox.Value = _config.AutoActionVolume;
+
+        var holdBox = this.FindControl<NumericUpDown>("AutoActionHoldBox");
+        if (holdBox != null) holdBox.Value = _config.AutoActionVolumeHoldSeconds;
+
+        var overlaySwitch = this.FindControl<ToggleSwitch>("OverlaySwitch");
+        if (overlaySwitch != null)
+            overlaySwitch.IsChecked = _config.AutoActionShowOverlay;
+
+        var overlaySecBox = this.FindControl<NumericUpDown>("OverlaySecondsBox");
+        if (overlaySecBox != null) overlaySecBox.Value = _config.AutoActionOverlaySeconds;
+
         // 程序选项
         var autoStartSwitch = this.FindControl<ToggleSwitch>("AutoStartSwitch");
         var autoStartMinimizedSwitch = this.FindControl<ToggleSwitch>("AutoStartMinimizedSwitch");
@@ -41,7 +68,7 @@ public partial class SettingsView : UserControl
         if (minTraySwitch != null)
             minTraySwitch.IsChecked = _config.MinimizeToTrayOnClose;
 
-        // 主题下拉框初始化
+        // 主题
         var themeCombo = this.FindControl<ComboBox>("ThemeModeComboBox");
         if (themeCombo != null)
         {
@@ -85,6 +112,65 @@ public partial class SettingsView : UserControl
         _config.AutoCollapseOnNewToast = value;
     }
 
+    // ============ 插件联动 ============
+    private void AutoActionSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("AutoActionSwitch");
+        _config.AutoActionOnNotify = sw?.IsChecked == true;
+    }
+
+    private void AutoActionUrlBox_LostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<TextBox>("AutoActionUrlBox");
+        var text = box?.Text?.Trim() ?? "";
+        if (string.IsNullOrEmpty(text)) return;
+        _config.AutoActionUrl = text;
+    }
+
+    private void AutoActionCountBox_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<NumericUpDown>("AutoActionCountBox");
+        if (box?.Value is decimal v) _config.AutoActionOpenCount = (int)v;
+    }
+
+    private void AutoActionIntervalBox_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<NumericUpDown>("AutoActionIntervalBox");
+        if (box?.Value is decimal v) _config.AutoActionOpenIntervalMs = (int)v;
+    }
+
+    private void AutoActionVolumeBox_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<NumericUpDown>("AutoActionVolumeBox");
+        if (box?.Value is decimal v) _config.AutoActionVolume = (int)v;
+    }
+
+    private void AutoActionHoldBox_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<NumericUpDown>("AutoActionHoldBox");
+        if (box?.Value is decimal v) _config.AutoActionVolumeHoldSeconds = (int)v;
+    }
+
+    private void OverlaySwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("OverlaySwitch");
+        _config.AutoActionShowOverlay = sw?.IsChecked == true;
+    }
+
+    private void OverlaySecondsBox_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<NumericUpDown>("OverlaySecondsBox");
+        if (box?.Value is decimal v) _config.AutoActionOverlaySeconds = (int)v;
+    }
+
     // ============ 程序选项 ============
     private void AutoStartSwitch_Changed(object? sender, RoutedEventArgs e)
     {
@@ -122,7 +208,7 @@ public partial class SettingsView : UserControl
         _config.MinimizeToTrayOnClose = sw?.IsChecked == true;
     }
 
-    // ============ 主题切换 ============
+    // ============ 主题 ============
     private void ThemeModeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;

@@ -1,21 +1,71 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media.Transformation;
 using Avalonia.Threading;
 using SBtools.Services;
 using System;
+using System.Threading.Tasks;
 
 namespace SBtools.Views;
 
 public partial class UpdateDownloadDialog : Window
 {
     private bool _isCancelling;
+    private bool _allowClose;
+    private bool _closingAnimated;
 
     public UpdateDownloadDialog()
     {
         InitializeComponent();
 
+        // 初始状态
+        RootCard.Opacity = 0;
+        RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
+
+        Opened += async (_, _) =>
+        {
+            await Task.Delay(30);
+            RootCard.Opacity = 1;
+            RootCard.RenderTransform = TransformOperations.Parse("scale(1.0)");
+        };
+
+        Closing += async (_, e) =>
+        {
+            if (_allowClose) return;
+
+            e.Cancel = true;
+
+            if (_closingAnimated) return;
+            _closingAnimated = true;
+
+            RootCard.Opacity = 0;
+            RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
+
+            await Task.Delay(220);
+
+            _allowClose = true;
+            Close();
+        };
+
         UpdateService.Instance.DownloadProgressChanged += OnProgressChanged;
         UpdateService.Instance.DownloadSpeedChanged += OnSpeedChanged;
         UpdateService.Instance.DownloadCancelled += OnDownloadCancelled;
+    }
+
+    /// <summary>外部调用：带退出动画地关闭</summary>
+    public async Task CloseWithAnimationAsync()
+    {
+        if (_allowClose) return;
+        if (_closingAnimated) return;
+        _closingAnimated = true;
+
+        RootCard.Opacity = 0;
+        RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
+
+        await Task.Delay(220);
+
+        _allowClose = true;
+        Close();
     }
 
     private void OnProgressChanged(int percent)
@@ -37,7 +87,7 @@ public partial class UpdateDownloadDialog : Window
 
     private void OnDownloadCancelled()
     {
-        Dispatcher.UIThread.Post(() =>
+        Dispatcher.UIThread.Post(async () =>
         {
             HintText.Text = "下载已取消";
             CancelButton.IsEnabled = false;
@@ -45,18 +95,13 @@ public partial class UpdateDownloadDialog : Window
             PercentText.Text = "已取消";
             SpeedText.Text = "";
 
-            // 1 秒后自动关闭
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            timer.Tick += (_, _) =>
-            {
-                timer.Stop();
-                try { Close(); } catch { }
-            };
-            timer.Start();
+            // 1 秒后自动带退出动画关闭
+            await Task.Delay(1000);
+            await CloseWithAnimationAsync();
         });
     }
 
-    private void CancelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void CancelButton_Click(object? sender, RoutedEventArgs e)
     {
         if (_isCancelling) return;
         _isCancelling = true;

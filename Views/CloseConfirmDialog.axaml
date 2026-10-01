@@ -8,23 +8,26 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="BorderOnly">
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
 
     <Border x:Name="RootCard"
             Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
-            CornerRadius="10"
-            Padding="28">
+            CornerRadius="12"
+            Padding="28"
+            Margin="1">
 
         <Border.Transitions>
             <Transitions>
-                <DoubleTransition Property="Opacity" Duration="0:0:0.25">
+                <DoubleTransition Property="Opacity" Duration="0:0:0.22">
                     <DoubleTransition.Easing>
                         <ea:CubicEaseOut/>
                     </DoubleTransition.Easing>
                 </DoubleTransition>
-                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.35">
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28">
                     <TransformOperationsTransition.Easing>
                         <ea:QuinticEaseOut/>
                     </TransformOperationsTransition.Easing>

@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Threading.Tasks;
 using Updatum;
 
@@ -16,28 +17,39 @@ public sealed class UpdateService
     private const string GithubOwner = "TIANJING-qwq";
     private const string GithubRepo  = "XiYue";
 
+    // ★ 用于估算 MB/s 的资产大小（字节）。
+    // 实际的便携版 ZIP 大小，会根据发布内容略有浮动，这里取大约值。
+    // 想更准的话，每次发布新版本时改成实际大小。
+    private const double ApproxTotalBytes = 145.0 * 1024 * 1024;
+
     private readonly UpdatumManager _updater;
     private bool _initialized;
     private UpdatumDownloadedAsset? _downloadedAsset;
 
+    private CancellationTokenSource? _downloadCts;
+
     public event Action<string>? UpdateAvailable;
     public event Action<bool>? CheckCompleted;
     public event Action<int>? DownloadProgressChanged;
+    public event Action<string>? DownloadSpeedChanged;
     public event Action<bool>? InstallCompleted;
+    public event Action? DownloadCancelled;
 
     public string CurrentVersion => _updater.CurrentVersion.ToString();
     public string? LatestVersion  => _updater.LatestRelease?.TagName?.TrimStart('v');
+
+    // 速度采样
+    private DateTime _lastSampleTime = DateTime.MinValue;
+    private double _lastPercent;
+    private double _smoothedBytesPerSec;
 
     private UpdateService()
     {
         _updater = new UpdatumManager(GithubOwner, GithubRepo)
         {
             InstallUpdateWindowsExeType = UpdatumWindowsExeType.Installer,
-
-            // ★ 同时匹配 XiYue_Setup_v0.3.1.exe 和 XiYue_win-x64_v0.3.1.zip
             AssetRegexPattern = @"XiYue.*\.(exe|zip)$",
-
-            DownloadProgressUpdateFrequencySeconds = 0.5,
+            DownloadProgressUpdateFrequencySeconds = 0.3,
         };
 
         _updater.UpdateFound += (sender, e) =>
@@ -100,7 +112,24 @@ public sealed class UpdateService
         {
             LogService.Log("开始下载更新...", "更新");
 
-            _downloadedAsset = await _updater.DownloadUpdateAsync();
+            _lastSampleTime = DateTime.MinValue;
+            _lastPercent = 0;
+            _smoothedBytesPerSec = 0;
+
+            _downloadCts = new CancellationTokenSource();
+            var token = _downloadCts.Token;
+
+            try
+            {
+                _downloadedAsset = await _updater.DownloadUpdateAsync(token);
+            }
+            catch (OperationCanceledException)
+            {
+                LogService.Log("用户取消了下载", "更新");
+                DownloadCancelled?.Invoke();
+                InstallCompleted?.Invoke(false);
+                return false;
+            }
 
             if (_downloadedAsset == null)
             {
@@ -123,6 +152,21 @@ public sealed class UpdateService
             InstallCompleted?.Invoke(false);
             return false;
         }
+        finally
+        {
+            _downloadCts?.Dispose();
+            _downloadCts = null;
+        }
+    }
+
+    public void CancelDownload()
+    {
+        try
+        {
+            _downloadCts?.Cancel();
+            LogService.Log("已请求取消下载", "更新");
+        }
+        catch { }
     }
 
     public string GetChangelog()
@@ -156,12 +200,62 @@ public sealed class UpdateService
         catch { }
     }
 
+    // ============================================================
+    // 属性变化 → 进度 + 速度（基于百分比换算）
+    // ============================================================
     private void OnUpdaterPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(UpdatumManager.DownloadedPercentage))
+        if (e.PropertyName != nameof(UpdatumManager.DownloadedPercentage)) return;
+
+        try
         {
-            try { DownloadProgressChanged?.Invoke((int)_updater.DownloadedPercentage); }
-            catch { }
+            var percent = _updater.DownloadedPercentage;
+            DownloadProgressChanged?.Invoke((int)percent);
+
+            var now = DateTime.Now;
+
+            if (_lastSampleTime == DateTime.MinValue)
+            {
+                _lastSampleTime = now;
+                _lastPercent = percent;
+                DownloadSpeedChanged?.Invoke("计算中...");
+                return;
+            }
+
+            var elapsed = (now - _lastSampleTime).TotalSeconds;
+            if (elapsed < 0.3) return;
+
+            var deltaPercent = percent - _lastPercent;
+            if (deltaPercent < 0) deltaPercent = 0;
+
+            // 百分比/秒 → 字节/秒
+            var bytesPerSec = ApproxTotalBytes * (deltaPercent / 100.0) / elapsed;
+
+            // 指数平滑
+            _smoothedBytesPerSec = _smoothedBytesPerSec <= 0
+                ? bytesPerSec
+                : _smoothedBytesPerSec * 0.6 + bytesPerSec * 0.4;
+
+            DownloadSpeedChanged?.Invoke(FormatSpeed(_smoothedBytesPerSec));
+
+            _lastSampleTime = now;
+            _lastPercent = percent;
         }
+        catch { }
+    }
+
+    private static string FormatSpeed(double bytesPerSec)
+    {
+        if (bytesPerSec <= 0) return "0 MB/s";
+
+        const double KB = 1024;
+        const double MB = 1024 * 1024;
+
+        if (bytesPerSec >= MB)
+            return $"{bytesPerSec / MB:F2} MB/s";
+        if (bytesPerSec >= KB)
+            return $"{bytesPerSec / KB:F0} KB/s";
+
+        return $"{bytesPerSec:F0} B/s";
     }
 }

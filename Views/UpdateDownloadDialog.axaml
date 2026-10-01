@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SBtools.Views.UpdateDownloadDialog"
+        Title="正在下载更新"
+        Width="440"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+
+    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="28"
+            Margin="1">
+        <StackPanel Spacing="18">
+
+            <TextBlock Text="正在下载更新..."
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+
+            <ProgressBar x:Name="ProgressBar"
+                         Height="6"
+                         Minimum="0"
+                         Maximum="100"
+                         Value="0"/>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock x:Name="PercentText"
+                           Grid.Column="0"
+                           Text="0%"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+
+                <TextBlock x:Name="SpeedText"
+                           Grid.Column="1"
+                           Text="计算中..."
+                           FontSize="13"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock x:Name="HintText"
+                           Grid.Column="0"
+                           Text="下载完成后会自动启动安装程序"
+                           FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+
+                <Button x:Name="CancelButton"
+                        Grid.Column="1"
+                        Content="取消"
+                        Padding="18,7"
+                        MinWidth="80"
+                        CornerRadius="6"
+                        Click="CancelButton_Click"/>
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>

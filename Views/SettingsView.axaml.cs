@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using SBtools.Controls;
 using SBtools.Models;
@@ -35,7 +36,7 @@ public partial class SettingsView : UserControl
             };
         }
 
-        // ★ 窗口材质
+        // 窗口材质
         var backdropCombo = this.FindControl<ComboBox>("WindowBackdropComboBox");
         if (backdropCombo != null)
         {
@@ -43,10 +44,22 @@ public partial class SettingsView : UserControl
             {
                 "Mica"    => 0,
                 "Acrylic" => 1,
-                "Blur"    => 2,
-                _         => 3,
+                _         => 2,
             };
         }
+
+        // 点击音效
+        var clickSoundSwitch = this.FindControl<ToggleSwitch>("ClickSoundSwitch");
+        if (clickSoundSwitch != null)
+            clickSoundSwitch.IsChecked = _config.ClickSoundEnabled;
+
+        var clickSoundSlider = this.FindControl<Slider>("ClickSoundVolumeSlider");
+        if (clickSoundSlider != null)
+            clickSoundSlider.Value = _config.ClickSoundVolume;
+
+        var clickSoundText = this.FindControl<TextBlock>("ClickSoundVolumeText");
+        if (clickSoundText != null)
+            clickSoundText.Text = _config.ClickSoundVolume.ToString();
 
         // 更新代理
         var proxyCombo = this.FindControl<ComboBox>("UpdateProxyComboBox");
@@ -147,7 +160,7 @@ public partial class SettingsView : UserControl
         _config.ThemeMode = mode;
         App.ApplyTheme(mode);
 
-        // ★ 主题切换后重新应用材质（因为 None 模式下的背景色跟随主题）
+        // 主题切换后重新应用材质
         WindowBackdropService.RefreshAll();
 
         string display = mode switch
@@ -159,7 +172,7 @@ public partial class SettingsView : UserControl
         MainWindow.PushToast("主题", $"已切换为{display}模式");
     }
 
-    // ============ ★ 窗口材质 ============
+    // ============ 窗口材质 ============
     private void WindowBackdropComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;
@@ -181,7 +194,6 @@ public partial class SettingsView : UserControl
         {
             if (desktop.MainWindow is Avalonia.Controls.Window main)
             {
-                // ★ 浅色模式下提示
                 if (!WindowBackdropService.IsTransparentModeSupported(main) &&
                     (mode == "Mica" || mode == "Acrylic"))
                 {
@@ -200,6 +212,35 @@ public partial class SettingsView : UserControl
             _         => "无",
         };
         MainWindow.PushToast("窗口材质", $"已切换为: {display}");
+    }
+
+    // ============ 点击音效 ============
+    private void ClickSoundSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("ClickSoundSwitch");
+        _config.ClickSoundEnabled = sw?.IsChecked == true;
+
+        MainWindow.PushToast("点击音效",
+            _config.ClickSoundEnabled ? "已开启" : "已关闭");
+    }
+
+    private void ClickSoundVolumeSlider_ValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        int volume = (int)e.NewValue;
+        _config.ClickSoundVolume = volume;
+
+        var text = this.FindControl<TextBlock>("ClickSoundVolumeText");
+        if (text != null) text.Text = volume.ToString();
+
+        ClickSoundService.Instance.UpdateVolume(volume);
+    }
+
+    private void TestClickSound_Click(object? sender, RoutedEventArgs e)
+    {
+        ClickSoundService.Instance.Play();
     }
 
     // ============ 更新代理 ============

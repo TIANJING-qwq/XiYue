@@ -1,145 +1,116 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SBtools.Views.AboutView">
-    <UserControl.Styles>
-        <!-- 主要按钮：蓝色实底 -->
-        <Style Selector="Button.primaryBtn">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="22,10"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="CornerRadius" Value="8"/>
-        </Style>
-        <Style Selector="Button.primaryBtn /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#FF3B82F6"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="CornerRadius" Value="8"/>
-        </Style>
-        <Style Selector="Button.primaryBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#FF2563EB"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style Selector="Button.primaryBtn:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#FF1D4ED8"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style Selector="Button.primaryBtn:disabled /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#FF6B7280"/>
-            <Setter Property="Foreground" Value="#FFDDDDDD"/>
-        </Style>
-
-        <!-- 次要按钮：灰色实底 -->
-        <Style Selector="Button.secondaryBtn">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="22,10"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="CornerRadius" Value="8"/>
-        </Style>
-        <Style Selector="Button.secondaryBtn /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#FF4B5563"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="CornerRadius" Value="8"/>
-        </Style>
-        <Style Selector="Button.secondaryBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#FF374151"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style Selector="Button.secondaryBtn:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#FF1F2937"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-    </UserControl.Styles>
 
     <ScrollViewer>
-        <StackPanel HorizontalAlignment="Center"
+        <StackPanel Margin="32"
                     VerticalAlignment="Center"
-                    Spacing="8"
-                    Margin="0,40,0,40"
-                    MaxWidth="520">
+                    HorizontalAlignment="Center"
+                    Spacing="10">
 
-            <Image x:Name="AppIcon"
+            <Image Name="AppIcon"
+                   Source="/Assets/app.png"
                    Width="96" Height="96"
-                   Source="avares://SBtools/Assets/app.png"
                    HorizontalAlignment="Center"
-                   Margin="0,0,0,8"/>
+                   Opacity="0" />
 
-            <TextBlock x:Name="TitleText"
+            <TextBlock Name="TitleText"
                        Text="XY"
-                       FontSize="36"
+                       FontSize="42"
                        FontWeight="Bold"
-                       Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
-                       HorizontalAlignment="Center"/>
-
-            <TextBlock x:Name="ChineseName"
-                       Text="汐月"
-                       FontSize="16"
-                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                       Foreground="#0067c0"
                        HorizontalAlignment="Center"
-                       Margin="0,0,0,4"/>
+                       Opacity="0" />
 
-            <Border x:Name="Divider"
-                    Height="1"
-                    Width="200"
-                    Background="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                    Margin="0,12,0,12"/>
+            <TextBlock Name="ChineseName"
+                       Text="汐月"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       Foreground="#0067c0"
+                       HorizontalAlignment="Center"
+                       Opacity="0" />
 
-            <TextBlock x:Name="LineAuthor"
-                       Text="SchoolBusytools 项目组 · tianjing &amp; deepseek"
+            <Border Name="Divider"
+                    Height="1" Width="180"
+                    Background="#e5e5e5"
+                    Margin="0,10"
+                    Opacity="0" />
+
+            <TextBlock Name="LineAuthor"
+                       Text="SchoolBusytools 项目组制作"
+                       FontSize="14"
+                       HorizontalAlignment="Center"
+                       Opacity="0" />
+
+            <TextBlock Name="LineTeam"
+                       Text="tianjing &amp; deepseek"
                        FontSize="13"
-                       Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
-                       HorizontalAlignment="Center"/>
+                       HorizontalAlignment="Center"
+                       Opacity="0" />
 
-            <TextBlock x:Name="LineTeam"
+            <TextBlock Name="LineBuild"
+                       Text="基于 C# / .NET 8 + Avalonia UI 构建"
+                       FontSize="13"
+                       HorizontalAlignment="Center"
+                       Margin="0,6,0,0"
+                       Opacity="0" />
+
+            <TextBlock Name="LineVersion"
+                       Text="版本 1.2.0"
+                       FontSize="12"
+                       HorizontalAlignment="Center"
+                       Opacity="0" />
+
+            <TextBlock Name="LineDesc"
                        Text="校园网自动认证 · 轻量校园工具集"
                        FontSize="12"
-                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                       HorizontalAlignment="Center"/>
-
-            <TextBlock x:Name="LineBuild"
-                       Text="基于 C# / .NET 8 + Avalonia UI 构建"
-                       FontSize="12"
-                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                       HorizontalAlignment="Center"/>
-
-            <TextBlock x:Name="LineVersion"
-                       Text="版本 Dev0.3.1"
-                       FontSize="12"
-                       Foreground="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                       HorizontalAlignment="Center"/>
-
-            <TextBlock x:Name="LineDesc"
-                       Text="纯客户端工具，不收集任何用户数据"
-                       FontSize="12"
-                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                        HorizontalAlignment="Center"
-                       Margin="0,8,0,0"/>
+                       Opacity="0" />
 
             <StackPanel Orientation="Horizontal"
-                        Spacing="14"
+                        Spacing="10"
                         HorizontalAlignment="Center"
-                        Margin="0,28,0,0">
+                        Margin="0,10,0,0"
+                        Opacity="0"
+                        x:Name="ButtonRow">
 
-                <Button x:Name="GitHubButton"
-                        Classes="secondaryBtn"
-                        Click="GitHubButton_Click">
-                    <TextBlock Text="GitHub 仓库" VerticalAlignment="Center"/>
-                </Button>
+                <Button Name="GitHubButton"
+                        Content="github.com/TIANJING-qwq/XiYue"
+                        FontSize="12"
+                        Padding="12,6"
+                        HorizontalAlignment="Center"
+                        Background="Transparent"
+                        BorderBrush="#0067c0"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Foreground="#0067c0"
+                        Cursor="Hand"
+                        Click="GitHubButton_Click" />
 
-                <Button x:Name="CheckUpdateButton"
-                        Classes="primaryBtn"
-                        Click="CheckUpdateButton_Click">
-                    <TextBlock Text="检查更新" VerticalAlignment="Center"/>
-                </Button>
+                <Button Name="CheckUpdateButton"
+                        Content="检查更新"
+                        FontSize="12"
+                        Padding="12,6"
+                        MinWidth="80"
+                        HorizontalAlignment="Center"
+                        Background="Transparent"
+                        BorderBrush="#0067c0"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Foreground="#0067c0"
+                        Cursor="Hand"
+                        Click="CheckUpdateButton_Click" />
             </StackPanel>
 
-            <TextBlock x:Name="UpdateStatusText"
+            <TextBlock Name="UpdateStatusText"
+                       Text=""
                        FontSize="11"
-                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                        HorizontalAlignment="Center"
-                       Margin="0,10,0,0"
+                       Margin="0,6,0,0"
                        TextWrapping="Wrap"
-                       TextAlignment="Center"/>
+                       TextAlignment="Center"
+                       MaxWidth="420"
+                       Opacity="0" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

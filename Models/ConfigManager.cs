@@ -90,7 +90,31 @@ public class ConfigManager
 
     // ---------------- ★ 更新下载代理 ----------------
     /// <summary>代理前缀，空字符串表示直连</summary>
+        // ---------------- ★ 点击音效 ----------------
+    /// <summary>点击任意控件时播放音效</summary>
+    public bool ClickSoundEnabled
+    {
+        get => _data.ClickSoundEnabled;
+        set
+        {
+            if (_data.ClickSoundEnabled == value) return;
+            _data.ClickSoundEnabled = value;
+            Save();
+        }
+    }
 
+    /// <summary>点击音效音量（0-100）</summary>
+    public int ClickSoundVolume
+    {
+        get => _data.ClickSoundVolume;
+        set
+        {
+            var v = Math.Clamp(value, 0, 100);
+            if (_data.ClickSoundVolume == v) return;
+            _data.ClickSoundVolume = v;
+            Save();
+        }
+    }
 
     // ---------------- ★ 窗口背景材质 ----------------
     /// <summary>
@@ -193,6 +217,10 @@ public class ConfigManager
         public string ScheduleChannel { get; set; } = "CCTV-13 新闻";
 
         public bool AutoStartOnBoot { get; set; } = false;
+
+                // ★ 点击音效
+        public bool ClickSoundEnabled { get; set; } = false;
+        public int ClickSoundVolume { get; set; } = 80;
         public bool AutoStartMinimized { get; set; } = true;
         public bool MinimizeToTrayOnClose { get; set; } = false;
 

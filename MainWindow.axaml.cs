@@ -180,6 +180,7 @@ public partial class MainWindow : Window
                 case "network":      ContentFrame.Navigate(typeof(NetworkView));      break;
                 case "optimization": ContentFrame.Navigate(typeof(OptimizationView)); break;
                 case "lab":          ContentFrame.Navigate(typeof(LabView));          break;
+                case "gallery":      ContentFrame.Navigate(typeof(GalleryView));      break;
                 case "settings":     ContentFrame.Navigate(typeof(SettingsView));     break;
                 case "about":        ContentFrame.Navigate(typeof(AboutView));        break;
             }

@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:svc="using:SBtools.Services"
+             x:Class="SBtools.Views.GalleryView">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- 工具栏 -->
+        <Border Grid.Row="0" Padding="20,14" Background="Transparent">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="涩图合集"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CountText"
+                               Text=""
+                               FontSize="13"
+                               Opacity="0.6"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        x:Name="UpdateButton"
+                        Content="更新资源"
+                        Padding="16,6"
+                        Margin="0,0,8,0"
+                        Click="Update_Click"/>
+
+                <Button Grid.Column="3"
+                        x:Name="RefreshButton"
+                        Content="刷新"
+                        Padding="16,6"
+                        Click="Refresh_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- 图片网格 -->
+        <ScrollViewer Grid.Row="1" x:Name="GalleryScroll">
+            <ItemsControl x:Name="ImageList" Margin="14">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="svc:GalleryItem">
+                        <Border Margin="6"
+                                CornerRadius="8"
+                                ClipToBounds="True"
+                                Background="#18000000"
+                                Cursor="Hand"
+                                PointerPressed="ImageItem_PointerPressed">
+                            <Grid Width="180" Height="180">
+                                <Image Source="{Binding Thumbnail}"
+                                       Stretch="Uniform"
+                                       StretchDirection="DownOnly"/>
+                                <Border VerticalAlignment="Bottom"
+                                        Background="#A0000000"
+                                        Padding="6,3">
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="10"
+                                               Foreground="White"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="168"/>
+                                </Border>
+                                <Border HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Background="#C00078D4"
+                                        CornerRadius="0,8,0,8"
+                                        Padding="6,2"
+                                        IsVisible="{Binding IsGif}">
+                                    <TextBlock Text="GIF" FontSize="9" Foreground="White"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- 空状态 / 下载提示 -->
+        <StackPanel x:Name="EmptyPanel"
+                    Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="14"
+                    IsVisible="False">
+
+            <TextBlock x:Name="EmptyTitle"
+                       Text="还没有图库资源"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Opacity="0.8"
+                       HorizontalAlignment="Center"/>
+
+            <TextBlock x:Name="EmptyHint"
+                       FontSize="12"
+                       Opacity="0.5"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="560"/>
+
+            <Button x:Name="DownloadButton"
+                    Content="下载图库"
+                    Padding="32,10"
+                    FontSize="14"
+                    HorizontalAlignment="Center"
+                    Click="Download_Click"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

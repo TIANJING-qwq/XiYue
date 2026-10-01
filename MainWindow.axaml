@@ -8,9 +8,10 @@
         Icon="/Assets/app.ico"
         Width="1100" Height="720"
         MinWidth="800" MinHeight="560"
-        Background="Transparent">
+        TransparencyLevelHint="Mica"
+        Background="Transparent"
+        TransparencyBackgroundFallback="#F3F3F3">
 
-    <!-- 窗口整体淡入 -->
     <Window.Transitions>
         <Transitions>
             <DoubleTransition Property="Opacity" Duration="0:0:0.35">
@@ -22,7 +23,6 @@
     </Window.Transitions>
 
     <Grid x:Name="RootGrid">
-        <!-- 内容区微缩放 -->
         <Grid.Transitions>
             <Transitions>
                 <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.45">
@@ -62,6 +62,12 @@
                 <fluent:NavigationViewItem Content="实验室" Tag="lab">
                     <fluent:NavigationViewItem.IconSource>
                         <fluent:SymbolIconSource Symbol="Repair" />
+                    </fluent:NavigationViewItem.IconSource>
+                </fluent:NavigationViewItem>
+
+                <fluent:NavigationViewItem Content="涩图合集" Tag="gallery">
+                    <fluent:NavigationViewItem.IconSource>
+                        <fluent:SymbolIconSource Symbol="Camera" />
                     </fluent:NavigationViewItem.IconSource>
                 </fluent:NavigationViewItem>
 

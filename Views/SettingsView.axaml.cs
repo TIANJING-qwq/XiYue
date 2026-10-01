@@ -5,6 +5,7 @@ using SBtools.Controls;
 using SBtools.Models;
 using SBtools.Services;
 using System;
+using System.Linq;
 
 namespace SBtools.Views;
 
@@ -60,6 +61,9 @@ public partial class SettingsView : UserControl
         var clickSoundText = this.FindControl<TextBlock>("ClickSoundVolumeText");
         if (clickSoundText != null)
             clickSoundText.Text = _config.ClickSoundVolume.ToString();
+
+        // ★ 音效文件下拉框
+        LoadSoundFiles();
 
         // 更新代理
         var proxyCombo = this.FindControl<ComboBox>("UpdateProxyComboBox");
@@ -123,6 +127,73 @@ public partial class SettingsView : UserControl
         _isInitializing = false;
     }
 
+    // ============================================================
+    // ★ 音效文件管理
+    // ============================================================
+    private void LoadSoundFiles()
+    {
+        try
+        {
+            var combo = this.FindControl<ComboBox>("ClickSoundFileComboBox");
+            if (combo == null) return;
+
+            var files = ClickSoundService.GetAvailableSounds();
+
+            combo.ItemsSource = files;
+
+            var current = _config.ClickSoundFile;
+            var idx = Array.IndexOf(files, current);
+            if (idx < 0)
+            {
+                // 配置里的文件不在列表中，选第一个可用的
+                idx = files.Length > 0 ? 0 : -1;
+                if (idx >= 0) _config.ClickSoundFile = files[idx];
+            }
+
+            combo.SelectedIndex = idx;
+
+            var hint = this.FindControl<TextBlock>("SoundsHintText");
+            if (hint != null && files.Length == 0)
+            {
+                hint.Text = $"Sounds 目录里没有 .wav 文件\n路径: {ClickSoundService.SoundsDir}";
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"加载音效文件失败: {ex.Message}", "音效");
+        }
+    }
+
+    private void ClickSoundFileComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        var combo = sender as ComboBox;
+        if (combo?.SelectedItem is string fileName)
+        {
+            _config.ClickSoundFile = fileName;
+            ClickSoundService.Instance.Reload();
+
+            MainWindow.PushToast("点击音效", $"已切换到: {fileName}");
+        }
+    }
+
+    private void RefreshSounds_Click(object? sender, RoutedEventArgs e)
+    {
+        var backup = _isInitializing;
+        _isInitializing = true;
+        LoadSoundFiles();
+        _isInitializing = backup;
+
+        var files = ClickSoundService.GetAvailableSounds();
+        MainWindow.PushToast("音效列表", $"共找到 {files.Length} 个 .wav 文件");
+    }
+
+    private void PreviewSound_Click(object? sender, RoutedEventArgs e)
+    {
+        ClickSoundService.Instance.Preview();
+    }
+
     // ============ WiFi 认证 ============
     private void SaveCredentials_Click(object? sender, RoutedEventArgs e)
     {
@@ -160,7 +231,6 @@ public partial class SettingsView : UserControl
         _config.ThemeMode = mode;
         App.ApplyTheme(mode);
 
-        // 主题切换后重新应用材质
         WindowBackdropService.RefreshAll();
 
         string display = mode switch
@@ -236,11 +306,6 @@ public partial class SettingsView : UserControl
         if (text != null) text.Text = volume.ToString();
 
         ClickSoundService.Instance.UpdateVolume(volume);
-    }
-
-    private void TestClickSound_Click(object? sender, RoutedEventArgs e)
-    {
-        ClickSoundService.Instance.Play();
     }
 
     // ============ 更新代理 ============

@@ -114,8 +114,20 @@ public class ConfigManager
             _data.ClickSoundVolume = v;
             Save();
         }
-    }
-
+        }
+        /// <summary>当前点击音效文件名（Sounds/ 目录下的 .wav 文件名）</summary>
+        public string ClickSoundFile
+        {
+            get => string.IsNullOrWhiteSpace(_data.ClickSoundFile)
+                ? "冰冰冰.wav"
+                : _data.ClickSoundFile;
+            set
+            {
+                if (_data.ClickSoundFile == value) return;
+                _data.ClickSoundFile = value;
+                Save();
+            }
+        }
     // ---------------- ★ 窗口背景材质 ----------------
     /// <summary>
     /// "None"    - 不透明背景
@@ -210,6 +222,8 @@ public class ConfigManager
 
                 // ★ 窗口背景材质
         public string WindowBackdrop { get; set; } = "Mica";
+
+        public string ClickSoundFile { get; set; } = "冰冰冰.wav";
 
         public bool ScheduleEnabled { get; set; } = false;
         public int ScheduleStartMinutes { get; set; } = 19 * 60;

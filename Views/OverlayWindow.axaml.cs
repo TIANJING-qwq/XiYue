@@ -14,7 +14,6 @@ public partial class OverlayWindow : Window
     private int _totalSeconds;
     private bool _allowClose;
 
-    // ★ Win32 置顶
     [DllImport("user32.dll")]
     private static extern bool SetWindowPos(
         IntPtr hWnd, IntPtr hWndInsertAfter,
@@ -33,25 +32,22 @@ public partial class OverlayWindow : Window
         InitializeComponent();
 
         _totalSeconds = Math.Max(1, seconds);
-        TitleText.Text = title;
+        CountdownText.Text = _totalSeconds.ToString();
 
-        PositionTopRight();
+        PositionFullScreen();
 
         Closing += (s, e) =>
         {
-            if (!_allowClose)
-                e.Cancel = true;
+            if (!_allowClose) e.Cancel = true;
         };
 
         _startTime = DateTime.Now;
 
-        // 倒计时刷新
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _timer.Tick += OnTick;
         _timer.Start();
 
-        // ★ 周期性把自己拉回最顶层（防被浏览器新窗口抢）
-        _topmostTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _topmostTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _topmostTimer.Tick += (_, _) => ForceTopmost();
         _topmostTimer.Start();
     }
@@ -62,30 +58,38 @@ public partial class OverlayWindow : Window
         try { Close(); } catch { }
     }
 
-    private void PositionTopRight()
+    private void PositionFullScreen()
     {
         try
         {
             var screen = Screens.Primary;
             if (screen != null)
             {
-                var area = screen.WorkingArea;
+                var area = screen.Bounds;
                 var scaling = screen.Scaling;
 
-                int w = (int)(Width * scaling);
-                int h = (int)(Height * scaling);
-
-                // 贴紧右上角（无偏移）
-                int x = area.Right - w;
+                int x = area.X;
                 int y = area.Y;
+                int w = (int)(area.Width / scaling);
+                int h = (int)(area.Height / scaling);
 
                 Position = new PixelPoint(x, y);
+                Width = w;
+                Height = h;
+            }
+            else
+            {
+                Width = 1920;
+                Height = 1080;
             }
         }
-        catch { }
+        catch
+        {
+            Width = 1920;
+            Height = 1080;
+        }
     }
 
-    /// <summary>强制把自己提到最顶层。</summary>
     private void ForceTopmost()
     {
         try
@@ -113,15 +117,14 @@ public partial class OverlayWindow : Window
 
         if (remaining <= 0)
         {
-            CountdownBar.Value = 0;
+            CountdownText.Text = "0";
             _timer?.Stop();
             _topmostTimer?.Stop();
             CloseSafely();
             return;
         }
 
-        CountdownBar.Value = remaining / _totalSeconds * 100;
-        HintText.Text = $"{(int)Math.Ceiling(remaining)} 秒后自动关闭";
+        CountdownText.Text = ((int)Math.Ceiling(remaining)).ToString();
     }
 
     protected override void OnOpened(EventArgs e)
@@ -130,7 +133,7 @@ public partial class OverlayWindow : Window
 
         try
         {
-            PositionTopRight();
+            PositionFullScreen();
             ForceTopmost();
             Activate();
         }

@@ -159,7 +159,7 @@ public partial class AboutView : UserControl
     }
 
     // ============================================================
-    // 检查更新
+    // 检查更新（手动）
     // ============================================================
     private async void CheckUpdateButton_Click(object? sender, RoutedEventArgs e)
     {
@@ -171,6 +171,7 @@ public partial class AboutView : UserControl
 
         try
         {
+            // 标记手动检查（如果 MainWindow 里还有这个标志就保留）
             MainWindow.SetAutoChecking(false);
 
             UpdateStatusText.Text = "正在检查更新...";
@@ -181,9 +182,11 @@ public partial class AboutView : UserControl
             if (!hasUpdate)
             {
                 UpdateStatusText.Text = $"当前已是最新版本（{DisplayVersion}）";
+                // CheckCompleted 事件会弹 Toast
                 return;
             }
 
+            // 有新版本 → UpdateAvailable 事件会弹对话框
             UpdateStatusText.Text = "已发现新版本，请查看弹窗";
         }
         catch (Exception ex)

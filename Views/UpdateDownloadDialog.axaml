@@ -8,16 +8,15 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="BorderOnly"
-        TransparencyLevelHint="Mica"
+        SystemDecorations="None"
         Background="Transparent"
-        TransparencyBackgroundFallback="#F3F3F3">
+        TransparencyLevelHint="Transparent">
 
     <Border x:Name="RootCard"
             Background="{DynamicResource AcrylicBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
-            CornerRadius="8"
+            CornerRadius="12"
             Padding="28"
             Margin="1">
 

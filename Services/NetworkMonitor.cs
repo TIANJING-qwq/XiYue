@@ -1,140 +1,291 @@
-using SBtools.Models;    // ★★★ 关键：为了 WiFiAuthenticator / NetworkDetector
+using SBtools.Models;
 using System;
-using System.Threading;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace SBtools.Services;
 
 /// <summary>
-/// 网络自动监控：每 N 秒检测一次网络，未连接时自动认证
+/// 全局网络监控器（单例）。程序启动即运行，独立于任何 UI。
 /// </summary>
-public class NetworkMonitor : IDisposable
+public sealed class NetworkMonitor : IDisposable
 {
-    private readonly WiFiAuthenticator _auth;
-    private readonly NetworkDetector _detector;
-    private readonly int _checkIntervalSeconds;
+    private static readonly Lazy<NetworkMonitor> _lazy = new(() => new NetworkMonitor());
+    public static NetworkMonitor Instance => _lazy.Value;
 
-    private CancellationTokenSource? _cts;
-    private Task? _task;
-
-    private int _connectionAttempts;
-    private int _consecutiveFailures;
-    private DateTime? _lastConnectionTime;
-
-    private const int MaxConsecutiveFailures = 3;
-
-    public bool IsRunning => _task != null && !_task.IsCompleted;
-    public int ConnectionAttempts => _connectionAttempts;
-    public DateTime? LastConnectionTime => _lastConnectionTime;
-
+    /// <summary>网络状态变化时触发（true = 已连接）</summary>
     public event Action<bool>? StatusChanged;
-    public event Action<bool>? AuthCompleted;
 
-    public NetworkMonitor(WiFiAuthenticator auth, int checkIntervalSeconds = 5)
+    /// <summary>认证尝试时触发（success = 是否成功）</summary>
+    public event Action<bool>? AuthenticationAttempted;
+
+    /// <summary>任何日志事件（供 UI 显示连接记录）</summary>
+    public event Action<string>? LogEntry;
+
+    // ★ 最近日志缓存（供 UI 打开时载入）
+    private readonly List<string> _recentLogs = new();
+    public IReadOnlyList<string> RecentLogs => _recentLogs;
+
+    private WiFiAuthenticator? _auth;
+    private NetworkDetector _detector = new();
+    private int _intervalSeconds = 15;
+
+    private System.Timers.Timer? _timer;
+    private bool _running;
+    private bool _firstRun = true;
+
+    // 当前状态
+    private bool _lastStatus;
+    private NetworkInfo _lastInfo = new();
+    private int _attemptCount;
+    private DateTime _lastAuthAttempt = DateTime.MinValue;
+    private const int AuthThrottleSeconds = 10;
+    private int _consecutiveFailures;
+
+    // 属性
+    public bool IsConnected => _lastStatus;
+    public NetworkInfo CurrentInfo => _lastInfo;
+    public int AttemptCount => _attemptCount;
+    public bool IsRunning => _running;
+    public DateTime? LastCheckTime { get; private set; }
+    public DateTime? LastAuthTime { get; private set; }
+
+    private NetworkMonitor() { }
+
+    // ============================================================
+    // 启动 / 停止
+    // ============================================================
+    public void Start(int intervalSeconds = 15)
     {
-        _auth = auth;
-        _detector = new NetworkDetector();
-        _checkIntervalSeconds = checkIntervalSeconds;
-    }
+        if (_running) return;
 
-    public void Start()
-    {
-        if (IsRunning)
+        _intervalSeconds = Math.Max(5, intervalSeconds);
+        _running = true;
+
+        ReloadCredentials();
+
+        _timer = new System.Timers.Timer(_intervalSeconds * 1000)
         {
-            LogService.Log("网络监控已在运行", "网络");
-            return;
-        }
+            AutoReset = true,
+            Enabled = true
+        };
+        _timer.Elapsed += OnTick;
 
-        _cts = new CancellationTokenSource();
-        var token = _cts.Token;
+        _ = Task.Run(CheckAndAuthenticateAsync);
 
-        _task = Task.Run(async () =>
-        {
-            LogService.Log($"网络监控已启动，检查间隔 {_checkIntervalSeconds}s", "网络");
-            var lastStatus = false;
-
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    var connected = await _detector.IsConnected();
-
-                    if (lastStatus != connected)
-                    {
-                        lastStatus = connected;
-                        LogService.Log($"互联网连接状态: {(connected ? "已连接" : "断开")}", "网络");
-                        StatusChanged?.Invoke(connected);
-                    }
-
-                    if (!connected)
-                    {
-                        Interlocked.Increment(ref _connectionAttempts);
-                        LogService.Log($"尝试重新认证 (第 {_connectionAttempts} 次)", "网络");
-
-                        bool success = false;
-                        try
-                        {
-                            success = await _auth.Authenticate();
-                        }
-                        catch (Exception ex)
-                        {
-                            LogService.Log($"认证异常: {ex.Message}", "网络");
-                        }
-
-                        if (success)
-                        {
-                            LogService.Log("重新认证成功", "网络");
-                            _lastConnectionTime = DateTime.Now;
-                            _consecutiveFailures = 0;
-                        }
-                        else
-                        {
-                            _consecutiveFailures++;
-                            LogService.Log($"重新认证失败 (连续失败 {_consecutiveFailures})", "网络");
-
-                            if (_consecutiveFailures >= MaxConsecutiveFailures)
-                            {
-                                LogService.Log("连续失败过多，等待 15 秒", "网络");
-                                await Task.Delay(15000, token);
-                                _consecutiveFailures = 0;
-                            }
-                        }
-
-                        AuthCompleted?.Invoke(success);
-                    }
-                    else
-                    {
-                        _consecutiveFailures = 0;
-                    }
-
-                    await Task.Delay(TimeSpan.FromSeconds(_checkIntervalSeconds), token);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    LogService.Log($"网络监控循环异常: {ex.Message}", "网络");
-                    try { await Task.Delay(TimeSpan.FromSeconds(_checkIntervalSeconds), token); }
-                    catch { break; }
-                }
-            }
-
-            LogService.Log("网络监控已停止", "网络");
-        }, token);
+        LogService.Log($"网络监控已启动（间隔 {_intervalSeconds}s）", "网络");
+        EmitLog($"网络监控已启动（间隔 {_intervalSeconds}s）");
     }
 
     public void Stop()
     {
-        try { _cts?.Cancel(); } catch { }
+        try
+        {
+            _running = false;
+            _timer?.Stop();
+            _timer?.Dispose();
+            _timer = null;
+            LogService.Log("网络监控已停止", "网络");
+            EmitLog("网络监控已停止");
+        }
+        catch { }
+    }
+
+    /// <summary>从配置重新加载凭据</summary>
+    public void ReloadCredentials()
+    {
+        try
+        {
+            var cfg = ConfigManager.Instance;
+            if (_auth == null)
+                _auth = new WiFiAuthenticator(cfg.Username, cfg.Password);
+            else
+                _auth.UpdateCredentials(cfg.Username, cfg.Password);
+
+            LogService.Log("网络监控凭据已刷新", "网络");
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"刷新凭据失败: {ex.Message}", "网络");
+        }
+    }
+
+    // ============================================================
+    // 主动检测 / 认证
+    // ============================================================
+    public async Task<bool> ForceCheckAsync()
+    {
+        await CheckAndAuthenticateAsync();
+        return _lastStatus;
+    }
+
+    public async Task<bool> ForceAuthenticateAsync()
+    {
+        try
+        {
+            ReloadCredentials();
+            if (_auth == null) return false;
+
+            EmitLog("手动触发认证...");
+            LogService.Log("手动触发认证", "网络");
+
+            _lastAuthAttempt = DateTime.Now;
+            LastAuthTime = _lastAuthAttempt;
+
+            var ok = await Task.Run(() => _auth.Authenticate());
+
+            _attemptCount++;
+            try { AuthenticationAttempted?.Invoke(ok); } catch { }
+
+            if (ok)
+            {
+                EmitLog("认证成功");
+                await Task.Delay(1500);
+                _lastStatus = await Task.Run(() => _detector.IsConnected());
+                _lastInfo = await Task.Run(() => _detector.GetNetworkInfo());
+                try { StatusChanged?.Invoke(_lastStatus); } catch { }
+            }
+            else
+            {
+                EmitLog("认证失败");
+            }
+
+            return ok;
+        }
+        catch (Exception ex)
+        {
+            EmitLog($"认证异常: {ex.Message}");
+            LogService.Log($"手动认证异常: {ex.Message}", "网络");
+            return false;
+        }
+    }
+
+    // ============================================================
+    // 定时检查
+    // ============================================================
+    private async void OnTick(object? sender, ElapsedEventArgs e)
+    {
+        await CheckAndAuthenticateAsync();
+    }
+
+    private async Task CheckAndAuthenticateAsync()
+    {
+        try
+        {
+            var connected = await Task.Run(() => _detector.IsConnected());
+
+            NetworkInfo info;
+            try
+            {
+                info = await Task.Run(() => _detector.GetNetworkInfo());
+            }
+            catch
+            {
+                info = _lastInfo;
+            }
+
+            _lastInfo = info;
+            LastCheckTime = DateTime.Now;
+
+            if (!connected)
+            {
+                var now = DateTime.Now;
+                if ((now - _lastAuthAttempt).TotalSeconds >= AuthThrottleSeconds)
+                {
+                    _lastAuthAttempt = now;
+                    LastAuthTime = now;
+
+                    LogService.Log(
+                        $"检测到未连接，尝试自动认证（连续失败 {_consecutiveFailures} 次）",
+                        "网络");
+
+                    bool ok = false;
+                    try
+                    {
+                        ReloadCredentials();
+                        if (_auth != null)
+                            ok = await Task.Run(() => _auth.Authenticate());
+                    }
+                    catch (Exception ex)
+                    {
+                        LogService.Log($"认证异常: {ex.Message}", "网络");
+                    }
+
+                    _attemptCount++;
+                    try { AuthenticationAttempted?.Invoke(ok); } catch { }
+
+                    if (ok)
+                    {
+                        EmitLog("自动认证成功");
+                        await Task.Delay(1500);
+                        connected = await Task.Run(() => _detector.IsConnected());
+
+                        if (connected)
+                        {
+                            _consecutiveFailures = 0;
+                            EmitLog("网络已恢复");
+                        }
+                        else
+                        {
+                            _consecutiveFailures++;
+                            EmitLog("认证返回成功但复查仍断开");
+                        }
+                    }
+                    else
+                    {
+                        _consecutiveFailures++;
+
+                        if (_consecutiveFailures == 1)
+                        {
+                            EmitLog("自动认证失败（可能是账号密码未配置）");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (_consecutiveFailures > 0)
+                {
+                    EmitLog("网络已恢复");
+                }
+                _consecutiveFailures = 0;
+            }
+
+            if (_firstRun || connected != _lastStatus)
+            {
+                _firstRun = false;
+                _lastStatus = connected;
+                try { StatusChanged?.Invoke(connected); } catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"网络检查异常: {ex.Message}", "网络");
+        }
+    }
+
+    // ============================================================
+    // 日志
+    // ============================================================
+    private void EmitLog(string message)
+    {
+        try
+        {
+            // 加时间戳存到缓存
+            var line = $"{DateTime.Now:HH:mm:ss}  {message}";
+
+            _recentLogs.Add(line);
+            while (_recentLogs.Count > 50)
+                _recentLogs.RemoveAt(0);
+
+            LogEntry?.Invoke(message);
+        }
+        catch { }
     }
 
     public void Dispose()
     {
         Stop();
-        try { _cts?.Dispose(); } catch { }
-        _cts = null;
-        _task = null;
     }
 }

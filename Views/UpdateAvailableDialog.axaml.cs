@@ -20,23 +20,19 @@ public partial class UpdateAvailableDialog : Window
         VersionText.Text = $"最新版本：{version}";
         ChangelogText.Text = changelog;
 
-        // 初始状态：透明 + 缩小
         RootCard.Opacity = 0;
         RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
 
         Opened += async (_, _) =>
         {
-            // 下一帧触发进入动画
             await Task.Delay(30);
             RootCard.Opacity = 1;
             RootCard.RenderTransform = TransformOperations.Parse("scale(1.0)");
         };
 
-        // 拦截关闭 → 播放退出动画后再真正关闭
         Closing += async (_, e) =>
         {
             if (_allowClose) return;
-
             e.Cancel = true;
 
             if (_closingAnimated) return;
@@ -46,7 +42,6 @@ public partial class UpdateAvailableDialog : Window
             RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
 
             await Task.Delay(220);
-
             _allowClose = true;
             Close();
         };
@@ -72,7 +67,6 @@ public partial class UpdateAvailableDialog : Window
         RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
 
         await Task.Delay(220);
-
         _allowClose = true;
         Close(result);
     }

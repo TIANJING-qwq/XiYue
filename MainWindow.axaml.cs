@@ -23,8 +23,6 @@ public partial class MainWindow : Window
     private static MainWindow? _instance;
     private static PlaybackScheduler? _scheduler;
     private TrayIcon? _trayIcon;
-    private NetworkMonitor? _networkMonitor;
-    private WiFiAuthenticator? _authenticator;
 
     private bool _reallyQuit;
     private bool _closingDialogShown;
@@ -41,13 +39,20 @@ public partial class MainWindow : Window
         InitializeComponent();
         _instance = this;
 
-        // ★ 应用窗口材质（放在最前面）
         WindowBackdropService.Apply(this, ConfigManager.Instance.WindowBackdrop);
 
-        // 初始状态：窗口透明 + 内容微缩
-        Opacity = 0;
-        if (RootGrid != null)
-            RootGrid.RenderTransform = TransformOperations.Parse("scale(0.97)");
+        if (startMinimized)
+        {
+            Opacity = 1;
+            if (RootGrid != null)
+                RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
+        }
+        else
+        {
+            Opacity = 0;
+            if (RootGrid != null)
+                RootGrid.RenderTransform = TransformOperations.Parse("scale(0.97)");
+        }
 
         NavView.SelectedItem = NavView.MenuItems[0];
         ContentFrame.Navigate(typeof(FeaturesView));
@@ -55,9 +60,6 @@ public partial class MainWindow : Window
         _scheduler = new PlaybackScheduler(OnScheduleStart, OnScheduleStop);
         ApplyScheduleConfig();
 
-        // ★★★ 全局点击音效监听（handledEventsToo=true 才能捕获被控件消费的点击）
-        // 用 PointerReleased 更可靠：ToggleSwitch、Tab、ComboBox 等控件在 Pressed 阶段
-        // 会 set e.Handled=true，只有加 handledEventsToo 才能收到。
         this.AddHandler(
             PointerReleasedEvent,
             OnGlobalPointerReleased,
@@ -73,16 +75,22 @@ public partial class MainWindow : Window
 
         if (startMinimized)
         {
-            _isHiddenToTray = true;
-            ShowInTaskbar = false;
-
             Opened += (_, _) =>
             {
-                Hide();
-                Opacity = 1;
-                if (RootGrid != null)
-                    RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
-                LogService.Log("自启动模式：窗口保持隐藏", "启动");
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        Hide();
+                        ShowInTaskbar = false;
+                        _isHiddenToTray = true;
+                        LogService.Log("自启动模式：窗口保持隐藏", "启动");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogService.Log($"自启动隐藏失败: {ex.Message}", "启动");
+                    }
+                }, DispatcherPriority.Background);
 
                 StartUpdateCheckDelayed();
             };
@@ -105,13 +113,12 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // ★ 全局点击音效
+    // 全局点击音效
     // ============================================================
     private void OnGlobalPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         try
         {
-            // 只处理鼠标左键（触屏和笔也走这里，若不需要可自行过滤）
             if (e.InitialPressMouseButton == MouseButton.Left)
             {
                 ClickSoundService.Instance.Play();
@@ -120,7 +127,9 @@ public partial class MainWindow : Window
         catch { }
     }
 
-    /// <summary>延迟检查更新，等主界面完全显示后</summary>
+    // ============================================================
+    // 延迟检查更新
+    // ============================================================
     private void StartUpdateCheckDelayed()
     {
         _ = Task.Run(async () =>
@@ -189,26 +198,22 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 网络监控
+    // 网络监控（全局单例）
     // ============================================================
     private void InitNetworkMonitor()
     {
         try
         {
-            var cfg = ConfigManager.Instance;
-            _authenticator = new WiFiAuthenticator(cfg.Username, cfg.Password);
-            _networkMonitor = new NetworkMonitor(_authenticator, 5);
+            NetworkMonitor.Instance.Start(15);
 
-            _networkMonitor.StatusChanged += (connected) =>
+            NetworkMonitor.Instance.StatusChanged += (connected) =>
             {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    LogService.Log($"网络状态变化: {(connected ? "已连接" : "断开")}", "网络");
-                });
+                LogService.Log(
+                    $"网络状态变化: {(connected ? "已连接" : "断开")}",
+                    "网络");
             };
 
-            _networkMonitor.Start();
-            LogService.Log("网络自动监控已启动", "网络");
+            LogService.Log("全局网络监控已启动", "网络");
         }
         catch (Exception ex)
         {
@@ -220,9 +225,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            if (_instance?._authenticator == null) return;
-            var cfg = ConfigManager.Instance;
-            _instance._authenticator.UpdateCredentials(cfg.Username, cfg.Password);
+            NetworkMonitor.Instance.ReloadCredentials();
             LogService.Log("认证凭据已刷新", "网络");
         }
         catch { }
@@ -237,20 +240,13 @@ public partial class MainWindow : Window
         {
             var updater = UpdateService.Instance;
 
+            // ★ 发现新版本 → 无论自动/手动都弹对话框
             updater.UpdateAvailable += version =>
             {
                 Dispatcher.UIThread.Post(async () =>
                 {
                     try
                     {
-                        if (_isAutoChecking)
-                        {
-                            _isAutoChecking = true;
-                            PushToast("发现新版本",
-                                $"v{version} 已发布，可在「关于」页检查更新。");
-                            return;
-                        }
-
                         if (_isHiddenToTray || !IsVisible)
                             RestoreMainWindow();
 
@@ -263,6 +259,7 @@ public partial class MainWindow : Window
                         if (!confirmed)
                         {
                             LogService.Log($"用户忽略新版本 {version}", "更新");
+                            _isAutoChecking = true;
                             return;
                         }
 
@@ -272,6 +269,8 @@ public partial class MainWindow : Window
                         var success = await updater.DownloadAndInstallAsync();
 
                         try { await progressDialog.CloseWithAnimationAsync(); } catch { }
+
+                        _isAutoChecking = true;
 
                         if (success)
                             PushToast("更新就绪",
@@ -283,6 +282,7 @@ public partial class MainWindow : Window
                     catch (Exception ex)
                     {
                         LogService.Log($"更新对话框异常: {ex.Message}", "更新");
+                        _isAutoChecking = true;
                     }
                 });
             };
@@ -291,7 +291,7 @@ public partial class MainWindow : Window
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (!hasUpdate && !_isAutoChecking)
+                    if (!hasUpdate)
                         PushToast("检查更新", "当前已是最新版本。");
                     _isAutoChecking = true;
                 });
@@ -338,15 +338,26 @@ public partial class MainWindow : Window
         try
         {
             _isHiddenToTray = false;
+
+            Opacity = 1;
+            if (RootGrid != null)
+                RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
+
             ShowInTaskbar = true;
-            WindowState = WindowState.Normal;
             Show();
-            Activate();
-            Topmost = true;
-            Topmost = false;
+            WindowState = WindowState.Normal;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                try { Activate(); } catch { }
+            }, DispatcherPriority.Background);
+
             LogService.Log("窗口已恢复", "窗口");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            LogService.Log($"恢复窗口失败: {ex.Message}", "窗口");
+        }
     }
 
     // ============================================================
@@ -369,6 +380,8 @@ public partial class MainWindow : Window
 
         try
         {
+            Opacity = 1;
+
             if (_isHiddenToTray || !IsVisible)
             {
                 RestoreMainWindow();
@@ -407,9 +420,9 @@ public partial class MainWindow : Window
             LogService.Log("准备退出程序", "退出");
 
             ClosePlayerWindow();
-            _networkMonitor?.Stop();
-            _networkMonitor?.Dispose();
-            _networkMonitor = null;
+
+            try { NetworkMonitor.Instance.Stop(); } catch { }
+
             _scheduler?.Dispose();
             _scheduler = null;
 
@@ -521,13 +534,14 @@ public partial class MainWindow : Window
             {
                 try
                 {
-                    if (_authenticator != null)
-                    {
-                        var ok = await _authenticator.Authenticate();
-                        PushToast(ok ? "认证成功" : "认证失败", ok ? "校园网已连接" : "请检查账号密码");
-                    }
+                    var ok = await NetworkMonitor.Instance.ForceAuthenticateAsync();
+                    PushToast(ok ? "认证成功" : "认证失败",
+                              ok ? "校园网已连接" : "请检查账号密码或网络");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    PushToast("认证异常", ex.Message);
+                }
             };
             menu.Add(connectItem);
 
@@ -643,9 +657,8 @@ public partial class MainWindow : Window
         try
         {
             ClosePlayerWindow();
-            _networkMonitor?.Stop();
-            _networkMonitor?.Dispose();
-            _networkMonitor = null;
+
+            try { NetworkMonitor.Instance.Stop(); } catch { }
 
             if (_trayIcon != null)
             {

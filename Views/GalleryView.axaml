@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fluent="using:FluentAvalonia.UI.Controls"
              xmlns:svc="using:SBtools.Services"
              x:Class="SBtools.Views.GalleryView">
 
@@ -78,6 +79,31 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+
+        <!-- ★ 加载中遮罩 -->
+        <Border x:Name="LoadingPanel"
+                Grid.Row="1"
+                Background="#80000000"
+                IsVisible="False">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="18">
+                <fluent:ProgressRing Width="52"
+                                     Height="52"
+                                     IsActive="True"
+                                     HorizontalAlignment="Center"/>
+                <TextBlock x:Name="LoadingText"
+                           Text="正在加载图库..."
+                           FontSize="14"
+                           Foreground="White"
+                           HorizontalAlignment="Center"/>
+                <TextBlock x:Name="LoadingProgressText"
+                           Text="0 / 0"
+                           FontSize="12"
+                           Foreground="#CCFFFFFF"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
 
         <!-- 空状态 / 下载提示 -->
         <StackPanel x:Name="EmptyPanel"

@@ -18,7 +18,6 @@ public partial class UpdateDownloadDialog : Window
     {
         InitializeComponent();
 
-        // 初始状态
         RootCard.Opacity = 0;
         RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
 
@@ -32,7 +31,6 @@ public partial class UpdateDownloadDialog : Window
         Closing += async (_, e) =>
         {
             if (_allowClose) return;
-
             e.Cancel = true;
 
             if (_closingAnimated) return;
@@ -42,7 +40,6 @@ public partial class UpdateDownloadDialog : Window
             RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
 
             await Task.Delay(220);
-
             _allowClose = true;
             Close();
         };
@@ -52,7 +49,6 @@ public partial class UpdateDownloadDialog : Window
         UpdateService.Instance.DownloadCancelled += OnDownloadCancelled;
     }
 
-    /// <summary>外部调用：带退出动画地关闭</summary>
     public async Task CloseWithAnimationAsync()
     {
         if (_allowClose) return;
@@ -63,7 +59,6 @@ public partial class UpdateDownloadDialog : Window
         RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
 
         await Task.Delay(220);
-
         _allowClose = true;
         Close();
     }
@@ -95,7 +90,6 @@ public partial class UpdateDownloadDialog : Window
             PercentText.Text = "已取消";
             SpeedText.Text = "";
 
-            // 1 秒后自动带退出动画关闭
             await Task.Delay(1000);
             await CloseWithAnimationAsync();
         });

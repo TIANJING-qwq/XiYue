@@ -9,30 +9,20 @@
         Topmost="True"
         Background="Transparent"
         TransparencyLevelHint="Transparent"
-        Width="460"
-        Height="220">
+        Width="1920"
+        Height="1080"
+        IsHitTestVisible="True">
 
-    <Border Background="#D9000000"
-            CornerRadius="10"
-            Padding="18,14">
-        <StackPanel Spacing="8">
-            <TextBlock x:Name="TitleText"
-                       Text="自动动作执行中"
-                       FontSize="14"
-                       FontWeight="SemiBold"
-                       Foreground="White"
-                       TextWrapping="Wrap"/>
-
-            <ProgressBar x:Name="CountdownBar"
-                         Height="5"
-                         Minimum="0"
-                         Maximum="100"
-                         Value="100"/>
-
-            <TextBlock x:Name="HintText"
-                       Text="10 秒后自动关闭"
-                       FontSize="12"
-                       Foreground="#BBFFFFFF"/>
-        </StackPanel>
-    </Border>
+    <!-- 全透明遮罩，只捕获鼠标 -->
+    <Grid Background="#01000000">
+        <!-- 右下角倒计时：纯数字，极小 -->
+        <TextBlock x:Name="CountdownText"
+                   Text="10"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Foreground="#60FFFFFF"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,20,20"/>
+    </Grid>
 </Window>

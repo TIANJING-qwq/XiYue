@@ -3,11 +3,12 @@ using SBtools.Models;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SBtools.Services;
 
 /// <summary>
-/// 全局点击音效服务。用 LibVLCSharp 播放 wav，支持音量调节和音效切换。
+/// 全局点击音效服务。播放操作全部在后台线程执行，不阻塞 UI。
 /// </summary>
 public sealed class ClickSoundService : IDisposable
 {
@@ -17,19 +18,19 @@ public sealed class ClickSoundService : IDisposable
     private LibVLC? _libVLC;
     private MediaPlayer? _player;
     private Media? _media;
-    private readonly object _lock = new();
+    private readonly object _initLock = new();
+    private readonly object _playLock = new();
     private DateTime _lastPlayTime = DateTime.MinValue;
 
     private string? _currentFilePath;
 
-    private const int ThrottleMs = 80;
+    private const int ThrottleMs = 60;
 
     public static string SoundsDir =>
         Path.Combine(AppContext.BaseDirectory, "Sounds");
 
     private ClickSoundService() { }
 
-    /// <summary>获取 Sounds 目录下所有 .wav 文件名。</summary>
     public static string[] GetAvailableSounds()
     {
         try
@@ -56,16 +57,14 @@ public sealed class ClickSoundService : IDisposable
             return;
         }
 
-        // 如果当前加载的就是同一个文件，跳过
         if (_player != null && _currentFilePath == path) return;
 
-        lock (_lock)
+        lock (_initLock)
         {
             if (_player != null && _currentFilePath == path) return;
 
             try
             {
-                // 切换文件时先释放旧的
                 _player?.Stop();
                 _media?.Dispose();
                 _player?.Dispose();
@@ -76,8 +75,7 @@ public sealed class ClickSoundService : IDisposable
 
                 _media = new Media(_libVLC, new Uri(path));
                 _player.Media = _media;
-                _player.Volume = Math.Clamp(
-                    ConfigManager.Instance.ClickSoundVolume, 0, 100);
+                _player.Volume = Math.Clamp(ConfigManager.Instance.ClickSoundVolume, 0, 100);
 
                 _currentFilePath = path;
 
@@ -90,7 +88,7 @@ public sealed class ClickSoundService : IDisposable
         }
     }
 
-    /// <summary>播放点击音效。</summary>
+    /// <summary>播放点击音效（异步执行，UI 立即返回）</summary>
     public void Play()
     {
         if (!ConfigManager.Instance.ClickSoundEnabled) return;
@@ -99,38 +97,48 @@ public sealed class ClickSoundService : IDisposable
         if ((now - _lastPlayTime).TotalMilliseconds < ThrottleMs) return;
         _lastPlayTime = now;
 
-        try
+        // ★ 关键：放到后台线程，UI 不等待
+        Task.Run(() =>
         {
-            EnsureInit();
-            if (_player == null) return;
-
-            _player.Stop();
-            _player.Play();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[ClickSound] 播放失败: {ex.Message}");
-        }
+            lock (_playLock)
+            {
+                try
+                {
+                    EnsureInit();
+                    if (_player == null) return;
+                    _player.Stop();
+                    _player.Play();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ClickSound] 播放失败: {ex.Message}");
+                }
+            }
+        });
     }
 
-    /// <summary>强制试听（忽略总开关）。</summary>
+    /// <summary>强制试听（忽略总开关）</summary>
     public void Preview()
     {
-        try
+        Task.Run(() =>
         {
-            EnsureInit();
-            if (_player == null) return;
-
-            _player.Stop();
-            _player.Play();
-        }
-        catch { }
+            lock (_playLock)
+            {
+                try
+                {
+                    EnsureInit();
+                    if (_player == null) return;
+                    _player.Stop();
+                    _player.Play();
+                }
+                catch { }
+            }
+        });
     }
 
-    /// <summary>切换音效后调用，让下次播放重新加载。</summary>
     public void Reload()
     {
-        lock (_lock)
+        lock (_initLock)
         {
             try
             {
@@ -152,8 +160,11 @@ public sealed class ClickSoundService : IDisposable
     {
         try
         {
-            if (_player != null)
-                _player.Volume = Math.Clamp(volume, 0, 100);
+            lock (_playLock)
+            {
+                if (_player != null)
+                    _player.Volume = Math.Clamp(volume, 0, 100);
+            }
         }
         catch { }
     }
@@ -162,10 +173,13 @@ public sealed class ClickSoundService : IDisposable
     {
         try
         {
-            _player?.Stop();
-            _media?.Dispose();
-            _player?.Dispose();
-            _libVLC?.Dispose();
+            lock (_initLock)
+            {
+                _player?.Stop();
+                _media?.Dispose();
+                _player?.Dispose();
+                _libVLC?.Dispose();
+            }
         }
         catch { }
 

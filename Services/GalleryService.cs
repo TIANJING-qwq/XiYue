@@ -1,7 +1,9 @@
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using SBtools.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -20,7 +22,7 @@ public class GalleryItem
     public Bitmap? FullImage { get; set; }
     public bool IsGif { get; set; }
 
-    // 防止 GC 回收 MemoryStream 导致 GIF 动画停止
+    // 保持 MemoryStream 引用，防止 GIF 动画停止
     internal MemoryStream? BitmapStream { get; set; }
 }
 
@@ -34,40 +36,46 @@ public static class GalleryService
     private static readonly string[] ImageExtensions =
         { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".ico" };
 
-    /// <summary>本地缓存目录</summary>
-    public static string CacheDir =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "SchoolBusytools", "gallery");
+    /// <summary>当前图库缓存目录（跟随配置）</summary>
+    public static string CacheDir
+    {
+        get
+        {
+            try
+            {
+                return ConfigManager.Instance.GalleryPath;
+            }
+            catch
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "SchoolBusytools", "gallery");
+            }
+        }
+    }
 
-    /// <summary>本地缓存的 bili.zip 路径</summary>
     public static string ZipPath => Path.Combine(CacheDir, AssetName);
 
-    /// <summary>GitHub Release 下载地址（原始，不含代理）</summary>
     public static string RawDownloadUrl =>
         $"https://github.com/{GithubOwner}/{GithubRepo}/releases/download/{GalleryTag}/{AssetName}";
 
-    /// <summary>是否已有本地缓存</summary>
     public static bool HasCache
     {
         get { try { return File.Exists(ZipPath); } catch { return false; } }
     }
 
-    /// <summary>缓存文件大小（字节）</summary>
     public static long GetCacheSize()
     {
         try { return HasCache ? new FileInfo(ZipPath).Length : 0; }
         catch { return 0; }
     }
 
-    /// <summary>获取本地 zip 的修改时间</summary>
     public static DateTime? GetCacheTime()
     {
         try { return HasCache ? File.GetLastWriteTime(ZipPath) : null; }
         catch { return null; }
     }
 
-    /// <summary>删除本地缓存</summary>
     public static void ClearCache()
     {
         try
@@ -81,9 +89,163 @@ public static class GalleryService
         }
     }
 
-    /// <summary>
-    /// 从 GitHub 下载 bili.zip 到本地缓存。
-    /// </summary>
+    // ============================================================
+    // 扫描图片总数（不解码）
+    // ============================================================
+    public static int ScanImageCount()
+    {
+        if (!HasCache) return 0;
+
+        try
+        {
+            using var zip = ZipFile.OpenRead(ZipPath);
+            return zip.Entries.Count(e =>
+            {
+                if (e.Length == 0) return false;
+                var ext = Path.GetExtension(e.Name).ToLowerInvariant();
+                return ImageExtensions.Contains(ext);
+            });
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"扫描图库失败: {ex.Message}", "图库");
+            return 0;
+        }
+    }
+
+    // ============================================================
+    // 异步加载
+    // ============================================================
+    public static async Task<int> LoadAllAsync(
+        ObservableCollection<GalleryItem> target,
+        IProgress<(int current, int total)>? progress,
+        CancellationToken token)
+    {
+        if (!HasCache)
+        {
+            LogService.Log($"本地无缓存: {ZipPath}", "图库");
+            return 0;
+        }
+
+        LogService.Log($"开始加载图库: {ZipPath}", "图库");
+
+        var loaded = await Task.Run(async () =>
+        {
+            int loadedCount = 0;
+
+            // ★ 关键：整个读取流程都在 using 块内
+            try
+            {
+                using var zip = ZipFile.OpenRead(ZipPath);
+
+                var imageEntries = zip.Entries
+                    .Where(e =>
+                    {
+                        if (e.Length == 0) return false;
+                        var ext = Path.GetExtension(e.Name).ToLowerInvariant();
+                        return ImageExtensions.Contains(ext);
+                    })
+                    .ToList();
+
+                int total = imageEntries.Count;
+                LogService.Log($"图库扫描完成，共 {total} 张，开始解码...", "图库");
+
+                await Dispatcher.UIThread.InvokeAsync(() => progress?.Report((0, total)));
+
+                var batch = new List<GalleryItem>(10);
+
+                foreach (var entry in imageEntries)
+                {
+                    token.ThrowIfCancellationRequested();
+
+                    GalleryItem? item = null;
+
+                    try
+                    {
+                        byte[] data;
+                        using (var s = entry.Open())
+                        using (var readMs = new MemoryStream())
+                        {
+                            s.CopyTo(readMs);
+                            data = readMs.ToArray();
+                        }
+
+                        var isGif = Path.GetExtension(entry.Name)
+                            .Equals(".gif", StringComparison.OrdinalIgnoreCase);
+
+                        var bmpStream = new MemoryStream(data);
+                        Bitmap bitmap;
+                        try
+                        {
+                            bitmap = new Bitmap(bmpStream);
+                        }
+                        catch (Exception ex)
+                        {
+                            bmpStream.Dispose();
+                            LogService.Log($"解码失败 {entry.Name}: {ex.Message}", "图库");
+                            continue;
+                        }
+
+                        item = new GalleryItem
+                        {
+                            Name = entry.Name,
+                            FullName = entry.FullName,
+                            Data = data,
+                            IsGif = isGif,
+                            FullImage = bitmap,
+                            Thumbnail = bitmap,
+                            BitmapStream = bmpStream,
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        LogService.Log($"读取 {entry.Name} 失败: {ex.Message}", "图库");
+                        item = null;
+                    }
+
+                    if (item == null) continue;
+
+                    batch.Add(item);
+                    loadedCount++;
+
+                    if (batch.Count >= 10 || loadedCount == total)
+                    {
+                        var toAdd = batch.ToList();
+                        batch.Clear();
+                        var snap = loadedCount;
+
+                        try
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                foreach (var it in toAdd)
+                                    target.Add(it);
+                                progress?.Report((snap, total));
+                            }, DispatcherPriority.Background);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogService.Log($"UI 更新失败: {ex.Message}", "图库");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.Log($"打开 bili.zip 失败: {ex.Message}", "图库");
+                return 0;
+            }
+
+            return loadedCount;
+        }, token);
+
+        LogService.Log($"图库加载完成，共 {loaded} 张", "图库");
+        return loaded;
+    }
+
+    // ============================================================
+    // 下载
+    // ============================================================
     public static async Task<bool> DownloadAsync(
         IProgress<(int percent, string speed)>? progress,
         CancellationToken token)
@@ -100,6 +262,7 @@ public static class GalleryService
                 : proxy + RawDownloadUrl;
 
             LogService.Log($"开始下载图库: {url}", "图库");
+            LogService.Log($"保存到: {ZipPath}", "图库");
 
             using var http = new HttpClient();
             http.Timeout = TimeSpan.FromMinutes(30);
@@ -144,7 +307,6 @@ public static class GalleryService
                 progress?.Report((100, "完成"));
             }
 
-            // 覆盖旧文件
             if (File.Exists(ZipPath)) File.Delete(ZipPath);
             File.Move(tempFile, ZipPath);
 
@@ -178,73 +340,5 @@ public static class GalleryService
         if (bps >= MB) return $"{bps / MB:F2} MB/s";
         if (bps >= KB) return $"{bps / KB:F0} KB/s";
         return $"{bps:F0} B/s";
-    }
-
-    /// <summary>从本地缓存的 bili.zip 读取所有图片。</summary>
-    public static List<GalleryItem> LoadAll()
-    {
-        var result = new List<GalleryItem>();
-
-        if (!File.Exists(ZipPath))
-        {
-            LogService.Log($"本地无缓存: {ZipPath}", "图库");
-            return result;
-        }
-
-        try
-        {
-            using var zip = ZipFile.OpenRead(ZipPath);
-            foreach (var entry in zip.Entries)
-            {
-                if (entry.Length == 0) continue;
-
-                var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
-                if (!ImageExtensions.Contains(ext)) continue;
-
-                try
-                {
-                    using var s = entry.Open();
-                    using var readMs = new MemoryStream();
-                    s.CopyTo(readMs);
-                    var data = readMs.ToArray();
-
-                    var item = new GalleryItem
-                    {
-                        Name = entry.Name,
-                        FullName = entry.FullName,
-                        Data = data,
-                        IsGif = ext == ".gif",
-                    };
-
-                    var bmpStream = new MemoryStream(data);
-                    try
-                    {
-                        item.FullImage = new Bitmap(bmpStream);
-                        item.Thumbnail = item.FullImage;
-                        item.BitmapStream = bmpStream;
-                    }
-                    catch (Exception ex)
-                    {
-                        LogService.Log($"加载图片失败 {entry.Name}: {ex.Message}", "图库");
-                        bmpStream.Dispose();
-                        continue;
-                    }
-
-                    result.Add(item);
-                }
-                catch (Exception ex)
-                {
-                    LogService.Log($"读取 {entry.Name} 失败: {ex.Message}", "图库");
-                }
-            }
-
-            LogService.Log($"图库加载完成，共 {result.Count} 张图片", "图库");
-        }
-        catch (Exception ex)
-        {
-            LogService.Log($"打开 bili.zip 失败: {ex.Message}", "图库");
-        }
-
-        return result;
     }
 }

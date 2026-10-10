@@ -5,7 +5,9 @@ using SBtools.Controls;
 using SBtools.Models;
 using SBtools.Services;
 using System;
-
+using Avalonia.Platform.Storage;
+using System.Diagnostics;
+using System.IO;
 namespace SBtools.Views;
 
 public partial class SettingsView : UserControl
@@ -188,7 +190,99 @@ public partial class SettingsView : UserControl
     {
         ClickSoundService.Instance.Preview();
     }
+    
+        // ============ ★ 图库位置 ============
+    private void UpdateGalleryPathDisplay()
+    {
+        try
+        {
+            var box = this.FindControl<TextBox>("GalleryPathBox");
+            if (box == null) return;
 
+            var cfg = ConfigManager.Instance;
+            box.Text = cfg.GalleryPath;
+
+            // 提示是否默认路径
+            if (cfg.IsDefaultGalleryPath)
+                box.Watermark = "默认路径 (%APPDATA%\\SchoolBusytools\\gallery)";
+            else
+                box.Watermark = "";
+        }
+        catch { }
+    }
+
+    private async void BrowseGalleryPath_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel == null) return;
+
+            var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
+                new FolderPickerOpenOptions
+                {
+                    Title = "选择图库保存位置",
+                    AllowMultiple = false
+                });
+
+            if (folders == null || folders.Count == 0) return;
+
+            var picked = folders[0];
+            var path = picked.Path.LocalPath;
+            if (string.IsNullOrEmpty(path)) return;
+
+            // 保存到配置
+            ConfigManager.Instance.GalleryPath = path;
+            UpdateGalleryPathDisplay();
+
+            MainWindow.PushToast("图库位置", $"已切换到:\n{path}");
+            LogService.Log($"图库位置已更改: {path}", "图库");
+        }
+        catch (Exception ex)
+        {
+            MainWindow.PushToast("选择失败", ex.Message);
+        }
+    }
+
+    private void OpenGalleryPath_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = ConfigManager.Instance.GalleryPath;
+            Directory.CreateDirectory(path);
+
+            if (OperatingSystem.IsWindows())
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
+            else if (OperatingSystem.IsMacOS())
+                Process.Start("open", path);
+            else
+                Process.Start("xdg-open", path);
+        }
+        catch (Exception ex)
+        {
+            MainWindow.PushToast("打开失败", ex.Message);
+        }
+    }
+
+    private void ResetGalleryPath_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var defaultPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SchoolBusytools", "gallery");
+
+            ConfigManager.Instance.GalleryPath = defaultPath;
+            UpdateGalleryPathDisplay();
+
+            MainWindow.PushToast("图库位置", "已重置为默认路径");
+            LogService.Log($"图库位置已重置: {defaultPath}", "图库");
+        }
+        catch (Exception ex)
+        {
+            MainWindow.PushToast("重置失败", ex.Message);
+        }
+    }
     // ============ WiFi 认证 ============
     private void SaveCredentials_Click(object? sender, RoutedEventArgs e)
     {
@@ -401,6 +495,34 @@ public partial class SettingsView : UserControl
         if (_isInitializing) return;
         var box = this.FindControl<NumericUpDown>("OverlaySecondsBox");
         if (box?.Value is decimal v) _config.AutoActionOverlaySeconds = (int)v;
+    }
+
+        // ============ ★ 密码确认框 ============
+    private void PasswordPromptSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("PasswordPromptSwitch");
+        _config.PasswordPromptEnabled = sw?.IsChecked == true;
+
+        MainWindow.PushToast("密码确认框",
+            _config.PasswordPromptEnabled ? "已启用" : "已禁用");
+    }
+
+    private void PasswordPromptSecondsBox_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<NumericUpDown>("PasswordPromptSecondsBox");
+        if (box?.Value is decimal v) _config.PasswordPromptSeconds = (int)v;
+    }
+
+    private void PasswordPromptPasswordBox_LostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var box = this.FindControl<TextBox>("PasswordPromptPasswordBox");
+        var text = box?.Text?.Trim() ?? "";
+        if (string.IsNullOrEmpty(text)) return;
+        _config.PasswordPromptPassword = text;
+        MainWindow.PushToast("密码确认框", "密码已更新");
     }
 
     // ============ 程序选项 ============

@@ -7,15 +7,9 @@ using System;
 
 namespace SBtools.Views;
 
-/// <summary>
-/// 右上角密码确认小窗。
-/// - 密码正确 → 取消自动动作
-/// - 密码错误 → 执行自动动作
-/// - 超时    → 执行自动动作
-/// </summary>
 public partial class PasswordPromptWindow : Window
 {
-    /// <summary>true = 执行自动动作，false = 取消</summary>
+    /// <summary>true = 执行自动动作；false = 取消</summary>
     public event Action<bool>? ResultReady;
 
     private readonly string _correctPassword;
@@ -68,7 +62,6 @@ public partial class PasswordPromptWindow : Window
                 int w = (int)(Width * scaling);
                 int h = (int)(Height * scaling);
 
-                // 右上角往内偏移 24px
                 int x = area.Right - w - 24;
                 int y = area.Y + 24;
 

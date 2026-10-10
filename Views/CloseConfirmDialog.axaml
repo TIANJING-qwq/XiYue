@@ -8,17 +8,16 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="BorderOnly"
-        TransparencyLevelHint="Mica"
+        SystemDecorations="None"
         Background="Transparent"
-        TransparencyBackgroundFallback="#F3F3F3">
+        TransparencyLevelHint="Transparent">
 
     <Border x:Name="RootCard"
-            Background="{DynamicResource AcrylicBackgroundFillColorDefaultBrush}"
-            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="8"
-            Padding="28"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="0"
+            CornerRadius="12"
+            Padding="0"
             Margin="1">
 
         <Border.Transitions>
@@ -36,104 +35,108 @@
             </Transitions>
         </Border.Transitions>
 
-        <Border.Styles>
-            <Style Selector="Button.cancel">
-                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
-                <Setter Property="Padding" Value="20,8"/>
-                <Setter Property="MinWidth" Value="88"/>
-                <Setter Property="CornerRadius" Value="6"/>
-            </Style>
-            <Style Selector="Button.cancel /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
-                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="CornerRadius" Value="6"/>
-            </Style>
-            <Style Selector="Button.cancel:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
-            </Style>
+        <!-- 内部卡片：这里是实际的视觉层 -->
+        <Border Background="#F0101010"
+                BorderBrush="#30FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="28">
 
-            <Style Selector="Button.minimize">
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Padding" Value="20,8"/>
-                <Setter Property="MinWidth" Value="130"/>
-                <Setter Property="CornerRadius" Value="6"/>
-                <Setter Property="FontWeight" Value="SemiBold"/>
-            </Style>
-            <Style Selector="Button.minimize /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#FF0078D4"/>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="CornerRadius" Value="6"/>
-            </Style>
-            <Style Selector="Button.minimize:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#FF106EBE"/>
-                <Setter Property="Foreground" Value="White"/>
-            </Style>
-            <Style Selector="Button.minimize:pressed /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#FF005A9E"/>
-                <Setter Property="Foreground" Value="White"/>
-            </Style>
+            <Border.Styles>
+                <Style Selector="Button.cancel">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Padding" Value="20,8"/>
+                    <Setter Property="MinWidth" Value="88"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                </Style>
+                <Style Selector="Button.cancel /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#20FFFFFF"/>
+                    <Setter Property="BorderBrush" Value="#30FFFFFF"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                </Style>
+                <Style Selector="Button.cancel:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#30FFFFFF"/>
+                </Style>
 
-            <Style Selector="Button.quit">
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Padding" Value="20,8"/>
-                <Setter Property="MinWidth" Value="88"/>
-                <Setter Property="CornerRadius" Value="6"/>
-                <Setter Property="FontWeight" Value="SemiBold"/>
-            </Style>
-            <Style Selector="Button.quit /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#FFE81123"/>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="CornerRadius" Value="6"/>
-            </Style>
-            <Style Selector="Button.quit:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#FFC50F1F"/>
-                <Setter Property="Foreground" Value="White"/>
-            </Style>
-            <Style Selector="Button.quit:pressed /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#FFA8001A"/>
-                <Setter Property="Foreground" Value="White"/>
-            </Style>
-        </Border.Styles>
+                <Style Selector="Button.minimize">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Padding" Value="20,8"/>
+                    <Setter Property="MinWidth" Value="130"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Style>
+                <Style Selector="Button.minimize /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#FF0078D4"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                </Style>
+                <Style Selector="Button.minimize:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#FF106EBE"/>
+                </Style>
+                <Style Selector="Button.minimize:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#FF005A9E"/>
+                </Style>
 
-        <StackPanel Spacing="16">
+                <Style Selector="Button.quit">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Padding" Value="20,8"/>
+                    <Setter Property="MinWidth" Value="88"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Style>
+                <Style Selector="Button.quit /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#FFE81123"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                </Style>
+                <Style Selector="Button.quit:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#FFC50F1F"/>
+                </Style>
+                <Style Selector="Button.quit:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="#FFA8001A"/>
+                </Style>
+            </Border.Styles>
 
-            <TextBlock Text="关闭汐月"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <StackPanel Spacing="16">
 
-            <TextBlock Text="请选择关闭方式："
-                       FontSize="13"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <TextBlock Text="关闭汐月"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="White"/>
 
-            <CheckBox x:Name="DontAskAgainCheckbox"
-                      Content="不再询问"
-                      FontSize="12"
-                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <TextBlock Text="请选择关闭方式："
+                           FontSize="13"
+                           Foreground="#CCFFFFFF"/>
 
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        Spacing="10"
-                        Margin="0,4,0,0">
+                <CheckBox x:Name="DontAskAgainCheckbox"
+                          Content="不再询问"
+                          FontSize="12"
+                          Foreground="#CCFFFFFF"/>
 
-                <Button x:Name="CancelButton"
-                        Classes="cancel"
-                        Content="取消"
-                        Click="CancelButton_Click"/>
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            Spacing="10"
+                            Margin="0,4,0,0">
 
-                <Button x:Name="MinimizeButton"
-                        Classes="minimize"
-                        Content="最小化到托盘"
-                        Click="MinimizeButton_Click"/>
+                    <Button x:Name="CancelButton"
+                            Classes="cancel"
+                            Content="取消"
+                            Click="CancelButton_Click"/>
 
-                <Button x:Name="QuitButton"
-                        Classes="quit"
-                        Content="退出"
-                        Click="QuitButton_Click"/>
+                    <Button x:Name="MinimizeButton"
+                            Classes="minimize"
+                            Content="最小化到托盘"
+                            Click="MinimizeButton_Click"/>
+
+                    <Button x:Name="QuitButton"
+                            Classes="quit"
+                            Content="退出"
+                            Click="QuitButton_Click"/>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
+        </Border>
     </Border>
 </Window>

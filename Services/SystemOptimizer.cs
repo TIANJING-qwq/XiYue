@@ -118,6 +118,12 @@ public static class SystemOptimizer
                 Description = "禁用开始菜单和锁屏的微软建议应用/广告",
                 Risk = RiskLevel.Safe },
 
+        // ★ 新增
+        new() { Id = "priv_widgets", Category = "隐私",
+                Name = "关闭 Win11 小组件",
+                Description = "隐藏任务栏小组件按钮，并禁用小组件新闻推送，降低后台资源占用",
+                Risk = RiskLevel.Safe },
+
         // ============ 性能 ============
         new() { Id = "perf_visual", Category = "性能",
                 Name = "关闭视觉动画效果",
@@ -253,6 +259,9 @@ Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentD
 Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SystemPaneSuggestionsEnabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 "),
 
+        // ★ 关闭 Win11 小组件
+        "priv_widgets" => WrapWidgetsDisable(),
+
         "perf_visual" => WrapRegistrySet(
             @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
             "VisualFXSetting", 2),
@@ -315,6 +324,9 @@ if (Test-Path 'C:\Windows.old') {
             @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
             "AllowCortana", 1),
 
+        // ★ 恢复 Win11 小组件
+        "priv_widgets" => WrapWidgetsEnable(),
+
         "perf_visual" => WrapRegistrySet(
             @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
             "VisualFXSetting", 0),
@@ -353,6 +365,9 @@ if (Test-Path 'C:\Windows.old') {
             @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
             "AllowCortana", 0),
 
+        // ★ 检查 Win11 小组件状态
+        "priv_widgets" => WrapWidgetsCheck(),
+
         "perf_visual" => WrapCheckRegistryEquals(
             @"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
             "VisualFXSetting", 2),
@@ -368,6 +383,59 @@ if (Test-Path 'C:\Windows.old') {
 
         _ => ""
     };
+
+    // ============================================================
+    // ★ Win11 小组件脚本片段
+    // ============================================================
+    private static string WrapWidgetsDisable() => @"
+$ErrorActionPreference = 'SilentlyContinue'
+try {
+    # 1. 隐藏任务栏小组件按钮
+    $adv = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    if (-not (Test-Path $adv)) { New-Item -Path $adv -Force | Out-Null }
+    Set-ItemProperty -Path $adv -Name 'TaskbarDa' -Value 0 -Type DWord -Force -ErrorAction Stop
+
+    # 2. 通过策略完全禁用（Win11 22000+）
+    $dsh = 'HKCU:\Software\Policies\Microsoft\Dsh'
+    if (-not (Test-Path $dsh)) { New-Item -Path $dsh -Force | Out-Null }
+    Set-ItemProperty -Path $dsh -Name 'AllowNewsAndInterests' -Value 0 -Type DWord -Force -ErrorAction Stop
+
+    Write-Output 'SUCCESS'
+    exit 0
+} catch {
+    Write-Output ""FAILED: $($_.Exception.Message)""
+    exit 1
+}
+";
+
+    private static string WrapWidgetsEnable() => @"
+$ErrorActionPreference = 'SilentlyContinue'
+try {
+    # 1. 恢复任务栏小组件按钮
+    $adv = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    if (Test-Path $adv) {
+        Set-ItemProperty -Path $adv -Name 'TaskbarDa' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+    }
+
+    # 2. 删除策略值
+    $dsh = 'HKCU:\Software\Policies\Microsoft\Dsh'
+    if (Test-Path $dsh) {
+        Remove-ItemProperty -Path $dsh -Name 'AllowNewsAndInterests' -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Output 'SUCCESS'
+    exit 0
+} catch {
+    Write-Output ""FAILED: $($_.Exception.Message)""
+    exit 1
+}
+";
+
+    private static string WrapWidgetsCheck() => @"
+$adv = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'TaskbarDa' -ErrorAction SilentlyContinue).TaskbarDa
+$dsh = (Get-ItemProperty -Path 'HKCU:\Software\Policies\Microsoft\Dsh' -Name 'AllowNewsAndInterests' -ErrorAction SilentlyContinue).AllowNewsAndInterests
+if ($adv -eq 0 -or $dsh -eq 0) { Write-Output 'TRUE' } else { Write-Output 'FALSE' }
+";
 
     // ============================================================
     // 脚本片段辅助
@@ -471,11 +539,10 @@ exit 0
 ";
 
     // ============================================================
-    // ★ 修复：元组解构和字段名对齐
+    // 执行
     // ============================================================
     private static async Task<(bool Success, string Message)> RunPowerShellAsync(string script)
     {
-        // ★ 正确的解构：RunPowerShellRawAsync 返回 (bool Success, int ExitCode, string StdOut)
         var result = await RunPowerShellRawAsync(script);
 
         var stdout = result.StdOut ?? "";
@@ -483,33 +550,25 @@ exit 0
 
         var output = stdout.Trim();
 
-        // 明确成功信号
         if (output.Contains("SUCCESS"))
             return (true, "成功");
 
-        // 明确跳过信号（服务/应用不存在也算成功）
         if (output.Contains("SKIP:"))
             return (true, output);
 
-        // 明确失败信号
         if (output.Contains("FAILED:"))
             return (false, output);
 
-        // 没有明确信号，根据退出码
         if (exitCode == 0)
             return (true, "成功");
 
         return (false, $"退出码 {exitCode}");
     }
 
-    /// <summary>
-    /// ★ 原始 PowerShell 执行：返回 (是否成功, 退出码, 标准输出)
-    /// </summary>
     private static async Task<(bool Success, int ExitCode, string StdOut)> RunPowerShellRawAsync(string script)
     {
         try
         {
-            // 写到临时文件，避免命令行转义问题
             var tempFile = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
                 $"xiyue_opt_{Guid.NewGuid():N}.ps1");
@@ -535,10 +594,8 @@ exit 0
             var stderr = await proc.StandardError.ReadToEndAsync();
             await proc.WaitForExitAsync();
 
-            // 清理临时文件
             try { System.IO.File.Delete(tempFile); } catch { }
 
-            // 合并 stderr 到 stdout（如果 stdout 为空）
             if (string.IsNullOrWhiteSpace(stdout) && !string.IsNullOrWhiteSpace(stderr))
                 stdout = "FAILED: " + stderr;
 

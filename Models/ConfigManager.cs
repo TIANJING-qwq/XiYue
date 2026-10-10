@@ -144,6 +144,30 @@ public class ConfigManager
             Save();
         }
     }
+
+        // ---------------- ★ 图库保存位置 ----------------
+    /// <summary>
+    /// 图库资源的保存目录。空字符串表示使用默认路径
+    /// （%APPDATA%\SchoolBusytools\gallery）。
+    /// </summary>
+    public string GalleryPath
+    {
+        get => string.IsNullOrWhiteSpace(_data.GalleryPath)
+            ? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SchoolBusytools", "gallery")
+            : _data.GalleryPath;
+        set
+        {
+            if (_data.GalleryPath == value) return;
+            _data.GalleryPath = value ?? "";
+            Save();
+        }
+    }
+
+    /// <summary>是否是默认路径</summary>
+    public bool IsDefaultGalleryPath =>
+        string.IsNullOrWhiteSpace(_data.GalleryPath);
     public string UpdateProxy
     {
         get => _data.UpdateProxy ?? "";
@@ -200,6 +224,46 @@ public class ConfigManager
         set { var v = Math.Clamp(value, 1, 300); if (_data.AutoActionOverlaySeconds == v) return; _data.AutoActionOverlaySeconds = v; Save(); }
     }
 
+        // ---------------- ★ 密码确认框配置 ----------------
+    /// <summary>是否启用密码确认框（插件通知时先弹密码框）</summary>
+    public bool PasswordPromptEnabled
+    {
+        get => _data.PasswordPromptEnabled;
+        set
+        {
+            if (_data.PasswordPromptEnabled == value) return;
+            _data.PasswordPromptEnabled = value;
+            Save();
+        }
+    }
+
+    /// <summary>密码确认框倒计时秒数（默认 10）</summary>
+    public int PasswordPromptSeconds
+    {
+        get => _data.PasswordPromptSeconds;
+        set
+        {
+            var v = Math.Clamp(value, 3, 120);
+            if (_data.PasswordPromptSeconds == v) return;
+            _data.PasswordPromptSeconds = v;
+            Save();
+        }
+    }
+
+    /// <summary>取消自动动作所需的密码（默认 1145）</summary>
+    public string PasswordPromptPassword
+    {
+        get => string.IsNullOrEmpty(_data.PasswordPromptPassword)
+            ? "1145"
+            : _data.PasswordPromptPassword;
+        set
+        {
+            if (_data.PasswordPromptPassword == value) return;
+            _data.PasswordPromptPassword = value ?? "";
+            Save();
+        }
+    }
+
     // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
@@ -253,5 +317,13 @@ public class ConfigManager
         public int AutoActionVolumeHoldSeconds { get; set; } = 30;
         public bool AutoActionShowOverlay { get; set; } = true;
         public int AutoActionOverlaySeconds { get; set; } = 10;
+
+                // ★ 图库保存位置
+        public string GalleryPath { get; set; } = "";
+
+                // ★ 密码确认框
+        public bool PasswordPromptEnabled { get; set; } = true;
+        public int PasswordPromptSeconds { get; set; } = 10;
+        public string PasswordPromptPassword { get; set; } = "1145";
     }
 }

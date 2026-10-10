@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using SBtools.ViewModels;
+using SBtools.Models;
+using SBtools.Services;
 using System;
 using System.Threading.Tasks;
 
@@ -19,44 +20,58 @@ public partial class NetworkView : UserControl
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
-        _vm = new NetworkViewModel();
-        DataContext = _vm;
-        _vm.Start();
+        try
+        {
+            _vm = new NetworkViewModel();
+            DataContext = _vm;
+            _vm.Start();
 
-        LoadScheduleFromScheduler();
+            LoadScheduleFromScheduler();
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"NetworkView 加载失败: {ex.Message}", "网络");
+        }
     }
 
     private void OnUnloaded(object? sender, RoutedEventArgs e)
     {
-        _vm?.Stop();
+        try { _vm?.Stop(); } catch { }
         _vm = null;
         DataContext = null;
     }
 
-    // ============ 网络操作 ============
     private async void ConnectButton_Click(object? sender, RoutedEventArgs e)
     {
         if (_vm == null) return;
-        try { await _vm.ConnectAsync(); } catch { }
+        try { await _vm.ConnectAsync(); }
+        catch (Exception ex) { LogService.Log($"连接按钮异常: {ex.Message}", "网络"); }
     }
 
     private async void RefreshButton_Click(object? sender, RoutedEventArgs e)
     {
         if (_vm == null) return;
-        try { await _vm.RefreshAsync(); } catch { }
+        try { await _vm.RefreshAsync(); }
+        catch (Exception ex) { LogService.Log($"刷新按钮异常: {ex.Message}", "网络"); }
     }
 
-    // ============ 定时播放 ============
     private void LoadScheduleFromScheduler()
     {
-        var s = MainWindow.Scheduler;
-        if (s == null) return;
+        try
+        {
+            var s = MainWindow.Scheduler;
+            if (s == null) return;
 
-        ScheduleEnabledSwitch.IsChecked = s.Enabled;
-        StartTimePicker.SelectedTime = s.StartTime;
-        EndTimePicker.SelectedTime = s.EndTime;
+            ScheduleEnabledSwitch.IsChecked = s.Enabled;
+            StartTimePicker.SelectedTime = s.StartTime;
+            EndTimePicker.SelectedTime = s.EndTime;
 
-        UpdateScheduleStatus();
+            UpdateScheduleStatus();
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"加载调度配置失败: {ex.Message}", "调度");
+        }
     }
 
     private void UpdateScheduleStatus()
@@ -83,11 +98,16 @@ public partial class NetworkView : UserControl
 
     private void TestPlaybackButton_Click(object? sender, RoutedEventArgs e)
     {
-        // 立即打开全屏播放窗口进行测试
-        var player = new FullscreenPlayerWindow();
-        player.Show();
-
-        MainWindow.PushToast("测试播放", "已打开全屏窗口，正在加载 CCTV-13");
+        try
+        {
+            var player = new FullscreenPlayerWindow();
+            player.Show();
+            MainWindow.PushToast("测试播放", "已打开全屏窗口，正在加载 CCTV-13");
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"测试播放失败: {ex.Message}", "播放");
+        }
     }
 
     private void SaveScheduleButton_Click(object? sender, RoutedEventArgs e)

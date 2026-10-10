@@ -1,83 +1,26 @@
-using Avalonia.Media;
 using Avalonia.Threading;
 using ReactiveUI;
-using SBtools.Models;
+using SBtools.Services;
 using System;
+using System.Collections.ObjectModel;
+using System.Reactive;
 using System.Threading.Tasks;
-using System.Timers;
 
-namespace SBtools.ViewModels;
+namespace SBtools.Models;
 
 public class NetworkViewModel : ReactiveObject
 {
-    private readonly WiFiAuthenticator _auth;
-    private readonly NetworkDetector _detector;
-    private readonly ConfigManager _config;
-    private Timer? _timer;
+    private readonly NetworkMonitor _monitor;
 
-    private string _statusText = "正在检测...";
-    private IBrush _statusBrush = Brushes.Gray;
-    private string _localIp = "-";
-    private string _publicIp = "-";
-    private string _lastCheck = "—";
-    private int _attempts;
-    private DateTime? _lastConnection;
     private bool _autoConnectEnabled = true;
     private bool _autoVerifyEnabled = true;
-    private bool _isBusy;
+    private string _statusText = "正在检测...";
+    private string _statusColor = "Gray";
+    private string _ipInfo = "本地IP: 检测中... | 公网IP: 检测中...";
     private string _loadingText = "";
+    private int _attemptCount = 0;
 
-    public NetworkViewModel()
-    {
-        _config = ConfigManager.Instance;
-        _auth = new WiFiAuthenticator(_config.Username, _config.Password);
-        _detector = new NetworkDetector();
-    }
-
-    public string StatusText
-    {
-        get => _statusText;
-        set => this.RaiseAndSetIfChanged(ref _statusText, value);
-    }
-
-    public IBrush StatusBrush
-    {
-        get => _statusBrush;
-        set => this.RaiseAndSetIfChanged(ref _statusBrush, value);
-    }
-
-    public string LocalIp
-    {
-        get => _localIp;
-        set => this.RaiseAndSetIfChanged(ref _localIp, value);
-    }
-
-    public string PublicIp
-    {
-        get => _publicIp;
-        set => this.RaiseAndSetIfChanged(ref _publicIp, value);
-    }
-
-    public string LastCheck
-    {
-        get => _lastCheck;
-        set => this.RaiseAndSetIfChanged(ref _lastCheck, value);
-    }
-
-    public int Attempts
-    {
-        get => _attempts;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _attempts, value);
-            this.RaisePropertyChanged(nameof(LastConnectionInfo));
-        }
-    }
-
-    public string LastConnectionInfo =>
-        _lastConnection.HasValue
-            ? $"最后连接: {_lastConnection:yyyy-MM-dd HH:mm:ss}"
-            : "最后连接: 无";
+    public ObservableCollection<string> ConnectionHistory { get; } = new();
 
     public bool AutoConnectEnabled
     {
@@ -91,117 +34,197 @@ public class NetworkViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _autoVerifyEnabled, value);
     }
 
+    public int AttemptCount
+    {
+        get => _attemptCount;
+        set => this.RaiseAndSetIfChanged(ref _attemptCount, value);
+    }
+
+    public string StatusText
+    {
+        get => _statusText;
+        set => this.RaiseAndSetIfChanged(ref _statusText, value);
+    }
+
+    public string StatusColor
+    {
+        get => _statusColor;
+        set => this.RaiseAndSetIfChanged(ref _statusColor, value);
+    }
+
+    public string IpInfo
+    {
+        get => _ipInfo;
+        set => this.RaiseAndSetIfChanged(ref _ipInfo, value);
+    }
+
     public string LoadingText
     {
         get => _loadingText;
         set => this.RaiseAndSetIfChanged(ref _loadingText, value);
     }
 
-    // ============================================================
-    // ★ 这两个方法必须是 public，View 才能调用
-    // ============================================================
-    public Task ConnectAsync() => ManualConnectAsync();
-    public Task RefreshAsync() => RefreshCoreAsync();
-    // ============================================================
+    public ReactiveCommand<Unit, Unit> ConnectCommand { get; }
+    public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
 
-    public void Start()
+    public NetworkViewModel()
     {
-        _timer?.Stop();
-        _timer?.Dispose();
-        _timer = new Timer(5000) { AutoReset = true };
-        _timer.Elapsed += async (_, _) => await RefreshCoreAsync();
-        _timer.Start();
+        _monitor = NetworkMonitor.Instance;
 
-        Dispatcher.UIThread.Post(async () => await RefreshCoreAsync());
-    }
+        ConnectCommand = ReactiveCommand.CreateFromTask(ExecuteConnect);
+        RefreshCommand = ReactiveCommand.CreateFromTask(ExecuteRefresh);
 
-    public void Stop()
-    {
-        _timer?.Stop();
-        _timer?.Dispose();
-        _timer = null;
-    }
+        _monitor.StatusChanged += OnStatusChanged;
+        _monitor.AuthenticationAttempted += OnAuthAttempted;
+        _monitor.LogEntry += OnLogEntry;
 
-    private async Task RefreshCoreAsync()
-    {
-        if (!AutoVerifyEnabled) return;
-
-        await SetUIAsync(() => LoadingText = "⏳ 正在检测网络...");
-
-        var connected = await _detector.IsConnected();
-        var info = await _detector.GetNetworkInfo();
-
-        await SetUIAsync(() =>
+        // 载入已有历史日志
+        try
         {
-            LoadingText = "";
-            LocalIp = info.LocalIp;
-            PublicIp = info.PublicIp;
-            LastCheck = DateTime.Now.ToString("HH:mm:ss");
-
-            if (connected)
-            {
-                StatusText = "已连接 ✓";
-                StatusBrush = Brushes.Green;
-            }
-            else
-            {
-                StatusText = "未连接 ✗";
-                StatusBrush = Brushes.Red;
-            }
-        });
-
-        if (!connected && AutoConnectEnabled && !_isBusy)
-        {
-            await ManualConnectAsync();
+            foreach (var log in _monitor.RecentLogs)
+                AddHistory(log);
         }
+        catch { }
+
+        // 立即用当前状态刷新 UI
+        RefreshFromMonitor();
     }
 
-    private async Task ManualConnectAsync()
+    /// <summary>清理订阅（NetworkView 卸载时调用）</summary>
+    public void Detach()
     {
-        if (_isBusy) return;
-        _isBusy = true;
+        try
+        {
+            _monitor.StatusChanged -= OnStatusChanged;
+            _monitor.AuthenticationAttempted -= OnAuthAttempted;
+            _monitor.LogEntry -= OnLogEntry;
+        }
+        catch { }
+    }
 
-        await SetUIAsync(() =>
+    // 兼容旧接口
+    public void Start() { }
+    public void Stop() => Detach();
+
+    // ★ 公开方法（供 NetworkView 调用）
+    public Task ConnectAsync() => ExecuteConnect();
+    public Task RefreshAsync() => ExecuteRefresh();
+
+    // ============================================================
+    // 事件回调
+    // ============================================================
+    private void OnStatusChanged(bool connected)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            RefreshFromMonitor();
+            AddHistory(connected ? "网络状态: 已连接" : "网络状态: 未连接");
+        });
+    }
+
+    private void OnAuthAttempted(bool success)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            AttemptCount = _monitor.AttemptCount;
+            AddHistory(success ? "认证成功" : "认证失败");
+        });
+    }
+
+    private void OnLogEntry(string message)
+    {
+        Dispatcher.UIThread.Post(() => AddHistory(message));
+    }
+
+    // ============================================================
+    // 从监控同步状态
+    // ============================================================
+    private void RefreshFromMonitor()
+    {
+        try
+        {
+            var connected = _monitor.IsConnected;
+            var info = _monitor.CurrentInfo;
+
+            StatusText = connected ? "已连接 ✓" : "未连接 ✗";
+            StatusColor = connected ? "Green" : "Red";
+
+            IpInfo = $"本地IP: {info.LocalIp} | 公网IP: {info.PublicIp}";
+            AttemptCount = _monitor.AttemptCount;
+        }
+        catch { }
+    }
+
+    // ============================================================
+    // 操作
+    // ============================================================
+    private async Task ExecuteConnect()
+    {
+        Dispatcher.UIThread.Post(() =>
         {
             LoadingText = "⏳ 正在进行认证...";
             StatusText = "正在连接...";
-            StatusBrush = Brushes.DodgerBlue;
+            StatusColor = "Orange";
         });
 
-        var success = await _auth.Authenticate();
+        AddHistory("手动触发认证");
 
-        _isBusy = false;
-
-        await SetUIAsync(() =>
+        try
         {
-            LoadingText = "";
-            if (success)
+            await _monitor.ForceAuthenticateAsync();
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"认证异常: {ex.Message}", "网络");
+            AddHistory($"异常: {ex.Message}");
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() =>
             {
-                StatusText = "连接成功";
-                StatusBrush = Brushes.Green;
-                _lastConnection = DateTime.Now;
-                Attempts++;
-                MainWindow.PushToast("认证成功", "校园网认证已完成。");
-            }
-            else
-            {
-                StatusText = "连接失败";
-                StatusBrush = Brushes.Red;
-                MainWindow.PushToast("认证失败", "无法完成校园网认证，请检查账号密码。");
-            }
-        });
-
-        if (success)
-            await RefreshCoreAsync();
+                LoadingText = "";
+                RefreshFromMonitor();
+            });
+        }
     }
 
-    private static Task SetUIAsync(Action action)
+    private async Task ExecuteRefresh()
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        Dispatcher.UIThread.Post(() =>
         {
-            action();
-            return Task.CompletedTask;
+            LoadingText = "⏳ 正在检测网络...";
+        });
+
+        try
+        {
+            await _monitor.ForceCheckAsync();
         }
-        return Dispatcher.UIThread.InvokeAsync(action).GetTask();
+        catch (Exception ex)
+        {
+            LogService.Log($"刷新异常: {ex.Message}", "网络");
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                LoadingText = "";
+                RefreshFromMonitor();
+            });
+        }
+    }
+
+    // ============================================================
+    // 连接记录
+    // ============================================================
+    private void AddHistory(string message)
+    {
+        try
+        {
+            var line = $"{DateTime.Now:HH:mm:ss}  {message}";
+            ConnectionHistory.Insert(0, line);
+            while (ConnectionHistory.Count > 100)
+                ConnectionHistory.RemoveAt(ConnectionHistory.Count - 1);
+        }
+        catch { }
     }
 }

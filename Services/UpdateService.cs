@@ -1,18 +1,21 @@
+using SBtools.Models;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Updatum;
-using SBtools.Models;
 
 namespace SBtools.Services;
 
 /// <summary>
-/// 自动更新服务（单例）。检查用 Updatum，下载走自定义 HttpClient（支持代理）。
+/// 自动更新服务（单例）。检查用 Updatum，下载走自定义 HttpClient，
+/// 更新方式是 ZIP 自替换（不调用 Inno 安装程序）。
 /// </summary>
 public sealed class UpdateService
 {
@@ -41,8 +44,13 @@ public sealed class UpdateService
     {
         _updater = new UpdatumManager(GithubOwner, GithubRepo)
         {
+            // ★ 改为 Portable，Updatum 内部不再启动 Inno 安装程序
+                        // 保留 Installer 值即可，反正我们不走 Updatum 的安装流程
             InstallUpdateWindowsExeType = UpdatumWindowsExeType.Installer,
-            AssetRegexPattern = @"XiYue.*\.(exe|zip)$",
+
+            // ★ 只匹配 ZIP（忽略 Setup.exe）
+            AssetRegexPattern = @"XiYue.*win-x64.*\.zip$",
+
             DownloadProgressUpdateFrequencySeconds = 0.3,
         };
 
@@ -61,15 +69,11 @@ public sealed class UpdateService
         LogService.Log($"更新服务已初始化，当前版本 {CurrentVersion}", "更新");
     }
 
-    // ============================================================
-    // ★ 启动时自动检查（会触发 UpdateAvailable 事件 → MainWindow 弹 Toast）
-    // ============================================================
     public void CheckQuietly()
     {
         try
         {
             LogService.Log("启动自动检查更新...", "更新");
-            // 用 CheckForUpdatesAsync，确保 UpdateFound 事件被触发
             _ = CheckForUpdatesAsync();
         }
         catch (Exception ex)
@@ -103,7 +107,7 @@ public sealed class UpdateService
     }
 
     // ============================================================
-    // 下载并安装（走代理）
+    // ★ 核心：下载 ZIP → 解压 → 生成替换脚本 → 退出
     // ============================================================
     public async Task<bool> DownloadAndInstallAsync()
     {
@@ -122,15 +126,13 @@ public sealed class UpdateService
                 return false;
             }
 
-            var asset =
-                release.Assets.FirstOrDefault(a =>
-                    a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) ??
-                release.Assets.FirstOrDefault(a =>
-                    a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+            // ★ 优先选 ZIP（忽略 Setup.exe）
+            var asset = release.Assets.FirstOrDefault(a =>
+                a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
 
             if (asset == null)
             {
-                LogService.Log("没有找到可下载的 .exe / .zip", "更新");
+                LogService.Log("没有找到 .zip 资产，无法自替换更新", "更新");
                 InstallCompleted?.Invoke(false);
                 return false;
             }
@@ -143,36 +145,102 @@ public sealed class UpdateService
 
             LogService.Log($"下载地址: {downloadUrl}", "更新");
 
-            var tempFile = Path.Combine(
+            // 1. 下载 ZIP 到临时文件
+            var zipPath = Path.Combine(
                 Path.GetTempPath(),
-                $"XiYue_Update_{Guid.NewGuid():N}{Path.GetExtension(asset.Name)}");
+                $"XiYue_update_{Guid.NewGuid():N}.zip");
 
-            await DownloadFileAsync(downloadUrl, tempFile, token);
+            await DownloadFileAsync(downloadUrl, zipPath, token);
+            LogService.Log($"下载完成: {zipPath}", "更新");
 
-            LogService.Log($"下载完成: {tempFile}", "更新");
+            // 2. 解压到临时目录
+            var extractDir = Path.Combine(
+                Path.GetTempPath(),
+                $"XiYue_update_{Guid.NewGuid():N}");
 
-            var ext = Path.GetExtension(tempFile).ToLowerInvariant();
-            if (ext == ".exe")
+            try
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = tempFile,
-                    UseShellExecute = true
-                });
-                LogService.Log("安装程序已启动", "更新");
+                if (Directory.Exists(extractDir)) Directory.Delete(extractDir, true);
+                ZipFile.ExtractToDirectory(zipPath, extractDir);
+                LogService.Log($"解压完成: {extractDir}", "更新");
             }
-            else
+            catch (Exception ex)
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"/select,\"{tempFile}\"",
-                    UseShellExecute = true
-                });
-                LogService.Log("已打开 ZIP 所在目录，请手动解压", "更新");
+                LogService.Log($"解压失败: {ex.Message}", "更新");
+                InstallCompleted?.Invoke(false);
+                return false;
             }
+
+            // 3. 找到新的主 exe
+            var newExe = Path.Combine(extractDir, "SBtools.exe");
+            if (!File.Exists(newExe))
+            {
+                newExe = Directory.GetFiles(extractDir, "SBtools.exe", SearchOption.AllDirectories)
+                    .FirstOrDefault() ?? "";
+            }
+
+            if (string.IsNullOrEmpty(newExe) || !File.Exists(newExe))
+            {
+                LogService.Log("ZIP 里没有 SBtools.exe", "更新");
+                InstallCompleted?.Invoke(false);
+                return false;
+            }
+
+            // 若 exe 在子目录，把子目录内容整体上提到顶层
+            var newExeDir = Path.GetDirectoryName(newExe)!;
+            if (!newExeDir.Equals(extractDir, StringComparison.OrdinalIgnoreCase))
+            {
+                LogService.Log($"exe 位于子目录 {newExeDir}，正在展平...", "更新");
+
+                foreach (var file in Directory.GetFiles(newExeDir, "*", SearchOption.AllDirectories))
+                {
+                    var rel = Path.GetRelativePath(newExeDir, file);
+                    var dst = Path.Combine(extractDir, rel);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
+                    File.Move(file, dst, true);
+                }
+
+                try { Directory.Delete(newExeDir, true); } catch { }
+            }
+
+            // 4. 当前程序目录
+            var currentExe = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(currentExe))
+                currentExe = Path.Combine(AppContext.BaseDirectory, "SBtools.exe");
+
+            var targetDir = Path.GetDirectoryName(currentExe)!;
+
+            LogService.Log($"更新目标目录: {targetDir}", "更新");
+            LogService.Log($"当前 exe: {currentExe}", "更新");
+
+            // 5. 生成替换脚本（纯 ASCII，避免编码问题）
+            var batPath = Path.Combine(Path.GetTempPath(),
+                $"XiYue_update_{Guid.NewGuid():N}.bat");
+
+            var batContent = BuildUpdateScript(extractDir, targetDir, currentExe, zipPath);
+            File.WriteAllText(batPath, batContent, Encoding.ASCII);
+
+            LogService.Log($"替换脚本已生成: {batPath}", "更新");
+
+            // 6. 启动 bat（隐藏窗口）
+            var psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c \"\"{batPath}\"\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            };
+
+            Process.Start(psi);
+            LogService.Log("更新脚本已启动，准备退出主程序", "更新");
 
             InstallCompleted?.Invoke(true);
+
+            // 7. 主程序退出，让 bat 完成替换
+            await Task.Delay(500);
+            Environment.Exit(0);
+
             return true;
         }
         catch (OperationCanceledException)
@@ -193,6 +261,50 @@ public sealed class UpdateService
             _downloadCts?.Dispose();
             _downloadCts = null;
         }
+    }
+
+    // ============================================================
+    // 生成替换脚本
+    // ============================================================
+    private static string BuildUpdateScript(
+        string sourceDir, string targetDir, string exePath, string zipPath)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("@echo off");
+        sb.AppendLine("chcp 65001 >nul 2>&1");
+        sb.AppendLine("setlocal");
+        sb.AppendLine("title XiYue Update");
+        sb.AppendLine("");
+        sb.AppendLine("echo Waiting for SBtools.exe to exit...");
+        sb.AppendLine("");
+        sb.AppendLine(":wait_loop");
+        sb.AppendLine("tasklist /FI \"IMAGENAME eq SBtools.exe\" 2>nul | find /I \"SBtools.exe\" >nul");
+        sb.AppendLine("if not errorlevel 1 (");
+        sb.AppendLine("    taskkill /F /IM SBtools.exe >nul 2>&1");
+        sb.AppendLine("    timeout /t 1 /nobreak >nul");
+        sb.AppendLine("    goto wait_loop");
+        sb.AppendLine(")");
+        sb.AppendLine("");
+        sb.AppendLine("timeout /t 1 /nobreak >nul");
+        sb.AppendLine("");
+        sb.AppendLine($"echo Copying files from: \"{sourceDir}\"");
+        sb.AppendLine($"echo To: \"{targetDir}\"");
+        sb.AppendLine("");
+        sb.AppendLine($"xcopy /Y /E /Q /I \"{sourceDir}\\*\" \"{targetDir}\\\" >nul");
+        sb.AppendLine("");
+        sb.AppendLine("echo Starting new version...");
+        sb.AppendLine($"start \"\" \"{exePath}\"");
+        sb.AppendLine("");
+        sb.AppendLine("timeout /t 2 /nobreak >nul");
+        sb.AppendLine("");
+        sb.AppendLine("echo Cleaning up...");
+        sb.AppendLine($"rmdir /S /Q \"{sourceDir}\" >nul 2>&1");
+        sb.AppendLine($"del /F /Q \"{zipPath}\" >nul 2>&1");
+        sb.AppendLine("");
+        sb.AppendLine("del /F /Q \"%~f0\"");
+        sb.AppendLine("");
+
+        return sb.ToString();
     }
 
     public void CancelDownload()
@@ -237,7 +349,7 @@ public sealed class UpdateService
     }
 
     // ============================================================
-    // 自定义下载（带进度 + 速度）
+    // 下载文件（带进度 + 速度）
     // ============================================================
     private async Task DownloadFileAsync(string url, string destPath, CancellationToken token)
     {
@@ -247,7 +359,6 @@ public sealed class UpdateService
 
         using var response = await http.GetAsync(
             url, HttpCompletionOption.ResponseHeadersRead, token);
-
         response.EnsureSuccessStatusCode();
 
         var totalBytes = response.Content.Headers.ContentLength ?? 0;
@@ -257,10 +368,9 @@ public sealed class UpdateService
 
         var buffer = new byte[81920];
         long totalRead = 0;
-
-        var lastReportTime = DateTime.Now;
-        long lastReportBytes = 0;
-        var lastPercent = -1;
+        var lastReport = DateTime.Now;
+        long lastBytes = 0;
+        int lastPercent = -1;
 
         while (true)
         {
@@ -273,7 +383,7 @@ public sealed class UpdateService
             totalRead += read;
 
             var now = DateTime.Now;
-            var elapsed = (now - lastReportTime).TotalSeconds;
+            var elapsed = (now - lastReport).TotalSeconds;
             if (elapsed >= 0.3)
             {
                 if (totalBytes > 0)
@@ -286,11 +396,11 @@ public sealed class UpdateService
                     }
                 }
 
-                var bytesPerSec = (totalRead - lastReportBytes) / elapsed;
+                var bytesPerSec = (totalRead - lastBytes) / elapsed;
                 DownloadSpeedChanged?.Invoke(FormatSpeed(bytesPerSec));
 
-                lastReportTime = now;
-                lastReportBytes = totalRead;
+                lastReport = now;
+                lastBytes = totalRead;
             }
         }
 
@@ -298,15 +408,13 @@ public sealed class UpdateService
         DownloadSpeedChanged?.Invoke("完成");
     }
 
-    private static string FormatSpeed(double bytesPerSec)
+    private static string FormatSpeed(double bps)
     {
-        if (bytesPerSec <= 0) return "0 MB/s";
-
+        if (bps <= 0) return "0 MB/s";
         const double KB = 1024;
         const double MB = 1024 * 1024;
-
-        if (bytesPerSec >= MB) return $"{bytesPerSec / MB:F2} MB/s";
-        if (bytesPerSec >= KB) return $"{bytesPerSec / KB:F0} KB/s";
-        return $"{bytesPerSec:F0} B/s";
+        if (bps >= MB) return $"{bps / MB:F2} MB/s";
+        if (bps >= KB) return $"{bps / KB:F0} KB/s";
+        return $"{bps:F0} B/s";
     }
 }

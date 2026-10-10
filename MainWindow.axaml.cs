@@ -32,6 +32,9 @@ public partial class MainWindow : Window
 
     private static bool _isAutoChecking = true;
 
+    // ★ 关键：窗口是否已首次 Show 过
+    private bool _windowShown;
+
     public MainWindow() : this(false) { }
 
     public MainWindow(bool startMinimized)
@@ -41,25 +44,31 @@ public partial class MainWindow : Window
 
         WindowBackdropService.Apply(this, ConfigManager.Instance.WindowBackdrop);
 
+        // ★ 初始：如果静默启动，直接把不透明度设为 1 但窗口不显示
+        // 否则透明以便播放淡入动画
         if (startMinimized)
         {
             Opacity = 1;
             if (RootGrid != null)
                 RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
+            _windowShown = false;
         }
         else
         {
             Opacity = 0;
             if (RootGrid != null)
                 RootGrid.RenderTransform = TransformOperations.Parse("scale(0.97)");
+            _windowShown = true;
         }
 
+        // 初始化
         NavView.SelectedItem = NavView.MenuItems[0];
         ContentFrame.Navigate(typeof(FeaturesView));
 
         _scheduler = new PlaybackScheduler(OnScheduleStart, OnScheduleStop);
         ApplyScheduleConfig();
 
+        // 全局点击音效
         this.AddHandler(
             PointerReleasedEvent,
             OnGlobalPointerReleased,
@@ -73,32 +82,15 @@ public partial class MainWindow : Window
 
         Closing += OnWindowClosing;
 
-        if (startMinimized)
+        // ★ 只处理打开事件：非静默模式播动画 + 检查更新
+        // 静默模式下 Opened 不会触发（因为不调 Show()）
+        Opened += async (_, _) =>
         {
-            Opened += (_, _) =>
+            // 首次打开：播放淡入
+            if (!startMinimized || !_windowShown)
             {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    try
-                    {
-                        Hide();
-                        ShowInTaskbar = false;
-                        _isHiddenToTray = true;
-                        LogService.Log("自启动模式：窗口保持隐藏", "启动");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogService.Log($"自启动隐藏失败: {ex.Message}", "启动");
-                    }
-                }, DispatcherPriority.Background);
+                _windowShown = true;
 
-                StartUpdateCheckDelayed();
-            };
-        }
-        else
-        {
-            Opened += async (_, _) =>
-            {
                 await Task.Delay(30);
 
                 Opacity = 1;
@@ -106,9 +98,19 @@ public partial class MainWindow : Window
                     RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
 
                 LogService.Log("程序已启动", "启动");
+            }
 
+            // 启动延迟检查更新（首次打开时）
+            if (_isAutoChecking && _windowShown)
+            {
                 StartUpdateCheckDelayed();
-            };
+            }
+        };
+
+        // 静默启动时，立即让调度器/更新检查工作（不依赖窗口显示）
+        if (startMinimized)
+        {
+            StartUpdateCheckDelayed();
         }
     }
 
@@ -138,16 +140,13 @@ public partial class MainWindow : Window
             {
                 await Task.Delay(1500);
 
-                LogService.Log("主界面已就绪，开始自动检查更新", "更新");
-
+                LogService.Log("开始自动检查更新", "更新");
                 _isAutoChecking = true;
 
                 await UpdateService.Instance.CheckForUpdatesAsync();
 
                 if (ConfigManager.Instance.AutoCheckUpdate)
-                {
                     UpdateService.Instance.StartAutoCheck();
-                }
             }
             catch (Exception ex)
             {
@@ -158,10 +157,7 @@ public partial class MainWindow : Window
 
     public static PlaybackScheduler? Scheduler => _scheduler;
 
-    public static void SetAutoChecking(bool value)
-    {
-        _isAutoChecking = value;
-    }
+    public static void SetAutoChecking(bool value) => _isAutoChecking = value;
 
     public static void ApplyScheduleConfig()
     {
@@ -198,7 +194,7 @@ public partial class MainWindow : Window
     }
 
     // ============================================================
-    // 网络监控（全局单例）
+    // 网络监控
     // ============================================================
     private void InitNetworkMonitor()
     {
@@ -240,7 +236,6 @@ public partial class MainWindow : Window
         {
             var updater = UpdateService.Instance;
 
-            // ★ 发现新版本 → 无论自动/手动都弹对话框
             updater.UpdateAvailable += version =>
             {
                 Dispatcher.UIThread.Post(async () =>
@@ -333,23 +328,46 @@ public partial class MainWindow : Window
         catch { }
     }
 
+    /// <summary>
+    /// 从托盘恢复主窗口。首次显示时会播放淡入动画。
+    /// </summary>
     private void RestoreMainWindow()
     {
         try
         {
+            LogService.Log($"恢复窗口：IsVisible={IsVisible}, _windowShown={_windowShown}", "窗口");
+
             _isHiddenToTray = false;
 
+            // 1. 先确保不透明（防止动画残留透明状态）
             Opacity = 1;
             if (RootGrid != null)
                 RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
 
+            // 2. 显示在任务栏
             ShowInTaskbar = true;
-            Show();
+
+            // 3. 恢复窗口状态
             WindowState = WindowState.Normal;
 
+            // 4. 显示窗口（如果已显示则不会有副作用）
+            if (!IsVisible)
+            {
+                Show();
+            }
+
+            // 5. 激活窗口（延后一帧，避免和 Show 冲突）
             Dispatcher.UIThread.Post(() =>
             {
-                try { Activate(); } catch { }
+                try
+                {
+                    Activate();
+
+                    // 短暂 Topmost 抢焦点
+                    Topmost = true;
+                    Topmost = false;
+                }
+                catch { }
             }, DispatcherPriority.Background);
 
             LogService.Log("窗口已恢复", "窗口");
@@ -366,6 +384,14 @@ public partial class MainWindow : Window
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_reallyQuit) return;
+
+        // ★ 程序内部隐藏导致的 Closing：直接放行（不弹确认框）
+        if (_isHiddenToTray)
+        {
+            LogService.Log("内部隐藏导致的 Closing，放行", "窗口");
+            return;
+        }
+
         if (_closingDialogShown) { e.Cancel = true; return; }
 
         if (ConfigManager.Instance.MinimizeToTrayOnClose)
@@ -382,7 +408,7 @@ public partial class MainWindow : Window
         {
             Opacity = 1;
 
-            if (_isHiddenToTray || !IsVisible)
+            if (!IsVisible)
             {
                 RestoreMainWindow();
                 await Task.Delay(150);
@@ -520,12 +546,19 @@ public partial class MainWindow : Window
                 IsVisible = true
             };
 
-            _trayIcon.Clicked += (_, _) => RestoreMainWindow();
+            _trayIcon.Clicked += (_, _) =>
+            {
+                // 用 Post 延迟一帧，避免和托盘本身的点击事件冲突
+                Dispatcher.UIThread.Post(() => RestoreMainWindow(), DispatcherPriority.Background);
+            };
 
             var menu = new NativeMenu();
 
             var showItem = new NativeMenuItem("显示主窗口");
-            showItem.Click += (_, _) => RestoreMainWindow();
+            showItem.Click += (_, _) =>
+            {
+                Dispatcher.UIThread.Post(() => RestoreMainWindow(), DispatcherPriority.Background);
+            };
             menu.Add(showItem);
             menu.Add(new NativeMenuItemSeparator());
 

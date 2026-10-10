@@ -1,19 +1,28 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using SBtools.Models;
 using SBtools.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Threading;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SBtools.Views;
 
 public partial class GalleryView : UserControl
 {
+    private const int PageSize = 60;
+
+    // ★ 最多保留在内存中的项数。超出后自动淘汰最早加载的。
+    private const int MaxLoadedItems = 180;
+
     private readonly ObservableCollection<GalleryItem> _items = new();
-    private CancellationTokenSource? _loadCts;
+    private List<GalleryItem> _allItems = new();
+    private int _nextIndex;
     private bool _loaded;
+    private bool _loading;
 
     public GalleryView()
     {
@@ -29,14 +38,119 @@ public partial class GalleryView : UserControl
                 _loaded = true;
                 UpdateUiState();
                 if (GalleryService.HasCache)
-                    _ = LoadImagesAsync();
+                    LoadAllMetadata();
             }
         };
 
         DetachedFromVisualTree += (_, _) =>
         {
-            try { _loadCts?.Cancel(); } catch { }
+            ReleaseAll();
+            GalleryService.CloseCache();
+            LogService.Log("图库页面已关闭", "图库");
         };
+    }
+
+    private void ReleaseAll()
+    {
+        foreach (var item in _items) item.DisposeAll();
+        _items.Clear();
+        _allItems.Clear();
+        _nextIndex = 0;
+    }
+
+    // ============================================================
+    // 扫描元数据（不读图片字节）
+    // ============================================================
+    private void LoadAllMetadata()
+    {
+        try
+        {
+            ReleaseAll();
+            _allItems = GalleryService.LoadAll();
+
+            LogService.Log($"扫描完成，共 {_allItems.Count} 张", "图库");
+
+            if (_allItems.Count == 0)
+            {
+                ShowEmptyState("图库资源为空或损坏", "请点「更新资源」重新下载");
+                return;
+            }
+
+            LoadNextPage();
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"加载图库失败: {ex.Message}", "图库");
+        }
+    }
+
+    // ============================================================
+    // 加载下一页 + 淘汰老项
+    // ============================================================
+    private void LoadNextPage()
+    {
+        if (_loading) return;
+        if (_nextIndex >= _allItems.Count) return;
+
+        _loading = true;
+
+        try
+        {
+            var batch = _allItems.Skip(_nextIndex).Take(PageSize).ToList();
+
+            foreach (var item in batch)
+                _items.Add(item);
+
+            _nextIndex += batch.Count;
+
+            // ★ 淘汰超出限额的最老项（从前面移除）
+            while (_items.Count > MaxLoadedItems)
+            {
+                var oldest = _items[0];
+                try
+                {
+                    oldest.Unload();          // 释放 Bitmap + Data
+                    oldest.DisposeAll();      // 彻底释放
+                }
+                catch { }
+                _items.RemoveAt(0);
+            }
+
+            UpdateLoadMoreButton();
+
+            LogService.Log($"已加载 {_items.Count} / {_allItems.Count}（累计扫描 {_nextIndex}）", "图库");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void UpdateLoadMoreButton()
+    {
+        var btn = this.FindControl<Button>("LoadMoreButton");
+        if (btn != null)
+            btn.IsVisible = _nextIndex < _allItems.Count;
+    }
+
+    // ============================================================
+    // 滚动到底部自动加载
+    // ============================================================
+    private void GalleryScroll_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        var sv = sender as ScrollViewer;
+        if (sv == null) return;
+
+        var distanceToBottom = sv.Extent.Height - sv.Offset.Y - sv.Viewport.Height;
+        if (distanceToBottom < 800)
+        {
+            LoadNextPage();
+        }
+    }
+
+    private void LoadMore_Click(object? sender, RoutedEventArgs e)
+    {
+        LoadNextPage();
     }
 
     // ============================================================
@@ -83,83 +197,6 @@ public partial class GalleryView : UserControl
         }
     }
 
-    // ============================================================
-    // 异步加载
-    // ============================================================
-    private async Task LoadImagesAsync()
-    {
-        try
-        {
-            _loadCts?.Cancel();
-            _loadCts = new CancellationTokenSource();
-            var token = _loadCts.Token;
-
-            _items.Clear();
-
-            // 先扫一遍总数，立即显示转圈
-            int total = GalleryService.ScanImageCount();
-            ShowLoading(true, $"共 {total} 张，正在加载...", 0, total);
-
-            if (total == 0)
-            {
-                ShowLoading(false, "", 0, 0);
-                ShowEmptyState("图库资源为空或损坏", "请点「更新资源」重新下载");
-                return;
-            }
-
-            var progress = new Progress<(int current, int total)>(p =>
-            {
-                UpdateLoadingProgress(p.current, p.total);
-            });
-
-            await GalleryService.LoadAllAsync(_items, progress, token);
-
-            ShowLoading(false, "", 0, 0);
-
-            if (_items.Count == 0)
-            {
-                ShowEmptyState("图库资源为空或损坏", "请点「更新资源」重新下载");
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            LogService.Log("图库加载已取消", "图库");
-            ShowLoading(false, "", 0, 0);
-        }
-        catch (Exception ex)
-        {
-            LogService.Log($"加载图库失败: {ex.Message}", "图库");
-            ShowLoading(false, "", 0, 0);
-        }
-    }
-
-    // ============================================================
-    // 加载中 UI 控制
-    // ============================================================
-    private void ShowLoading(bool show, string text, int current, int total)
-    {
-        var panel = this.FindControl<Border>("LoadingPanel");
-        if (panel != null) panel.IsVisible = show;
-
-        if (show)
-        {
-            var t = this.FindControl<TextBlock>("LoadingText");
-            if (t != null) t.Text = text;
-
-            var p = this.FindControl<TextBlock>("LoadingProgressText");
-            if (p != null) p.Text = $"{current} / {total}";
-        }
-    }
-
-    private void UpdateLoadingProgress(int current, int total)
-    {
-        var p = this.FindControl<TextBlock>("LoadingProgressText");
-        if (p != null) p.Text = $"{current} / {total}";
-
-        var t = this.FindControl<TextBlock>("LoadingText");
-        if (t != null) t.Text = "正在加载图库...";
-    }
-
     private void ShowEmptyState(string title, string hint)
     {
         var emptyPanel = this.FindControl<StackPanel>("EmptyPanel");
@@ -204,12 +241,13 @@ public partial class GalleryView : UserControl
         {
             success = await GalleryService.DownloadAsync(progress, dialog.Token);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.Log($"下载流程异常: {ex.Message}", "图库");
             success = false;
         }
 
-        try { dialog.Close(); } catch { }
+        try { await dialog.CloseWithAnimationAsync(); } catch { }
 
         if (!success)
         {
@@ -220,13 +258,10 @@ public partial class GalleryView : UserControl
 
         MainWindow.PushToast("下载完成", "图库资源已就绪");
         UpdateUiState();
-        await LoadImagesAsync();
+        LoadAllMetadata();
     }
 
-    // ============================================================
-    // 刷新
-    // ============================================================
-    private async void Refresh_Click(object? sender, RoutedEventArgs e)
+    private void Refresh_Click(object? sender, RoutedEventArgs e)
     {
         if (!GalleryService.HasCache)
         {
@@ -234,13 +269,10 @@ public partial class GalleryView : UserControl
             return;
         }
 
-        await LoadImagesAsync();
-        MainWindow.PushToast("图库", $"已刷新，共 {_items.Count} 张");
+        LoadAllMetadata();
+        MainWindow.PushToast("图库", $"已刷新，共 {_allItems.Count} 张");
     }
 
-    // ============================================================
-    // 点击图片
-    // ============================================================
     private void ImageItem_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;

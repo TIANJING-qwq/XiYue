@@ -42,6 +42,13 @@
                        HorizontalAlignment="Center"
                        Opacity="0" />
 
+                 <TextBlock Name="LineTeam"
+                Text="tianjing &amp; deepseek"
+                FontSize="13"
+                HorizontalAlignment="Center"
+                Opacity="0" />
+
+
             <TextBlock Name="LineBuild"
                        Text="基于 C# / .NET 8 + Avalonia UI 构建"
                        FontSize="13"

@@ -30,6 +30,7 @@ public partial class AboutView : UserControl
         ["LineBuild"]         = 0.7,
         ["LineVersion"]       = 0.5,
         ["LineDesc"]          = 0.6,
+        ["CreditsSection"]    = 1.0,
         ["ButtonRow"]         = 1.0,
         ["UpdateStatusText"]  = 0.6,
     };
@@ -58,7 +59,7 @@ public partial class AboutView : UserControl
         {
             AppIcon, TitleText, ChineseName, Divider,
             LineAuthor, LineTeam, LineBuild, LineVersion, LineDesc,
-            ButtonRow
+            CreditsSection, ButtonRow
         });
 
         foreach (var t in _fadeTargets)
@@ -119,6 +120,7 @@ public partial class AboutView : UserControl
                      LineBuild,
                      LineVersion,
                      LineDesc,
+                     CreditsSection,
                      ButtonRow,
                      UpdateStatusText
                  })
@@ -159,7 +161,7 @@ public partial class AboutView : UserControl
     }
 
     // ============================================================
-    // 检查更新（手动）
+    // 检查更新
     // ============================================================
     private async void CheckUpdateButton_Click(object? sender, RoutedEventArgs e)
     {
@@ -171,7 +173,6 @@ public partial class AboutView : UserControl
 
         try
         {
-            // 标记手动检查（如果 MainWindow 里还有这个标志就保留）
             MainWindow.SetAutoChecking(false);
 
             UpdateStatusText.Text = "正在检查更新...";
@@ -182,11 +183,9 @@ public partial class AboutView : UserControl
             if (!hasUpdate)
             {
                 UpdateStatusText.Text = $"当前已是最新版本（{DisplayVersion}）";
-                // CheckCompleted 事件会弹 Toast
                 return;
             }
 
-            // 有新版本 → UpdateAvailable 事件会弹对话框
             UpdateStatusText.Text = "已发现新版本，请查看弹窗";
         }
         catch (Exception ex)

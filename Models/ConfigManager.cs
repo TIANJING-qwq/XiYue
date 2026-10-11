@@ -263,6 +263,29 @@ public class ConfigManager
             Save();
         }
     }
+        // ---------------- ★ 退出安全码 ----------------
+    /// <summary>是否启用退出安全码（点击「退出」时必须输入密码）</summary>
+    public bool QuitPasswordEnabled
+    {
+        get => _data.QuitPasswordEnabled;
+        set
+        {
+            if (_data.QuitPasswordEnabled == value) return;
+            _data.QuitPasswordEnabled = value;
+            Save();
+        }
+    }
+
+    /// <summary>退出安全码（AES 加密存储）</summary>
+    public string QuitPassword
+    {
+        get => SecureStorage.Decrypt(_data.EncryptedQuitPassword);
+        set
+        {
+            _data.EncryptedQuitPassword = SecureStorage.Encrypt(value ?? "");
+            Save();
+        }
+    }
 
     // ---------------- 读写 ----------------
     private ConfigData? Load()
@@ -325,5 +348,9 @@ public class ConfigManager
         public bool PasswordPromptEnabled { get; set; } = true;
         public int PasswordPromptSeconds { get; set; } = 10;
         public string PasswordPromptPassword { get; set; } = "1145";
+
+                // ★ 退出安全码
+        public bool QuitPasswordEnabled { get; set; } = false;
+        public string EncryptedQuitPassword { get; set; } = "";
     }
 }

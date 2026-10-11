@@ -5,9 +5,7 @@ using SBtools.Controls;
 using SBtools.Models;
 using SBtools.Services;
 using System;
-using Avalonia.Platform.Storage;
-using System.Diagnostics;
-using System.IO;
+
 namespace SBtools.Views;
 
 public partial class SettingsView : UserControl
@@ -63,7 +61,6 @@ public partial class SettingsView : UserControl
         if (clickSoundText != null)
             clickSoundText.Text = _config.ClickSoundVolume.ToString();
 
-        // 音效文件下拉框
         LoadSoundFiles();
 
         // 更新代理
@@ -79,6 +76,9 @@ public partial class SettingsView : UserControl
                 _ => 0,
             };
         }
+
+        // 图库位置
+        UpdateGalleryPathDisplay();
 
         // 通知
         var autoCollapseSwitch = this.FindControl<ToggleSwitch>("AutoCollapseSwitch");
@@ -113,6 +113,19 @@ public partial class SettingsView : UserControl
         var overlaySecBox = this.FindControl<NumericUpDown>("OverlaySecondsBox");
         if (overlaySecBox != null) overlaySecBox.Value = _config.AutoActionOverlaySeconds;
 
+        // 密码确认框
+        var passwordPromptSwitch = this.FindControl<ToggleSwitch>("PasswordPromptSwitch");
+        if (passwordPromptSwitch != null)
+            passwordPromptSwitch.IsChecked = _config.PasswordPromptEnabled;
+
+        var passwordPromptSecBox = this.FindControl<NumericUpDown>("PasswordPromptSecondsBox");
+        if (passwordPromptSecBox != null)
+            passwordPromptSecBox.Value = _config.PasswordPromptSeconds;
+
+        var passwordPromptPwdBox = this.FindControl<TextBox>("PasswordPromptPasswordBox");
+        if (passwordPromptPwdBox != null)
+            passwordPromptPwdBox.Text = _config.PasswordPromptPassword;
+
         // 程序选项
         var autoStartSwitch = this.FindControl<ToggleSwitch>("AutoStartSwitch");
         var autoStartMinimizedSwitch = this.FindControl<ToggleSwitch>("AutoStartMinimizedSwitch");
@@ -124,6 +137,17 @@ public partial class SettingsView : UserControl
             autoStartMinimizedSwitch.IsChecked = _config.AutoStartMinimized;
         if (minTraySwitch != null)
             minTraySwitch.IsChecked = _config.MinimizeToTrayOnClose;
+
+        // ★ 退出安全码
+        var quitPwdSwitch = this.FindControl<ToggleSwitch>("QuitPasswordSwitch");
+        if (quitPwdSwitch != null)
+            quitPwdSwitch.IsChecked = _config.QuitPasswordEnabled;
+
+        var quitPwdBox = this.FindControl<TextBox>("QuitPasswordBox");
+        if (quitPwdBox != null)
+        {
+            try { quitPwdBox.Text = _config.QuitPassword; } catch { }
+        }
 
         _isInitializing = false;
     }
@@ -190,8 +214,10 @@ public partial class SettingsView : UserControl
     {
         ClickSoundService.Instance.Preview();
     }
-    
-        // ============ ★ 图库位置 ============
+
+    // ============================================================
+    // 图库位置
+    // ============================================================
     private void UpdateGalleryPathDisplay()
     {
         try
@@ -202,7 +228,6 @@ public partial class SettingsView : UserControl
             var cfg = ConfigManager.Instance;
             box.Text = cfg.GalleryPath;
 
-            // 提示是否默认路径
             if (cfg.IsDefaultGalleryPath)
                 box.Watermark = "默认路径 (%APPDATA%\\SchoolBusytools\\gallery)";
             else
@@ -219,7 +244,7 @@ public partial class SettingsView : UserControl
             if (topLevel == null) return;
 
             var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
-                new FolderPickerOpenOptions
+                new Avalonia.Platform.Storage.FolderPickerOpenOptions
                 {
                     Title = "选择图库保存位置",
                     AllowMultiple = false
@@ -231,7 +256,6 @@ public partial class SettingsView : UserControl
             var path = picked.Path.LocalPath;
             if (string.IsNullOrEmpty(path)) return;
 
-            // 保存到配置
             ConfigManager.Instance.GalleryPath = path;
             UpdateGalleryPathDisplay();
 
@@ -249,14 +273,15 @@ public partial class SettingsView : UserControl
         try
         {
             var path = ConfigManager.Instance.GalleryPath;
-            Directory.CreateDirectory(path);
+            System.IO.Directory.CreateDirectory(path);
 
             if (OperatingSystem.IsWindows())
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                    "explorer.exe", $"\"{path}\"") { UseShellExecute = true });
             else if (OperatingSystem.IsMacOS())
-                Process.Start("open", path);
+                System.Diagnostics.Process.Start("open", path);
             else
-                Process.Start("xdg-open", path);
+                System.Diagnostics.Process.Start("xdg-open", path);
         }
         catch (Exception ex)
         {
@@ -268,7 +293,7 @@ public partial class SettingsView : UserControl
     {
         try
         {
-            var defaultPath = Path.Combine(
+            var defaultPath = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "SchoolBusytools", "gallery");
 
@@ -276,14 +301,16 @@ public partial class SettingsView : UserControl
             UpdateGalleryPathDisplay();
 
             MainWindow.PushToast("图库位置", "已重置为默认路径");
-            LogService.Log($"图库位置已重置: {defaultPath}", "图库");
         }
         catch (Exception ex)
         {
             MainWindow.PushToast("重置失败", ex.Message);
         }
     }
-    // ============ WiFi 认证 ============
+
+    // ============================================================
+    // WiFi 认证
+    // ============================================================
     private void SaveCredentials_Click(object? sender, RoutedEventArgs e)
     {
         var usernameBox = this.FindControl<TextBox>("UsernameBox");
@@ -302,7 +329,9 @@ public partial class SettingsView : UserControl
         MainWindow.PushToast("设置已保存", "认证凭据已更新并加密存储。");
     }
 
-    // ============ 主题 ============
+    // ============================================================
+    // 主题
+    // ============================================================
     private void ThemeModeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;
@@ -319,8 +348,6 @@ public partial class SettingsView : UserControl
 
         _config.ThemeMode = mode;
         App.ApplyTheme(mode);
-
-        // 主题切换后重新应用材质
         WindowBackdropService.RefreshAll();
 
         string display = mode switch
@@ -332,7 +359,9 @@ public partial class SettingsView : UserControl
         MainWindow.PushToast("主题", $"已切换为{display}模式");
     }
 
-    // ============ 窗口材质 ============
+    // ============================================================
+    // 窗口材质
+    // ============================================================
     private void WindowBackdropComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;
@@ -374,13 +403,14 @@ public partial class SettingsView : UserControl
         MainWindow.PushToast("窗口材质", $"已切换为: {display}");
     }
 
-    // ============ 点击音效 ============
+    // ============================================================
+    // 点击音效
+    // ============================================================
     private void ClickSoundSwitch_Changed(object? sender, RoutedEventArgs e)
     {
         if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("ClickSoundSwitch");
         _config.ClickSoundEnabled = sw?.IsChecked == true;
-
         MainWindow.PushToast("点击音效",
             _config.ClickSoundEnabled ? "已开启" : "已关闭");
     }
@@ -388,7 +418,6 @@ public partial class SettingsView : UserControl
     private void ClickSoundVolumeSlider_ValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
         if (_isInitializing) return;
-
         int volume = (int)e.NewValue;
         _config.ClickSoundVolume = volume;
 
@@ -398,7 +427,9 @@ public partial class SettingsView : UserControl
         ClickSoundService.Instance.UpdateVolume(volume);
     }
 
-    // ============ 更新代理 ============
+    // ============================================================
+    // 更新代理
+    // ============================================================
     private void UpdateProxyComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;
@@ -428,7 +459,9 @@ public partial class SettingsView : UserControl
         MainWindow.PushToast("更新代理", $"已切换为: {display}");
     }
 
-    // ============ 通知 ============
+    // ============================================================
+    // 通知
+    // ============================================================
     private void AutoCollapseSwitch_Changed(object? sender, RoutedEventArgs e)
     {
         if (_isInitializing) return;
@@ -438,7 +471,9 @@ public partial class SettingsView : UserControl
         _config.AutoCollapseOnNewToast = value;
     }
 
-    // ============ 插件联动 ============
+    // ============================================================
+    // 插件联动
+    // ============================================================
     private void AutoActionSwitch_Changed(object? sender, RoutedEventArgs e)
     {
         if (_isInitializing) return;
@@ -497,13 +532,14 @@ public partial class SettingsView : UserControl
         if (box?.Value is decimal v) _config.AutoActionOverlaySeconds = (int)v;
     }
 
-        // ============ ★ 密码确认框 ============
+    // ============================================================
+    // 密码确认框
+    // ============================================================
     private void PasswordPromptSwitch_Changed(object? sender, RoutedEventArgs e)
     {
         if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("PasswordPromptSwitch");
         _config.PasswordPromptEnabled = sw?.IsChecked == true;
-
         MainWindow.PushToast("密码确认框",
             _config.PasswordPromptEnabled ? "已启用" : "已禁用");
     }
@@ -525,7 +561,9 @@ public partial class SettingsView : UserControl
         MainWindow.PushToast("密码确认框", "密码已更新");
     }
 
-    // ============ 程序选项 ============
+    // ============================================================
+    // 程序选项
+    // ============================================================
     private void AutoStartSwitch_Changed(object? sender, RoutedEventArgs e)
     {
         if (_isInitializing) return;
@@ -560,5 +598,48 @@ public partial class SettingsView : UserControl
         if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("MinTraySwitch");
         _config.MinimizeToTrayOnClose = sw?.IsChecked == true;
+    }
+
+    // ============================================================
+    // ★ 退出安全码
+    // ============================================================
+    private void QuitPasswordSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("QuitPasswordSwitch");
+        _config.QuitPasswordEnabled = sw?.IsChecked == true;
+
+        MainWindow.PushToast("退出安全码",
+            _config.QuitPasswordEnabled ? "已开启" : "已关闭");
+    }
+
+    private void SaveQuitPassword_Click(object? sender, RoutedEventArgs e)
+    {
+        var box = this.FindControl<TextBox>("QuitPasswordBox");
+        var text = box?.Text ?? "";
+
+        try
+        {
+            _config.QuitPassword = text;
+
+            if (string.IsNullOrEmpty(text))
+            {
+                _config.QuitPasswordEnabled = false;
+                var sw = this.FindControl<ToggleSwitch>("QuitPasswordSwitch");
+                if (sw != null) sw.IsChecked = false;
+
+                MainWindow.PushToast("退出安全码", "已清除");
+            }
+            else
+            {
+                MainWindow.PushToast("退出安全码", "已保存");
+            }
+
+            LogService.Log("退出安全码已更新", "配置");
+        }
+        catch (Exception ex)
+        {
+            MainWindow.PushToast("保存失败", ex.Message);
+        }
     }
 }

@@ -32,7 +32,6 @@ public partial class MainWindow : Window
 
     private static bool _isAutoChecking = true;
 
-    // ★ 关键：窗口是否已首次 Show 过
     private bool _windowShown;
 
     public MainWindow() : this(false) { }
@@ -44,8 +43,6 @@ public partial class MainWindow : Window
 
         WindowBackdropService.Apply(this, ConfigManager.Instance.WindowBackdrop);
 
-        // ★ 初始：如果静默启动，直接把不透明度设为 1 但窗口不显示
-        // 否则透明以便播放淡入动画
         if (startMinimized)
         {
             Opacity = 1;
@@ -61,14 +58,12 @@ public partial class MainWindow : Window
             _windowShown = true;
         }
 
-        // 初始化
         NavView.SelectedItem = NavView.MenuItems[0];
         ContentFrame.Navigate(typeof(FeaturesView));
 
         _scheduler = new PlaybackScheduler(OnScheduleStart, OnScheduleStop);
         ApplyScheduleConfig();
 
-        // 全局点击音效
         this.AddHandler(
             PointerReleasedEvent,
             OnGlobalPointerReleased,
@@ -82,11 +77,8 @@ public partial class MainWindow : Window
 
         Closing += OnWindowClosing;
 
-        // ★ 只处理打开事件：非静默模式播动画 + 检查更新
-        // 静默模式下 Opened 不会触发（因为不调 Show()）
         Opened += async (_, _) =>
         {
-            // 首次打开：播放淡入
             if (!startMinimized || !_windowShown)
             {
                 _windowShown = true;
@@ -100,14 +92,12 @@ public partial class MainWindow : Window
                 LogService.Log("程序已启动", "启动");
             }
 
-            // 启动延迟检查更新（首次打开时）
             if (_isAutoChecking && _windowShown)
             {
                 StartUpdateCheckDelayed();
             }
         };
 
-        // 静默启动时，立即让调度器/更新检查工作（不依赖窗口显示）
         if (startMinimized)
         {
             StartUpdateCheckDelayed();
@@ -328,9 +318,6 @@ public partial class MainWindow : Window
         catch { }
     }
 
-    /// <summary>
-    /// 从托盘恢复主窗口。首次显示时会播放淡入动画。
-    /// </summary>
     private void RestoreMainWindow()
     {
         try
@@ -339,31 +326,23 @@ public partial class MainWindow : Window
 
             _isHiddenToTray = false;
 
-            // 1. 先确保不透明（防止动画残留透明状态）
             Opacity = 1;
             if (RootGrid != null)
                 RootGrid.RenderTransform = TransformOperations.Parse("scale(1.0)");
 
-            // 2. 显示在任务栏
             ShowInTaskbar = true;
-
-            // 3. 恢复窗口状态
             WindowState = WindowState.Normal;
 
-            // 4. 显示窗口（如果已显示则不会有副作用）
             if (!IsVisible)
             {
                 Show();
             }
 
-            // 5. 激活窗口（延后一帧，避免和 Show 冲突）
             Dispatcher.UIThread.Post(() =>
             {
                 try
                 {
                     Activate();
-
-                    // 短暂 Topmost 抢焦点
                     Topmost = true;
                     Topmost = false;
                 }
@@ -385,7 +364,6 @@ public partial class MainWindow : Window
     {
         if (_reallyQuit) return;
 
-        // ★ 程序内部隐藏导致的 Closing：直接放行（不弹确认框）
         if (_isHiddenToTray)
         {
             LogService.Log("内部隐藏导致的 Closing，放行", "窗口");
@@ -434,6 +412,52 @@ public partial class MainWindow : Window
             LogService.Log($"关闭询问异常: {ex.Message}", "窗口");
         }
         finally { _closingDialogShown = false; }
+    }
+
+    // ============================================================
+    // ★ 从托盘触发退出（带安全码验证）
+    // ============================================================
+    private async Task TryQuitFromTrayAsync()
+    {
+        try
+        {
+            bool needPassword = false;
+            try
+            {
+                needPassword = ConfigManager.Instance.QuitPasswordEnabled
+                    && !string.IsNullOrEmpty(ConfigManager.Instance.QuitPassword);
+            }
+            catch { }
+
+            if (!needPassword)
+            {
+                _reallyQuit = true;
+                QuitApplication();
+                return;
+            }
+
+            if (_isHiddenToTray || !IsVisible)
+                RestoreMainWindow();
+
+            await Task.Delay(100);
+
+            var dialog = new QuitPasswordDialog();
+            await dialog.ShowDialog(this);
+
+            if (!dialog.Verified)
+            {
+                LogService.Log("托盘退出被取消（安全码验证失败或未通过）", "托盘");
+                return;
+            }
+
+            LogService.Log("托盘退出验证通过，开始退出", "托盘");
+            _reallyQuit = true;
+            QuitApplication();
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"托盘退出异常: {ex.Message}", "托盘");
+        }
     }
 
     // ============================================================
@@ -548,7 +572,6 @@ public partial class MainWindow : Window
 
             _trayIcon.Clicked += (_, _) =>
             {
-                // 用 Post 延迟一帧，避免和托盘本身的点击事件冲突
                 Dispatcher.UIThread.Post(() => RestoreMainWindow(), DispatcherPriority.Background);
             };
 
@@ -587,8 +610,15 @@ public partial class MainWindow : Window
             menu.Add(stopPlayItem);
             menu.Add(new NativeMenuItemSeparator());
 
+            // ★ 退出菜单项：走安全码验证
             var quitItem = new NativeMenuItem("退出");
-            quitItem.Click += (_, _) => { _reallyQuit = true; QuitApplication(); };
+            quitItem.Click += (_, _) =>
+            {
+                Dispatcher.UIThread.Post(async () =>
+                {
+                    await TryQuitFromTrayAsync();
+                }, DispatcherPriority.Background);
+            };
             menu.Add(quitItem);
 
             _trayIcon.Menu = menu;

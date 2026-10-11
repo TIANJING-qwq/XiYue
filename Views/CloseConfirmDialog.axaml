@@ -35,7 +35,6 @@
             </Transitions>
         </Border.Transitions>
 
-        <!-- 内部卡片：这里是实际的视觉层 -->
         <Border Background="#F0101010"
                 BorderBrush="#30FFFFFF"
                 BorderThickness="1"
@@ -110,6 +109,26 @@
                 <TextBlock Text="请选择关闭方式："
                            FontSize="13"
                            Foreground="#CCFFFFFF"/>
+
+                <!-- ★ 退出安全码（仅在启用时显示） -->
+                <StackPanel x:Name="QuitPasswordPanel"
+                            Spacing="6"
+                            IsVisible="False">
+                    <TextBlock Text="退出安全码"
+                               FontSize="12"
+                               Foreground="#CCFFFFFF"/>
+                    <TextBox x:Name="QuitPasswordBox"
+                             PasswordChar="●"
+                             Watermark="输入安全码后才能退出"
+                             FontSize="13"
+                             Padding="10,8"
+                             KeyDown="QuitPasswordBox_KeyDown"/>
+                    <TextBlock x:Name="QuitErrorText"
+                               Text=""
+                               FontSize="11"
+                               Foreground="#FFE81123"
+                               IsVisible="False"/>
+                </StackPanel>
 
                 <CheckBox x:Name="DontAskAgainCheckbox"
                           Content="不再询问"

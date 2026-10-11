@@ -1,10 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using SBtools.Controls;
 using SBtools.Models;
 using SBtools.Services;
 using System;
+using System.Threading.Tasks;
 
 namespace SBtools.Views;
 
@@ -12,6 +14,12 @@ public partial class SettingsView : UserControl
 {
     private readonly ConfigManager _config = ConfigManager.Instance;
     private bool _isInitializing;
+
+    /// <summary>本次进入设置页是否已通过安全码验证</summary>
+    private bool _isUnlocked;
+
+    /// <summary>本次锁定是否已记录日志（避免重复进入时刷屏）</summary>
+    private bool _lockLogged;
 
     public SettingsView()
     {
@@ -149,7 +157,145 @@ public partial class SettingsView : UserControl
             try { quitPwdBox.Text = _config.QuitPassword; } catch { }
         }
 
+        // ★ 更改设置需要安全码
+        var protectSwitch = this.FindControl<ToggleSwitch>("ProtectSettingsSwitch");
+        if (protectSwitch != null)
+            protectSwitch.IsChecked = _config.ProtectSettingsEnabled;
+
         _isInitializing = false;
+
+        // ★ 每次进入结构树（即进入设置页）都重新上锁
+        AttachedToVisualTree += (_, _) => OnEnter();
+        OnEnter();
+    }
+
+    // ============================================================
+    // ★ 设置锁（更改设置需要安全码）
+    // ============================================================
+
+    /// <summary>
+    /// 进入设置页时调用：重置解锁状态，并按配置决定是否上锁。
+    /// </summary>
+    public void OnEnter()
+    {
+        _isUnlocked = false;
+        ApplyLockState();
+    }
+
+    /// <summary>安全码是否已开启且已设置</summary>
+    private static bool HasSecurityCode()
+    {
+        try
+        {
+            var c = ConfigManager.Instance;
+            return c.QuitPasswordEnabled && !string.IsNullOrEmpty(c.QuitPassword);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>「更改设置需要安全码」是否生效（必须已开启安全码）</summary>
+    private static bool IsSettingsProtectionActive()
+    {
+        try
+        {
+            return ConfigManager.Instance.ProtectSettingsEnabled && HasSecurityCode();
+        }
+        catch { return false; }
+    }
+
+    /// <summary>按当前状态刷新锁：内容禁用 + 显示解锁面板</summary>
+    private void ApplyLockState()
+    {
+        bool locked = IsSettingsProtectionActive() && !_isUnlocked;
+
+        var overlay = this.FindControl<Border>("SettingsLockOverlay");
+        var scroll = this.FindControl<ScrollViewer>("SettingsScrollViewer");
+        var error = this.FindControl<TextBlock>("UnlockErrorText");
+        var box = this.FindControl<TextBox>("UnlockCodeBox");
+
+        if (overlay != null) overlay.IsVisible = locked;
+        if (scroll != null) scroll.IsEnabled = !locked;
+        if (error != null) error.IsVisible = false;
+
+        if (locked)
+        {
+            if (box != null)
+            {
+                box.Text = "";
+                try { box.Focus(); } catch { }
+            }
+
+            if (!_lockLogged)
+            {
+                LogService.Log("设置页已锁定（更改设置需要安全码）", "配置");
+                _lockLogged = true;
+            }
+        }
+        else
+        {
+            _lockLogged = false;
+        }
+    }
+
+    private void UnlockCodeBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        TryUnlock();
+    }
+
+    private void UnlockButton_Click(object? sender, RoutedEventArgs e) => TryUnlock();
+
+    private void TryUnlock()
+    {
+        var box = this.FindControl<TextBox>("UnlockCodeBox");
+        var error = this.FindControl<TextBlock>("UnlockErrorText");
+        var input = box?.Text ?? "";
+
+        string correct;
+        try { correct = ConfigManager.Instance.QuitPassword; }
+        catch { correct = ""; }
+
+        if (string.IsNullOrEmpty(correct) || input != correct)
+        {
+            if (error != null)
+            {
+                error.Text = "安全码错误";
+                error.IsVisible = true;
+            }
+
+            if (box != null)
+            {
+                box.Text = "";
+                try { box.Focus(); } catch { }
+            }
+
+            LogService.Log("设置页解锁失败：安全码错误", "配置");
+            return;
+        }
+
+        _isUnlocked = true;
+        LogService.Log("设置页已解锁", "配置");
+        ApplyLockState();
+    }
+
+    /// <summary>弹出安全码验证对话框（用于保护安全码自身）</summary>
+    private async Task<bool> VerifyCurrentCodeAsync(string title, string prompt)
+    {
+        try
+        {
+            var owner = TopLevel.GetTopLevel(this) as Window;
+            if (owner == null) return false;
+
+            var dialog = new QuitPasswordDialog(title, prompt, "确认", "安全码错误", "安全码");
+            await dialog.ShowDialog(owner);
+            return dialog.Verified;
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"安全码验证异常: {ex.Message}", "配置");
+            return false;
+        }
     }
 
     // ============================================================
@@ -603,20 +749,84 @@ public partial class SettingsView : UserControl
     // ============================================================
     // ★ 退出安全码
     // ============================================================
-    private void QuitPasswordSwitch_Changed(object? sender, RoutedEventArgs e)
+    private async void QuitPasswordSwitch_Changed(object? sender, RoutedEventArgs e)
     {
         if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("QuitPasswordSwitch");
-        _config.QuitPasswordEnabled = sw?.IsChecked == true;
+        if (sw == null) return;
 
-        MainWindow.PushToast("退出安全码",
-            _config.QuitPasswordEnabled ? "已开启" : "已关闭");
+        bool want = sw.IsChecked == true;
+
+        // ★ 关闭安全码前必须先验证当前安全码
+        if (!want && HasSecurityCode())
+        {
+            bool passed = await VerifyCurrentCodeAsync("关闭安全码", "请输入当前安全码以关闭：");
+            if (!passed)
+            {
+                _isInitializing = true;
+                sw.IsChecked = true;
+                _isInitializing = false;
+
+                MainWindow.PushToast("退出安全码", "未通过验证，保持开启");
+                return;
+            }
+        }
+
+        _config.QuitPasswordEnabled = want;
+        MainWindow.PushToast("退出安全码", want ? "已开启" : "已关闭");
+
+        // 安全码关闭后，「更改设置需要安全码」自动失效
+        ApplyLockState();
     }
 
-    private void SaveQuitPassword_Click(object? sender, RoutedEventArgs e)
+    // ============================================================
+    // ★ 更改设置需要安全码
+    // ============================================================
+    private void ProtectSettingsSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("ProtectSettingsSwitch");
+        if (sw == null) return;
+
+        bool want = sw.IsChecked == true;
+
+        // 未开启安全码时该选项无意义，回退并提示
+        if (want && !HasSecurityCode())
+        {
+            _isInitializing = true;
+            sw.IsChecked = false;
+            _isInitializing = false;
+
+            MainWindow.PushToast("更改设置需安全码", "请先开启并设置上方的安全码");
+            return;
+        }
+
+        _config.ProtectSettingsEnabled = want;
+        MainWindow.PushToast("更改设置需安全码",
+            want ? "已开启，下次进入设置页需验证" : "已关闭");
+    }
+
+    private async void SaveQuitPassword_Click(object? sender, RoutedEventArgs e)
     {
         var box = this.FindControl<TextBox>("QuitPasswordBox");
         var text = box?.Text ?? "";
+
+        // ★ 已有安全码时，修改或清除都必须先验证当前安全码
+        if (HasSecurityCode())
+        {
+            string current;
+            try { current = _config.QuitPassword; } catch { current = ""; }
+
+            if (text != current)
+            {
+                bool passed = await VerifyCurrentCodeAsync("修改安全码", "请输入当前安全码以确认：");
+                if (!passed)
+                {
+                    MainWindow.PushToast("退出安全码", "未通过验证，未修改");
+                    return;
+                }
+            }
+        }
 
         try
         {
@@ -636,6 +846,9 @@ public partial class SettingsView : UserControl
             }
 
             LogService.Log("退出安全码已更新", "配置");
+
+            // 安全码被清除后，「更改设置需要安全码」应立即失效
+            ApplyLockState();
         }
         catch (Exception ex)
         {

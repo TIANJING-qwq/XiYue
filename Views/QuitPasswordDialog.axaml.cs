@@ -10,19 +10,48 @@ using System.Threading.Tasks;
 namespace SBtools.Views;
 
 /// <summary>
-/// 独立的退出验证对话框（用于托盘退出等场景）。
+/// 安全码验证对话框。默认用于「退出」场景，也可自定义文案后复用于其他需要验证安全码的操作。
 /// </summary>
 public partial class QuitPasswordDialog : Window
 {
     private bool _allowClose;
     private bool _closingAnimated;
 
-    /// <summary>true = 通过验证，允许退出</summary>
+    private readonly string _errorMessage;
+    private readonly string _logTag;
+
+    /// <summary>true = 通过验证</summary>
     public bool Verified { get; private set; }
 
+    /// <summary>退出场景（默认文案）</summary>
     public QuitPasswordDialog()
+        : this("退出汐月", "请输入退出安全码：", "退出",
+               "安全码错误，无法退出", "退出安全码（托盘退出）")
     {
+    }
+
+    /// <summary>通用安全码验证对话框</summary>
+    /// <param name="title">标题</param>
+    /// <param name="prompt">说明文字</param>
+    /// <param name="confirmText">确认按钮文字</param>
+    /// <param name="errorMessage">验证失败时的提示</param>
+    /// <param name="logTag">日志标签</param>
+    public QuitPasswordDialog(string title, string prompt, string confirmText,
+                              string errorMessage, string logTag)
+    {
+        _errorMessage = string.IsNullOrEmpty(errorMessage) ? "安全码错误" : errorMessage;
+        _logTag = string.IsNullOrEmpty(logTag) ? "安全码" : logTag;
+
         InitializeComponent();
+
+        try
+        {
+            Title = title;
+            TitleText.Text = title;
+            PromptText.Text = prompt;
+            ConfirmButton.Content = confirmText;
+        }
+        catch { }
 
         RootCard.Opacity = 0;
         RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");
@@ -77,12 +106,12 @@ public partial class QuitPasswordDialog : Window
 
         if (input != correct)
         {
-            ErrorText.Text = "安全码错误，无法退出";
+            ErrorText.Text = _errorMessage;
             ErrorText.IsVisible = true;
             PasswordBox.Text = "";
             try { PasswordBox.Focus(); } catch { }
 
-            LogService.Log("退出安全码错误（托盘退出）", "窗口");
+            LogService.Log($"{_logTag}验证失败", "窗口");
 
             _ = Task.Run(async () =>
             {
@@ -96,7 +125,7 @@ public partial class QuitPasswordDialog : Window
             return;
         }
 
-        LogService.Log("退出安全码正确（托盘退出）", "窗口");
+        LogService.Log($"{_logTag}验证通过", "窗口");
         Verified = true;
         await CloseWithAnimationAsync();
     }

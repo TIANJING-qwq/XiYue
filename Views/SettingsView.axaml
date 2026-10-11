@@ -1,7 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SBtools.Views.SettingsView">
-    <ScrollViewer>
+    <Grid>
+    <ScrollViewer x:Name="SettingsScrollViewer">
         <StackPanel Margin="24" Spacing="20" MaxWidth="700">
 
             <!-- 网络认证 -->
@@ -369,7 +370,70 @@
                            FontSize="11" Opacity="0.5"/>
             </StackPanel>
 
+            <!-- ★ 更改设置需要安全码（依赖上面的安全码） -->
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="更改设置需要安全码" FontSize="13"/>
+                    <TextBlock Text="开启后，每次进入本页需先输入安全码才能修改任何选项（仅在已开启并设置上面的安全码时生效）"
+                               FontSize="11" Opacity="0.5" TextWrapping="Wrap"/>
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              x:Name="ProtectSettingsSwitch"
+                              IsCheckedChanged="ProtectSettingsSwitch_Changed"/>
+            </Grid>
+
             <Border Height="24"/>
         </StackPanel>
     </ScrollViewer>
+
+        <!-- ★ 设置锁：开启「更改设置需要安全码」时覆盖本页 -->
+        <Border x:Name="SettingsLockOverlay"
+                IsVisible="False"
+                Background="#D9101010">
+            <Border Background="#F01C1C1C"
+                    BorderBrush="#30FFFFFF"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="28"
+                    MaxWidth="420"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="设置已锁定"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="White"/>
+
+                    <TextBlock Text="更改设置需要安全码，请输入后解锁本次设置。"
+                               FontSize="13"
+                               Foreground="#CCFFFFFF"
+                               TextWrapping="Wrap"/>
+
+                    <TextBox x:Name="UnlockCodeBox"
+                             PasswordChar="●"
+                             Watermark="输入安全码"
+                             FontSize="14"
+                             Padding="10,8"
+                             KeyDown="UnlockCodeBox_KeyDown"/>
+
+                    <TextBlock x:Name="UnlockErrorText"
+                               Text=""
+                               FontSize="12"
+                               Foreground="#FFE81123"
+                               IsVisible="False"/>
+
+                    <Button x:Name="UnlockButton"
+                            Content="解锁"
+                            Click="UnlockButton_Click"
+                            HorizontalAlignment="Right"
+                            Padding="20,8"
+                            MinWidth="88"
+                            CornerRadius="6"
+                            FontWeight="SemiBold"
+                            Foreground="White"
+                            Background="#FF0078D4"/>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
 </UserControl>

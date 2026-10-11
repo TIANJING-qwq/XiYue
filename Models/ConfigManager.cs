@@ -287,6 +287,22 @@ public class ConfigManager
         }
     }
 
+        // ---------------- ★ 更改设置需要安全码 ----------------
+    /// <summary>
+    /// 是否要求验证安全码后才能更改设置。
+    /// 仅在「退出安全码」已开启且安全码非空时生效。
+    /// </summary>
+    public bool ProtectSettingsEnabled
+    {
+        get => _data.ProtectSettingsEnabled;
+        set
+        {
+            if (_data.ProtectSettingsEnabled == value) return;
+            _data.ProtectSettingsEnabled = value;
+            Save();
+        }
+    }
+
     // ---------------- 读写 ----------------
     private ConfigData? Load()
     {
@@ -352,5 +368,8 @@ public class ConfigManager
                 // ★ 退出安全码
         public bool QuitPasswordEnabled { get; set; } = false;
         public string EncryptedQuitPassword { get; set; } = "";
+
+                // ★ 更改设置需要安全码
+        public bool ProtectSettingsEnabled { get; set; } = false;
     }
 }

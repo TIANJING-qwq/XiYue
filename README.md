@@ -159,13 +159,13 @@ dotnet publish -c Release -r linux-x64 --self-contained true \
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 # 一键发布 + Inno Setup 打包 + GitHub Release
-.\publish.ps1 -Version 0.3.1
+.\publish.ps1 -Version 0.4.3
 
 # 只构建不发布
-.\publish.ps1 -Version 0.3.1 -SkipPublish
+.\publish.ps1 -Version 0.4.3 -SkipPublish
 
 # 保留 publish/ 里的构建产物
-.\publish.ps1 -Version 0.3.1 -KeepArtifacts
+.\publish.ps1 -Version 0.4.3 -KeepArtifacts
 ```
 
 脚本自动完成：
@@ -248,13 +248,13 @@ Source: "publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdi
 
 ```bash
 brew install create-dmg
-create-dmg "XiYue_v0.3.1.dmg" "XiYue.app"
+create-dmg "XiYue_v0.4.3.dmg" "XiYue.app"
 ```
 
 ### Linux
 
 ```bash
-dpkg-deb --build XiYue_0.3.1_amd64
+dpkg-deb --build XiYue_0.4.3_amd64
 ```
 
 ---
@@ -315,7 +315,8 @@ XiYue/
 │   ├── OverlayWindow.axaml              # 置顶遮罩
 │   └── PasswordPromptWindow.axaml       # 密码取消框
 ├── docs/
-│   └── PLUGIN_DEVELOPMENT.md            # 插件开发文档
+│   ├── PLUGIN_DEVELOPMENT.md            # 插件开发文档
+│   └── CHANGELOG.md                     # 更新日志
 ├── Sounds/                              # 音效文件（.wav）
 ├── App.axaml
 ├── MainWindow.axaml
@@ -463,6 +464,37 @@ A: 打开「插件」页查看错误信息。常见原因：缺依赖 DLL、主�
 
 ---
 
+## 🔄 更新日志
+
+当前版本：**v0.4.3**（2026-10-11）
+
+### v0.4.3
+- 新增**退出安全码**：退出应用需输入密码确认，设置页可配置
+- 关于页重构，新增作者图片资源
+- 插件信息展示增强，`PluginInfo` 元数据扩展
+- 修复关于页样式问题
+
+### v0.4.2
+- **优化图库图片内存占用**，重构缩略图 / 大图加载逻辑
+- **彻底修复开机自启动问题**（重写 `AutoStartManager`）
+- 更新服务流程改进
+
+### v0.4.1
+- 修复最小化到托盘、图库图片加载、网络验证问题
+- 补充 `.gitignore` 排除项
+
+### v0.4.0
+- 与 v0.3.9 同一提交，仅版本号对齐
+
+### v0.3.9
+- 新增**插件系统**（`IXiYuePlugin` + `PluginManager` + 插件管理页）
+- 新增**涩图合集**（图片按需从 GitHub Release 下载）
+- 许可证变更为 BSD-3
+
+📋 完整历史（含 v0.3.1 以来的全部版本）见 **[更新日志](docs/CHANGELOG.md)**。
+
+---
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request。
@@ -520,7 +552,7 @@ A: 打开「插件」页查看错误信息。常见原因：缺依赖 DLL、主�
 
 **SchoolBusytools 项目组 · tianjing & deepseek**
 
-版本 0.3.1 · 2026
+版本 0.4.3 · 2026
 
 ⭐ 如果这个项目对你有帮助，欢迎点一个 Star！
 

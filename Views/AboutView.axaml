@@ -42,12 +42,6 @@
                        HorizontalAlignment="Center"
                        Opacity="0" />
 
-            <TextBlock Name="LineTeam"
-                       Text="tianjing &amp; deepseek"
-                       FontSize="13"
-                       HorizontalAlignment="Center"
-                       Opacity="0" />
-
             <TextBlock Name="LineBuild"
                        Text="基于 C# / .NET 8 + Avalonia UI 构建"
                        FontSize="13"
@@ -67,14 +61,9 @@
                        HorizontalAlignment="Center"
                        Opacity="0" />
 
-            <!-- ★ 制作人员 -->
+                        <!-- ★ 制作人员 -->
             <Border Name="CreditsSection"
                     Margin="0,20,0,0"
-                    Padding="24,18"
-                    CornerRadius="12"
-                    Background="#10808080"
-                    BorderBrush="#20808080"
-                    BorderThickness="1"
                     Opacity="0">
                 <StackPanel Spacing="14">
 
@@ -93,11 +82,8 @@
                             <Border Width="72" Height="72"
                                     CornerRadius="36"
                                     ClipToBounds="True"
-                                    HorizontalAlignment="Center"
-                                    BorderBrush="#FF0067C0"
-                                    BorderThickness="2">
-                                <Image Source="/Assets/TJ.jpg"
-                                       Stretch="UniformToFill"/>
+                                    HorizontalAlignment="Center">
+                                <Image x:Name="TJImage" Stretch="UniformToFill"/>
                             </Border>
                             <TextBlock Text="TIANJING"
                                        FontSize="13"
@@ -114,11 +100,8 @@
                             <Border Width="72" Height="72"
                                     CornerRadius="36"
                                     ClipToBounds="True"
-                                    HorizontalAlignment="Center"
-                                    BorderBrush="#FF10A37F"
-                                    BorderThickness="2">
-                                <Image Source="/Assets/deep.jpg"
-                                       Stretch="UniformToFill"/>
+                                    HorizontalAlignment="Center">
+                                <Image x:Name="DeepImage" Stretch="UniformToFill"/>
                             </Border>
                             <TextBlock Text="deepseek"
                                        FontSize="13"

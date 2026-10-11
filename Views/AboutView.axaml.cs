@@ -3,11 +3,14 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
 using Avalonia.Media.Transformation;
+using Avalonia.Platform;
 using SBtools.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace SBtools.Views;
@@ -55,6 +58,9 @@ public partial class AboutView : UserControl
     {
         InitializeComponent();
 
+        // ★ 加载制作人员头像（容错，失败不崩）
+        LoadCreditImages();
+
         _fadeTargets.AddRange(new Control[]
         {
             AppIcon, TitleText, ChineseName, Divider,
@@ -94,6 +100,80 @@ public partial class AboutView : UserControl
         };
     }
 
+    // ============================================================
+    // 加载头像图片（多重兜底）
+    // ============================================================
+    private void LoadCreditImages()
+    {
+        try
+        {
+            var tj = this.FindControl<Image>("TJImage");
+            if (tj != null)
+            {
+                var bmp = TryLoadImage("TJ.jpg", "TJ.png", "tj.jpg");
+                if (bmp != null) tj.Source = bmp;
+            }
+
+            var deep = this.FindControl<Image>("DeepImage");
+            if (deep != null)
+            {
+                var bmp = TryLoadImage("deep.jpg", "deep.png", "Deep.jpg");
+                if (bmp != null) deep.Source = bmp;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"加载头像失败: {ex.Message}", "关于");
+        }
+    }
+
+    /// <summary>
+    /// 尝试多种方式加载图片：AvaloniaResource → 输出目录 → exe 同级目录。
+    /// </summary>
+    private static Bitmap? TryLoadImage(params string[] candidates)
+    {
+        foreach (var fileName in candidates)
+        {
+            // 1) 从 Avalonia 资源加载
+            try
+            {
+                var uri = new Uri($"avares://SBtools/Assets/{fileName}");
+                if (AssetLoader.Exists(uri))
+                {
+                    using var stream = AssetLoader.Open(uri);
+                    return new Bitmap(stream);
+                }
+            }
+            catch { }
+
+            // 2) 从 exe 输出目录的 Assets 文件夹加载
+            try
+            {
+                var path = Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
+                if (File.Exists(path))
+                    return new Bitmap(path);
+            }
+            catch { }
+
+            // 3) 从项目源码目录加载（开发时）
+            try
+            {
+                var path = Path.Combine(
+                    AppContext.BaseDirectory,
+                    "..", "..", "..", "Assets", fileName);
+                path = Path.GetFullPath(path);
+                if (File.Exists(path))
+                    return new Bitmap(path);
+            }
+            catch { }
+        }
+
+        return null;
+    }
+
+    // ============================================================
+    // 动画
+    // ============================================================
     private async Task PlayAnimationAsync()
     {
         Fade(AppIcon);

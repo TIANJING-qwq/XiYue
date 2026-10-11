@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using SBtools.Plugins;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace SBtools.Views;
@@ -21,11 +22,35 @@ public partial class PluginsView : UserControl
         var empty = this.FindControl<StackPanel>("EmptyPanel");
         var hint = this.FindControl<TextBlock>("EmptyHint");
 
-        var plugins = PluginManager.Instance.Plugins;
+        // ============================================================
+        // ★ 内置插件（始终置顶，不可禁用）
+        // ============================================================
+        var allPlugins = new List<PluginInfo>
+        {
+            new PluginInfo
+            {
+                Id = "com.schoolbusytools.xiyue.core",
+                Name = "汐月核心功能",
+                Version = "内置",
+                Author = "SchoolBusytools",
+                Description = "汐月主程序的核心模块：校园网自动认证、定时 CCTV 播放、通知系统、图库、系统优化、插件加载器等。作为程序的基础功能，此项不可禁用。",
+                IsLoaded = true,
+                IsBuiltIn = true,
+            },
+        };
 
-        if (list != null) list.ItemsSource = plugins;
-        if (count != null) count.Text = $"共 {plugins.Count} 个";
-        if (empty != null) empty.IsVisible = plugins.Count == 0;
+        // ============================================================
+        // 用户插件
+        // ============================================================
+        allPlugins.AddRange(PluginManager.Instance.Plugins);
+
+        if (list != null) list.ItemsSource = allPlugins;
+        if (count != null)
+            count.Text = allPlugins.Count > 1
+                ? $"共 {allPlugins.Count} 个（含 1 个内置）"
+                : "共 1 个（内置）";
+
+        if (empty != null) empty.IsVisible = false;
         if (hint != null)
             hint.Text = $"把插件 DLL 放到：\n{PluginManager.PluginsDir}";
     }

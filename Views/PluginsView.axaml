@@ -36,28 +36,45 @@
                         <Border Margin="0,0,0,10"
                                 Padding="16"
                                 CornerRadius="8"
-                                Background="#18000000">
+                                Background="#18000000"
+                                BorderBrush="#20000000"
+                                BorderThickness="1">
                             <StackPanel Spacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                     <TextBlock Text="{Binding Name}"
                                                FontSize="15"
                                                FontWeight="SemiBold"/>
+
                                     <TextBlock Text="{Binding Version, StringFormat=v{0}}"
                                                FontSize="12"
                                                Opacity="0.5"
                                                VerticalAlignment="Center"/>
+
+                                    <!-- ★ 内置标签 -->
+                                    <Border Background="#FF7C3AED"
+                                            CornerRadius="10"
+                                            Padding="8,2"
+                                            IsVisible="{Binding ShowBuiltInBadge}">
+                                        <TextBlock Text="内置 · 不可禁用"
+                                                   FontSize="10"
+                                                   Foreground="White"/>
+                                    </Border>
+
+                                    <!-- 已加载标签 -->
                                     <Border Background="#FF107C10"
                                             CornerRadius="10"
                                             Padding="8,2"
-                                            IsVisible="{Binding IsLoaded}">
+                                            IsVisible="{Binding ShowLoadedBadge}">
                                         <TextBlock Text="已加载"
                                                    FontSize="10"
                                                    Foreground="White"/>
                                     </Border>
+
+                                    <!-- 失败标签 -->
                                     <Border Background="#FFC42B1C"
                                             CornerRadius="10"
                                             Padding="8,2"
-                                            IsVisible="{Binding !IsLoaded}">
+                                            IsVisible="{Binding ShowFailedBadge}">
                                         <TextBlock Text="失败"
                                                    FontSize="10"
                                                    Foreground="White"/>

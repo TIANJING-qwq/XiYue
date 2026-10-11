@@ -165,13 +165,13 @@ dotnet publish -c Release -r linux-x64 --self-contained true \
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 # 一键发布 + Inno Setup 打包 + GitHub Release
-.\publish.ps1 -Version 0.4.3
+.\publish.ps1 -Version 0.4.4
 
 # 只构建不发布
-.\publish.ps1 -Version 0.4.3 -SkipPublish
+.\publish.ps1 -Version 0.4.4 -SkipPublish
 
 # 保留 publish/ 里的构建产物
-.\publish.ps1 -Version 0.4.3 -KeepArtifacts
+.\publish.ps1 -Version 0.4.4 -KeepArtifacts
 ```
 
 脚本自动完成：
@@ -254,13 +254,13 @@ Source: "publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdi
 
 ```bash
 brew install create-dmg
-create-dmg "XiYue_v0.4.3.dmg" "XiYue.app"
+create-dmg "XiYue_v0.4.4.dmg" "XiYue.app"
 ```
 
 ### Linux
 
 ```bash
-dpkg-deb --build XiYue_0.4.3_amd64
+dpkg-deb --build XiYue_0.4.4_amd64
 ```
 
 ---
@@ -472,7 +472,12 @@ A: 打开「插件」页查看错误信息。常见原因：缺依赖 DLL、主�
 
 ## 🔄 更新日志
 
-当前版本：**v0.4.3**（2026-10-11）
+当前版本：**v0.4.4**（2026-10-11）
+
+### v0.4.4
+- 新增**更改设置需要安全码**：进入设置页需先验证，解锁后本次可自由修改
+- **安全码自我保护**：关闭或修改安全码都必须先验证当前安全码
+- 新增完整更新日志 `docs/CHANGELOG.md`
 
 ### v0.4.3
 - 新增**退出安全码**：退出应用需输入密码确认，设置页可配置
@@ -558,7 +563,7 @@ A: 打开「插件」页查看错误信息。常见原因：缺依赖 DLL、主�
 
 **SchoolBusytools 项目组 · tianjing & deepseek**
 
-版本 0.4.3 · 2026
+版本 0.4.4 · 2026
 
 ⭐ 如果这个项目对你有帮助，欢迎点一个 Star！
 

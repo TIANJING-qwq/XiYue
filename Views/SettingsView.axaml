@@ -334,7 +334,7 @@
             <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
                     <TextBlock Text="开机自启动" FontSize="13"/>
-                    <TextBlock Text="登录系统后自动启动汐月"
+                    <TextBlock Text="登录系统后自动启动Vael"
                                FontSize="11" Opacity="0.5"/>
                 </StackPanel>
                 <ToggleSwitch Grid.Column="1"
@@ -351,6 +351,17 @@
                 <ToggleSwitch Grid.Column="1"
                               x:Name="AutoStartMinimizedSwitch"
                               IsCheckedChanged="AutoStartMinimizedSwitch_Changed"/>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="启动动画" FontSize="13"/>
+                    <TextBlock Text="每次启动主程序时播放开场动画"
+                               FontSize="11" Opacity="0.5"/>
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              x:Name="StartupAnimationSwitch"
+                              IsCheckedChanged="StartupAnimationSwitch_Changed"/>
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto">

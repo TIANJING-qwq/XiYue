@@ -15,7 +15,7 @@
                    Opacity="0" />
 
             <TextBlock Name="TitleText"
-                       Text="XY"
+                       Text="VL"
                        FontSize="42"
                        FontWeight="Bold"
                        Foreground="#0067c0"
@@ -23,7 +23,7 @@
                        Opacity="0" />
 
             <TextBlock Name="ChineseName"
-                       Text="汐月"
+                       Text="Vael"
                        FontSize="20"
                        FontWeight="SemiBold"
                        Foreground="#0067c0"
@@ -37,7 +37,7 @@
                     Opacity="0" />
 
             <TextBlock Name="LineAuthor"
-                       Text="SchoolBusytools 项目组制作"
+                       Text="Vael 项目组制作"
                        FontSize="14"
                        HorizontalAlignment="Center"
                        Opacity="0" />
@@ -131,7 +131,7 @@
                         x:Name="ButtonRow">
 
                 <Button Name="GitHubButton"
-                        Content="github.com/TIANJING-qwq/XiYue"
+                        Content="github.com/TIANJING-qwq/Vael"
                         FontSize="12"
                         Padding="12,6"
                         HorizontalAlignment="Center"

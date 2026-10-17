@@ -23,7 +23,7 @@ public sealed class UpdateService
     public static UpdateService Instance => _lazy.Value;
 
     private const string GithubOwner = "TIANJING-qwq";
-    private const string GithubRepo  = "XiYue";
+    private const string GithubRepo  = "Vael";
 
     private readonly UpdatumManager _updater;
     private bool _initialized;
@@ -59,7 +59,7 @@ public sealed class UpdateService
         _updater = new UpdatumManager(GithubOwner, GithubRepo)
         {
             // ★ 只匹配 ZIP（忽略 Setup.exe）
-            AssetRegexPattern = @"XiYue.*win-x64.*\.zip$",
+            AssetRegexPattern = @"Vael.*win-x64.*\.zip$",
             DownloadProgressUpdateFrequencySeconds = 0.3,
         };
     }
@@ -149,7 +149,7 @@ public sealed class UpdateService
             // 1. 下载 ZIP 到数据目录（受限环境自动回退到可写位置）
             var zipPath = Path.Combine(
                 ConfigManager.AppDataDir,
-                $"XiYue_update_{Guid.NewGuid():N}.zip");
+                $"Vael_update_{Guid.NewGuid():N}.zip");
 
             await DownloadFileAsync(downloadUrl, zipPath, token);
             LogService.Log($"下载完成: {zipPath}", "更新");
@@ -273,7 +273,7 @@ public sealed class UpdateService
             LogService.Log($"更新目标目录: {targetDir}", "更新");
 
             var batPath = Path.Combine(Path.GetTempPath(),
-                $"XiYue_update_{Guid.NewGuid():N}.bat");
+                $"Vael_update_{Guid.NewGuid():N}.bat");
 
             var batContent = BuildUpdateScript(
                 PendingDir, targetDir, Path.Combine(targetDir, "SBtools.exe"), "");
@@ -325,7 +325,7 @@ public sealed class UpdateService
         sb.AppendLine("@echo off");
         sb.AppendLine("chcp 65001 >nul 2>&1");
         sb.AppendLine("setlocal");
-        sb.AppendLine("title XiYue Update");
+        sb.AppendLine("title Vael Update");
         sb.AppendLine("");
         sb.AppendLine("echo Waiting for SBtools.exe to exit...");
         sb.AppendLine("");
@@ -424,7 +424,7 @@ public sealed class UpdateService
     {
         using var http = new HttpClient();
         http.Timeout = TimeSpan.FromMinutes(30);
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("XiYue/1.0");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Vael/1.0");
 
         using var response = await http.GetAsync(
             url, HttpCompletionOption.ResponseHeadersRead, token);

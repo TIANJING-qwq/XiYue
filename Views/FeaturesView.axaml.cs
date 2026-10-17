@@ -15,9 +15,66 @@ public partial class FeaturesView : UserControl
 {
     private string? _mountedDriveLetter;
 
+    private static readonly string[] _dailyQuotes =
+    {
+        "行到水穷处，坐看云起时。",
+        "日拱一卒，功不唐捐。",
+        "路虽远，行则将至；事虽难，做则必成。",
+        "不积跬步，无以至千里。",
+        "凡是过往，皆为序章。",
+        "山不让尘，川不辞盈。",
+        "追风赶月莫停留，平芜尽处是春山。",
+        "心之所向，素履以往。",
+        "星光不负赶路人。",
+        "保持热爱，奔赴山海。",
+        "博观而约取，厚积而薄发。",
+        "长风破浪会有时，直挂云帆济沧海。",
+        "人生如逆旅，我亦是行人。",
+        "努力尽今夕，少年犹可夸。",
+        "道阻且长，行则将至。",
+    };
+
     public FeaturesView()
     {
         InitializeComponent();
+        LoadDailyQuote();
+    }
+
+    private void LoadDailyQuote()
+    {
+        try
+        {
+            var day = DateTime.Now.DayOfYear;
+            DailyQuoteText.Text = _dailyQuotes[day % _dailyQuotes.Length];
+        }
+        catch { }
+    }
+
+    private void PlayCctvButton_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            MainWindow.PlayCctv();
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"播放 CCTV 异常: {ex.Message}", "播放");
+        }
+    }
+
+    private void NetworkTile_Click(object? sender, RoutedEventArgs e)
+        => MainWindow.NavigateTo("network");
+
+    private void Win11Tile_Click(object? sender, RoutedEventArgs e)
+    {
+        HomeView.IsVisible = false;
+        Win11Detail.IsVisible = true;
+    }
+
+    private void BackButton_Click(object? sender, RoutedEventArgs e)
+    {
+        Win11Detail.IsVisible = false;
+        HomeView.IsVisible = true;
     }
 
     // ============================================================

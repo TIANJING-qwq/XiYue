@@ -87,6 +87,29 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- ============ 开场动画 ============ -->
+            <TabItem Header="开场动画">
+                <ScrollViewer>
+                    <StackPanel Margin="16,20" Spacing="20">
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8" Padding="20">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="开场动画" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="播放启动时的「连接脉冲」开场动画。动画约 3 秒，播放时覆盖主窗口，结束后自动回到主界面。"
+                                           FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+                                <Button x:Name="PlaySplashButton"
+                                        Content="▶ 播放开场动画"
+                                        HorizontalAlignment="Left"
+                                        Padding="20,8"
+                                        Click="PlaySplashButton_Click" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- ============ 日志管理 ============ -->
             <TabItem Header="日志管理">
                 <ScrollViewer>
@@ -125,14 +148,14 @@
                                 CornerRadius="8" Padding="20">
                             <StackPanel Spacing="14">
 
-                                <TextBlock Text="汐月附带一个浏览器扩展（.crx），用于 Bing 关键词演示。"
+                                <TextBlock Text="Vael附带一个浏览器扩展（.crx），用于 Bing 关键词演示。"
                                            FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
 
                                 <Border Background="#20FFAA00"
                                         CornerRadius="6" Padding="12">
                                     <StackPanel Spacing="6">
                                         <TextBlock Text="⚠️ 使用须知" FontWeight="SemiBold" FontSize="13" Foreground="#FF8800" />
-                                        <TextBlock Text="• 扩展独立存在，不会被汐月自动安装"
+                                        <TextBlock Text="• 扩展独立存在，不会被Vael自动安装"
                                                    FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
                                         <TextBlock Text="• 现代 Edge 会阻止 crx 双击安装，需手动拖拽"
                                                    FontSize="12" Opacity="0.75" TextWrapping="Wrap" />

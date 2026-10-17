@@ -1,6 +1,6 @@
-﻿<#
+<#
 .SYNOPSIS
-    汐月 XiYue 一键打包发布脚本
+    Vael 一键打包发布脚本
 .DESCRIPTION
     自动完成：版本号更新 → 构建 → ZIP 打包 → Inno Setup 安装包 → GitHub Release → 清理
 .PARAMETER Version
@@ -34,7 +34,7 @@ $ErrorActionPreference = "Stop"
 # 配置区
 # ============================================================
 $RepoOwner    = "TIANJING-qwq"
-$RepoName     = "XiYue"
+$RepoName     = "Vael"
 $CsprojPath   = "SBtools.csproj"
 $InstallerIss = "installer.iss"
 $PublishDir   = ".\publish\win-x64"
@@ -82,16 +82,16 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     if (Test-Path $InstallerIss) {
         $issContent = Get-Content $InstallerIss -Raw
         $issContent = $issContent -replace 'AppVersion=.*', "AppVersion=$Version"
-        $issContent = $issContent -replace 'OutputBaseFilename=.*', "OutputBaseFilename=XiYue_Setup_v$Version"
+        $issContent = $issContent -replace 'OutputBaseFilename=.*', "OutputBaseFilename=Vael_Setup_v$Version"
         $issContent | Set-Content $InstallerIss -NoNewline -Encoding UTF8
         Write-Ok "installer.iss 版本号已更新"
     }
 }
 
 $Tag     = "v$Version"
-$ZipName = "XiYue_win-x64_v$Version.zip"
+$ZipName = "Vael_win-x64_v$Version.zip"
 $ZipPath = Join-Path $ZipOutputDir $ZipName
-$InstallerPath = ".\publish\installer\XiYue_Setup_v$Version.exe"
+$InstallerPath = ".\publish\installer\Vael_Setup_v$Version.exe"
 
 Write-Host "`n  发布版本: $Version" -ForegroundColor White
 Write-Host "  Git Tag : $Tag" -ForegroundColor White
@@ -165,7 +165,7 @@ if (Test-Path $InnoSetupExe) {
         Write-Err "Inno Setup 编译失败（退出码 $LASTEXITCODE）"
     } elseif (Test-Path $InstallerPath) {
         $instSize = [math]::Round((Get-Item $InstallerPath).Length / 1MB, 1)
-        Write-Ok "安装包: XiYue_Setup_v$Version.exe ($instSize MB)"
+        Write-Ok "安装包: Vael_Setup_v$Version.exe ($instSize MB)"
     } else {
         Write-Warn "Inno Setup 已执行，但未找到输出文件：$InstallerPath"
     }
@@ -205,7 +205,7 @@ if ($SkipPublish) {
     Write-Ok "GitHub CLI 已登录"
 
     if ([string]::IsNullOrWhiteSpace($Notes)) {
-        $Notes = "## 汐月 XiYue v$Version`n`n### 下载`n- 安装包: XiYue_Setup_v$Version.exe`n- 便携版: XiYue_win-x64_v$Version.zip"
+        $Notes = "## Vael v$Version`n`n### 下载`n- 安装包: Vael_Setup_v$Version.exe`n- 便携版: Vael_win-x64_v$Version.zip"
     }
 
     $assets = @()
@@ -242,7 +242,7 @@ if ($SkipPublish) {
 
         gh release create $Tag `
             --repo "$RepoOwner/$RepoName" `
-            --title "汐月 XiYue $Tag" `
+            --title "Vael $Tag" `
             --notes-file $notesFile `
             --latest `
             $assets

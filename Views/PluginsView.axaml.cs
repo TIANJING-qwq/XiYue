@@ -30,10 +30,10 @@ public partial class PluginsView : UserControl
             new PluginInfo
             {
                 Id = "com.schoolbusytools.xiyue.core",
-                Name = "汐月核心功能",
+                Name = "Vael核心功能",
                 Version = "内置",
-                Author = "SchoolBusytools",
-                Description = "汐月主程序的核心模块：校园网自动认证、定时 CCTV 播放、通知系统、图库、系统优化、插件加载器等。作为程序的基础功能，此项不可禁用。",
+                Author = "Vael",
+                Description = "Vael主程序的核心模块：校园网自动认证、定时 CCTV 播放、通知系统、图库、系统优化、插件加载器等。作为程序的基础功能，此项不可禁用。",
                 IsLoaded = true,
                 IsBuiltIn = true,
             },

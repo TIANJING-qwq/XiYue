@@ -7,6 +7,7 @@ using FluentAvalonia.Styling;
 using SBtools.Controls;
 using SBtools.Models;
 using SBtools.Services;
+using SBtools.Views;
 using System;
 using System.Linq;
 
@@ -41,18 +42,30 @@ public partial class App : Application
                 $"startMinimized={startMinimized}",
                 "启动");
 
-            var window = new MainWindow(startMinimized);
-
             if (startMinimized)
             {
                 // ★ 关键修复：
                 // 不设置 desktop.MainWindow —— 避免某些 Avalonia 版本自动 Show()
                 // 只保留 MainWindow 内部的静态 _instance 引用，供托盘使用
+                var window = new MainWindow(startMinimized);
                 LogService.Log("自启动静默模式：不设置 MainWindow，主窗口不显示", "启动");
             }
             else
             {
+                // ★ 先播放开场动画（受「启动动画」开关控制）；主窗口就绪后立即结束动画
+                if (ConfigManager.Instance.StartupAnimationEnabled)
+                {
+                    try { SplashWindow.ShowSplash(); }
+                    catch (Exception ex) { LogService.Log($"开场动画启动失败: {ex.Message}", "启动"); }
+                }
+
+                var window = new MainWindow(startMinimized);
                 desktop.MainWindow = window;
+                window.Opened += async (_, _) =>
+                {
+                    await SplashWindow.DismissAsync();
+                    try { window.Activate(); } catch { }
+                };
                 window.Show();
             }
         }

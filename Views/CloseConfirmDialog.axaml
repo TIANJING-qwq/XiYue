@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ea="using:Avalonia.Animation.Easings"
         x:Class="SBtools.Views.CloseConfirmDialog"
-        Title="关闭汐月"
+        Title="关闭Vael"
         Width="440"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
@@ -101,7 +101,7 @@
 
             <StackPanel Spacing="16">
 
-                <TextBlock Text="关闭汐月"
+                <TextBlock Text="关闭Vael"
                            FontSize="18"
                            FontWeight="SemiBold"
                            Foreground="White"/>

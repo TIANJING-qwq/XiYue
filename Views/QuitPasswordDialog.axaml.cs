@@ -25,7 +25,7 @@ public partial class QuitPasswordDialog : Window
 
     /// <summary>退出场景（默认文案）</summary>
     public QuitPasswordDialog()
-        : this("退出汐月", "请输入退出安全码：", "退出",
+        : this("退出Vael", "请输入退出安全码：", "退出",
                "安全码错误，无法退出", "退出安全码（托盘退出）")
     {
     }

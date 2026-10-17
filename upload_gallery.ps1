@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     上传 bili.zip 到 GitHub Releases 的 gallery 标签
 .EXAMPLE
@@ -8,7 +8,7 @@
 $ErrorActionPreference = "Stop"
 
 $RepoOwner = "TIANJING-qwq"
-$RepoName  = "XiYue"
+$RepoName  = "Vael"
 $Tag       = "gallery"
 $File      = "bili.zip"
 
@@ -33,7 +33,7 @@ if (-not $exists) {
     gh release create $Tag `
         --repo "$RepoOwner/$RepoName" `
         --title "图库资源" `
-        --notes "汐月图库资源（不随程序打包，按需下载）"
+        --notes "Vael图库资源（不随程序打包，按需下载）"
 }
 
 Write-Host "`n上传 $File ..." -ForegroundColor Cyan

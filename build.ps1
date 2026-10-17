@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $version = "0.3.0"
 
@@ -39,7 +39,7 @@ if ($missing.Count -gt 0) {
 }
 
 Write-Host "`n===== 3.5 生成便携版 ZIP =====" -ForegroundColor Cyan
-$zipName = "XiYue_win-x64_v$version.zip"
+$zipName = "Vael_win-x64_v$version.zip"
 if (Test-Path ".\publish\$zipName") { Remove-Item ".\publish\$zipName" -Force }
 Compress-Archive -Path ".\publish\win-x64\*" -DestinationPath ".\publish\$zipName" -Force
 Write-Host "✓ 便携版: publish\$zipName" -ForegroundColor Green
@@ -48,12 +48,12 @@ Write-Host "`n===== 4. Inno Setup 打包 =====" -ForegroundColor Cyan
 $inno = "C:\Program Files\Inno Setup 7\ISIDE.exe"
 if (Test-Path $inno) {
     & $inno .\installer.iss
-    Write-Host "`n✓ 安装包：publish\installer\XiYue_Setup_v$version.exe" -ForegroundColor Green
+    Write-Host "`n✓ 安装包：publish\installer\Vael_Setup_v$version.exe" -ForegroundColor Green
 } else {
     Write-Host "✗ 未找到 Inno Setup" -ForegroundColor Yellow
 }
 
 Write-Host "`n===== 完成 =====" -ForegroundColor Cyan
 Write-Host "请将以下文件上传到 GitHub Release (tag: v$version)：" -ForegroundColor Yellow
-Write-Host "  - publish\installer\XiYue_Setup_v$version.exe" -ForegroundColor White
+Write-Host "  - publish\installer\Vael_Setup_v$version.exe" -ForegroundColor White
 Write-Host "  - publish\$zipName" -ForegroundColor White

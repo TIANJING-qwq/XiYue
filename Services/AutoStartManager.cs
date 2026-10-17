@@ -11,7 +11,7 @@ namespace SBtools.Services;
 /// </summary>
 public static class AutoStartManager
 {
-    private const string AppName = "XiYue";
+    private const string AppName = "Vael";
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     /// <summary>应用路径（publish 后的 exe）</summary>

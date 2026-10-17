@@ -1,4 +1,4 @@
-﻿﻿﻿using Avalonia;
+using Avalonia;
 using LibVLCSharp.Shared;
 using SBtools.Models;
 using SBtools.Plugins;
@@ -15,7 +15,7 @@ namespace SBtools;
 
 class Program
 {
-    private const string MutexName = "XiYue_SingleInstance_Mutex";
+    private const string MutexName = "Vael_SingleInstance_Mutex";
     private static Mutex? _mutex;
 
     [STAThread]
@@ -47,7 +47,7 @@ class Program
         try
         {
             Core.Initialize();
-            LogInfo("VLC 初始化成功");
+            LogInfo("VLC 初始化成功（点击音效）");
         }
         catch (Exception ex)
         {
@@ -164,9 +164,7 @@ class Program
     {
         try
         {
-            var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SchoolBusytools", "logs");
+            var dir = Path.Combine(ConfigManager.AppDataDir, "logs");
             Directory.CreateDirectory(dir);
             File.AppendAllText(
                 Path.Combine(dir, $"app_{DateTime.Now:yyyyMMdd}.log"),
@@ -180,9 +178,7 @@ class Program
     {
         try
         {
-            var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SchoolBusytools", "logs");
+            var dir = Path.Combine(ConfigManager.AppDataDir, "logs");
             Directory.CreateDirectory(dir);
             File.AppendAllText(
                 Path.Combine(dir, $"error_{DateTime.Now:yyyyMMdd}.log"),
@@ -194,6 +190,11 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // ★ 老硬件/受限环境：强制软件渲染，跳过 ANGLE/D3D11（避免旧 iGPU 驱动崩溃 0xc000001d）
+            .With(new Win32PlatformOptions
+            {
+                RenderingMode = new[] { Win32RenderingMode.Software }
+            })
             .WithInterFont()
             .LogToTrace();
 

@@ -69,14 +69,12 @@ public partial class NetworkView : UserControl
 
             // 频道下拉框
             ScheduleChannelComboBox.Items.Clear();
-            foreach (var ch in CctvChannels.All)
-                ScheduleChannelComboBox.Items.Add(ch.Name);
+            foreach (var name in CctvChannels.Names)
+                ScheduleChannelComboBox.Items.Add(name);
 
-            int idx = CctvChannels.All.FindIndex(
-                c => c.Name == ConfigManager.Instance.ScheduleChannel);
+            int idx = Array.IndexOf(CctvChannels.Names, ConfigManager.Instance.ScheduleChannel);
             ScheduleChannelComboBox.SelectedIndex = idx >= 0 ? idx : 0;
 
-            UpdateChannelSourceStatus();
             UpdateScheduleStatus();
         }
         catch (Exception ex)
@@ -111,13 +109,12 @@ public partial class NetworkView : UserControl
     {
         try
         {
-            var name = ScheduleChannelComboBox.SelectedItem as string;
-            var ch = CctvChannels.All.FirstOrDefault(c => c.Name == name)
-                     ?? CctvChannels.GetDefault();
+            var name = CctvChannels.Resolve(ScheduleChannelComboBox.SelectedItem as string);
+            var url = CctvWebPlayerWindow.GetCctvLiveUrl(name) ?? "https://tv.cctv.com/live/cctv13/";
 
-            var player = new FullscreenPlayerWindow(ch);
+            var player = new CctvWebPlayerWindow(url);
             player.Show();
-            MainWindow.PushToast("测试播放", $"已打开全屏窗口，正在加载 {ch.Name}");
+            MainWindow.PushToast("测试播放", $"正在播放 {name}");
         }
         catch (Exception ex)
         {
@@ -150,55 +147,5 @@ public partial class NetworkView : UserControl
             : "已关闭";
 
         MainWindow.PushToast("定时播放设置", desc);
-    }
-
-    private async void RefreshChannelSource_Click(object? sender, RoutedEventArgs e)
-    {
-        var btn = sender as Button;
-        if (btn != null) btn.IsEnabled = false;
-
-        try
-        {
-            UpdateChannelSourceStatus("正在更新...");
-            bool ok = await ChannelSourceService.Instance.UpdateNowAsync();
-
-            if (ok)
-            {
-                MainWindow.PushToast("频道源", "已更新，频道列表已刷新");
-                LoadScheduleFromScheduler();
-            }
-            else
-            {
-                MainWindow.PushToast("频道源", "更新失败，请检查网络");
-                UpdateChannelSourceStatus();
-            }
-        }
-        catch (Exception ex)
-        {
-            LogService.Log($"手动更新频道源失败: {ex.Message}", "频道源");
-            UpdateChannelSourceStatus();
-        }
-        finally
-        {
-            if (btn != null) btn.IsEnabled = true;
-        }
-    }
-
-    private void UpdateChannelSourceStatus(string? extra = null)
-    {
-        try
-        {
-            if (!string.IsNullOrEmpty(extra))
-            {
-                ChannelSourceStatusText.Text = extra;
-                return;
-            }
-
-            var last = ChannelSourceService.Instance.LastUpdatedUtc;
-            ChannelSourceStatusText.Text = last is DateTime d
-                ? $"上次更新：{d.ToLocalTime():yyyy-MM-dd HH:mm}"
-                : "尚未更新（首次启动后会自动拉取）";
-        }
-        catch { }
     }
 }

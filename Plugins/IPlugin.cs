@@ -1,7 +1,7 @@
 namespace SBtools.Plugins;
 
 /// <summary>
-/// 汐月插件入口接口。每个插件必须实现一个此接口的类。
+/// Vael插件入口接口。每个插件必须实现一个此接口的类。
 /// </summary>
 public interface IXiYuePlugin
 {

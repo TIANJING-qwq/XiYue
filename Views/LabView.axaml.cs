@@ -98,7 +98,7 @@ public partial class LabView : UserControl
         {
             var dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                "XiYue-Logs");
+                "Vael-Logs");
             Directory.CreateDirectory(dir);
             var file = Path.Combine(dir, $"log_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
             File.WriteAllLines(file, _logs);
@@ -126,6 +126,23 @@ public partial class LabView : UserControl
         {
             MainWindow.PushToast($"通知 #{i}", $"这是第 {i} 条通知，用于测试堆叠效果。");
             await System.Threading.Tasks.Task.Delay(180);
+        }
+    }
+
+    // ============================================================
+    // 开场动画测试
+    // ============================================================
+    private async void PlaySplashButton_Click(object? sender, RoutedEventArgs e)
+    {
+        var btn = this.FindControl<Button>("PlaySplashButton");
+        if (btn != null) btn.IsEnabled = false;
+        try
+        {
+            await SplashWindow.PlayTestAsync();
+        }
+        finally
+        {
+            if (btn != null) btn.IsEnabled = true;
         }
     }
 

@@ -13,7 +13,7 @@ public interface IPluginContext
     /// <summary>当前插件 ID</summary>
     string PluginId { get; }
 
-    /// <summary>汐月主程序版本，如 "0.3.1"</summary>
+    /// <summary>Vael主程序版本，如 "0.3.1"</summary>
     string AppVersion { get; }
 
     /// <summary>

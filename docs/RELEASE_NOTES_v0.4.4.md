@@ -1,4 +1,4 @@
-## 汐月 XiYue v0.4.4
+## Vael v0.4.4
 
 校园网自动认证 · 轻量校园工具集
 
@@ -8,8 +8,8 @@
 
 | 文件 | 说明 |
 |------|------|
-| `XiYue_win-x64_v0.4.4.zip` | 便携版（解压即用，推荐） |
-| `XiYue_Setup_v0.4.4.exe` | Inno Setup 安装包 |
+| `Vael_win-x64_v0.4.4.zip` | 便携版（解压即用，推荐） |
+| `Vael_Setup_v0.4.4.exe` | Inno Setup 安装包 |
 
 > 已有 0.4.1+ 版本的用户，可在「关于」页点击「检查更新」自动升级。
 
@@ -44,11 +44,11 @@
 
 ### 📚 相关链接
 
-- [README](https://github.com/TIANJING-qwq/XiYue/blob/main/README.md)
-- [更新日志](https://github.com/TIANJING-qwq/XiYue/blob/main/docs/CHANGELOG.md)
-- [插件开发文档](https://github.com/TIANJING-qwq/XiYue/blob/main/docs/PLUGIN_DEVELOPMENT.md)
-- [问题反馈](https://github.com/TIANJING-qwq/XiYue/issues)
+- [README](https://github.com/TIANJING-qwq/Vael/blob/main/README.md)
+- [更新日志](https://github.com/TIANJING-qwq/Vael/blob/main/docs/CHANGELOG.md)
+- [插件开发文档](https://github.com/TIANJING-qwq/Vael/blob/main/docs/PLUGIN_DEVELOPMENT.md)
+- [问题反馈](https://github.com/TIANJING-qwq/Vael/issues)
 
 ---
 
-**完整变更**：https://github.com/TIANJING-qwq/XiYue/compare/v0.4.3...v0.4.4
+**完整变更**：https://github.com/TIANJING-qwq/Vael/compare/v0.4.3...v0.4.4

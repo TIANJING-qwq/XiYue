@@ -13,7 +13,7 @@ namespace SBtools.Services;
 public static class GalleryService
 {
     private const string GithubOwner = "TIANJING-qwq";
-    private const string GithubRepo  = "XiYue";
+    private const string GithubRepo  = "Vael";
     private const string GalleryTag  = "gallery";
     private const string AssetName   = "bili.zip";
 
@@ -183,7 +183,7 @@ public static class GalleryService
 
             using var http = new HttpClient();
             http.Timeout = TimeSpan.FromMinutes(30);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("XiYue/1.0");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("Vael/1.0");
 
             using var response = await http.GetAsync(
                 url, HttpCompletionOption.ResponseHeadersRead, token);

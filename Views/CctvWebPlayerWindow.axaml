@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SBtools.Views.CctvWebPlayerWindow"
+        Title="CCTV 直播"
+        Background="Black"
+        SystemDecorations="None"
+        WindowState="FullScreen">
+    <TextBlock Text="正在加载 CCTV 直播…"
+               Foreground="White"
+               FontSize="20"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"/>
+</Window>

@@ -4,10 +4,12 @@
         xmlns:controls="clr-namespace:SBtools.Controls"
         xmlns:ea="using:Avalonia.Animation.Easings"
         x:Class="SBtools.MainWindow"
-        Title="汐月 · XiYue"
+        Title="Vael"
         Icon="/Assets/app.ico"
         Width="1100" Height="720"
         MinWidth="800" MinHeight="560"
+        SystemDecorations="None"
+        CanResize="True"
         TransparencyLevelHint="Mica"
         Background="Transparent"
         TransparencyBackgroundFallback="#F3F3F3">
@@ -22,7 +24,7 @@
         </Transitions>
     </Window.Transitions>
 
-    <Grid x:Name="RootGrid">
+    <Grid x:Name="RootGrid" RowDefinitions="40,*">
         <Grid.Transitions>
             <Transitions>
                 <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.45">
@@ -33,76 +35,151 @@
             </Transitions>
         </Grid.Transitions>
 
-        <fluent:NavigationView x:Name="NavView"
-                               PaneDisplayMode="Left"
-                               IsSettingsVisible="False"
-                               IsBackButtonVisible="False"
-                               Background="Transparent"
-                               SelectionChanged="NavView_SelectionChanged">
+        <!-- ============ 自定义标题栏 ============ -->
+        <Border Grid.Row="0"
+                Background="Transparent"
+                PointerPressed="TitleBar_PointerPressed"
+                ZIndex="20">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
 
-            <fluent:NavigationView.MenuItems>
-                <fluent:NavigationViewItem Content="功能" Tag="features">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Home" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+                <!-- 图标 -->
+                <Image Grid.Column="0"
+                       Source="/Assets/app.png"
+                       Width="20" Height="20"
+                       Margin="12,0,0,0"
+                       VerticalAlignment="Center" />
 
-                <fluent:NavigationViewItem Content="网络" Tag="network">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Globe" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+                <!-- 返回按钮 -->
+                <Button Grid.Column="1"
+                        Content="←"
+                        Width="38" Height="30"
+                        Margin="6,0,0,0"
+                        Padding="0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="16"
+                        ToolTip.Tip="返回"
+                        Click="BackButton_Click" />
 
-                <fluent:NavigationViewItem Content="系统优化" Tag="optimization">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Repair" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+                <!-- 标题 -->
+                <TextBlock Grid.Column="2"
+                           Text="Vael"
+                           FontSize="13"
+                           Opacity="0.7"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           IsHitTestVisible="False" />
 
-                <fluent:NavigationViewItem Content="实验室" Tag="lab">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Repair" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+                <!-- 最小化 -->
+                <Button Grid.Column="3"
+                        Content="─"
+                        Width="40" Height="30"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="14"
+                        ToolTip.Tip="最小化"
+                        Click="MinimizeButton_Click" />
 
-                <fluent:NavigationViewItem Content="涩图合集" Tag="gallery">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Camera" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+                <!-- 最大化/还原 -->
+                <Button Grid.Column="4"
+                        x:Name="MaximizeButton"
+                        Content="□"
+                        Width="40" Height="30"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="13"
+                        ToolTip.Tip="最大化"
+                        Click="MaximizeButton_Click" />
 
-                <fluent:NavigationViewItem Content="插件" Tag="plugins">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="AllApps" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+                <!-- 关闭 -->
+                <Button Grid.Column="5"
+                        Content="✕"
+                        Width="40" Height="30"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="13"
+                        ToolTip.Tip="关闭"
+                        Click="CloseButton_Click" />
+            </Grid>
+        </Border>
 
-                <fluent:NavigationViewItemSeparator />
+        <!-- ============ 主内容 ============ -->
+        <Grid Grid.Row="1">
+            <fluent:NavigationView x:Name="NavView"
+                                   PaneDisplayMode="Left"
+                                   IsSettingsVisible="False"
+                                   IsBackButtonVisible="False"
+                                   Background="Transparent"
+                                   SelectionChanged="NavView_SelectionChanged">
 
-                <fluent:NavigationViewItem Content="设置" Tag="settings">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Setting" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
+                <fluent:NavigationView.MenuItems>
+                    <fluent:NavigationViewItem Content="功能" Tag="features">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="Home" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
 
-                <fluent:NavigationViewItem Content="关于" Tag="about">
-                    <fluent:NavigationViewItem.IconSource>
-                        <fluent:SymbolIconSource Symbol="Help" />
-                    </fluent:NavigationViewItem.IconSource>
-                </fluent:NavigationViewItem>
-            </fluent:NavigationView.MenuItems>
+                    <fluent:NavigationViewItem Content="网络" Tag="network">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="Globe" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
 
-            <fluent:Frame x:Name="ContentFrame"
-                          Background="Transparent" />
-        </fluent:NavigationView>
+                    <fluent:NavigationViewItem Content="系统优化" Tag="optimization">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="Repair" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
 
-        <controls:ToastHost Name="GlobalToastHost"
-                            Width="320"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Stretch"
-                            Margin="0,20,20,20"
-                            StackedVisible="32"
-                            IsHitTestVisible="True"
-                            ClipToBounds="True" />
+                    <fluent:NavigationViewItem Content="实验室" Tag="lab">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="Repair" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
+
+                    <fluent:NavigationViewItem Content="涩图合集" Tag="gallery">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="Camera" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
+
+                    <fluent:NavigationViewItem Content="插件" Tag="plugins">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="AllApps" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
+
+                    <fluent:NavigationViewItemSeparator />
+
+                    <fluent:NavigationViewItem Content="设置" Tag="settings">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="Setting" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
+
+                    <fluent:NavigationViewItem Content="关于" Tag="about">
+                        <fluent:NavigationViewItem.IconSource>
+                            <fluent:SymbolIconSource Symbol="Help" />
+                        </fluent:NavigationViewItem.IconSource>
+                    </fluent:NavigationViewItem>
+                </fluent:NavigationView.MenuItems>
+
+                <fluent:Frame x:Name="ContentFrame"
+                              Background="Transparent" />
+            </fluent:NavigationView>
+
+            <controls:ToastHost Name="GlobalToastHost"
+                                Width="320"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Stretch"
+                                Margin="0,20,20,20"
+                                StackedVisible="32"
+                                IsHitTestVisible="True"
+                                ClipToBounds="True" />
+        </Grid>
     </Grid>
 </Window>

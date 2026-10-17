@@ -1,7 +1,7 @@
-# 汐月 XiYue 插件开发文档
+# Vael 插件开发文档
 
 > **版本**：1.0
-> **适用汐月版本**：v0.3.9+
+> **适用Vael版本**：v0.3.9+
 > **最后更新**：2026-10
 
 ---
@@ -24,12 +24,12 @@
 
 ## 1. 概述
 
-汐月从 **v0.3.9** 起支持第三方插件。插件以 **.NET 8 类库** 形式分发，放在程序的 `Plugins/` 目录下，启动时自动加载。
+Vael从 **v0.3.9** 起支持第三方插件。插件以 **.NET 8 类库** 形式分发，放在程序的 `Plugins/` 目录下，启动时自动加载。
 
 ### 1.1 架构
 
 ```
-XiYue.exe (主程序)
+Vael.exe (主程序)
 │
 ├── Plugins/                           ← 插件加载目录
 │   ├── MyPlugin.dll                   ← 你的插件
@@ -79,10 +79,10 @@ cd MyFirstPlugin
     <RootNamespace>MyFirstPlugin</RootNamespace>
   </PropertyGroup>
 
-  <!-- 引用汐月主程序，但不要把主程序一起打包 -->
+  <!-- 引用Vael主程序，但不要把主程序一起打包 -->
   <ItemGroup>
     <Reference Include="SBtools">
-      <HintPath>..\XiYue\bin\Debug\net8.0\SBtools.dll</HintPath>
+      <HintPath>..\Vael\bin\Debug\net8.0\SBtools.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
@@ -129,13 +129,13 @@ public class HelloPlugin : IXiYuePlugin
 dotnet build -c Debug
 ```
 
-把 `bin/Debug/net8.0/MyFirstPlugin.dll` 复制到汐月的 `Plugins/` 目录：
+把 `bin/Debug/net8.0/MyFirstPlugin.dll` 复制到Vael的 `Plugins/` 目录：
 
 ```
-XiYue/bin/Debug/net8.0/Plugins/MyFirstPlugin.dll
+Vael/bin/Debug/net8.0/Plugins/MyFirstPlugin.dll
 ```
 
-启动汐月，打开侧边栏 **「插件」** 页即可看到。
+启动Vael，打开侧边栏 **「插件」** 页即可看到。
 
 ---
 
@@ -169,11 +169,11 @@ public interface IXiYuePlugin
 
 **生命周期**：
 
-1. 汐月启动 → `PluginManager.LoadAll()` → 遍历 `Plugins/*.dll`
+1. Vael启动 → `PluginManager.LoadAll()` → 遍历 `Plugins/*.dll`
 2. 反射找到所有实现 `IXiYuePlugin` 的类
 3. 调用无参构造 → 调用 `OnLoad(ctx)`
 4. 运行期一直持有
-5. 汐月退出 → 调用 `OnUnload()`
+5. Vael退出 → 调用 `OnUnload()`
 
 > **注意**：如果 `OnLoad` 抛异常，插件会被标记为"加载失败"，不影响主程序。
 
@@ -187,7 +187,7 @@ public interface IXiYuePlugin
 
 ```csharp
 string PluginId { get; }        // 当前插件 Id
-string AppVersion { get; }      // 汐月版本，如 "0.3.1"
+string AppVersion { get; }      // Vael版本，如 "0.3.1"
 string DataDirectory { get; }   // 插件数据目录，已自动创建
 ```
 
@@ -243,7 +243,7 @@ context.Toast("标题", "内容", 3);
 用系统默认浏览器打开 URL。跨平台。
 
 ```csharp
-context.OpenUrl("https://github.com/TIANJING-qwq/XiYue");
+context.OpenUrl("https://github.com/TIANJING-qwq/Vael");
 ```
 
 ##### `PlaySound(string wavFileName)`
@@ -431,8 +431,8 @@ MyPlugin/
 
 | 场景 | 路径 |
 |------|------|
-| 开发调试 | `XiYue/bin/Debug/net8.0/Plugins/` |
-| 用户安装 | `C:\Program Files\XiYue\Plugins\`（或用户自定义安装路径） |
+| 开发调试 | `Vael/bin/Debug/net8.0/Plugins/` |
+| 用户安装 | `C:\Program Files\Vael\Plugins\`（或用户自定义安装路径） |
 
 ---
 
@@ -543,7 +543,7 @@ private void OnKeywordMatched(string keyword)
 
   <ItemGroup>
     <Reference Include="SBtools">
-      <HintPath>..\XiYue\bin\Debug\net8.0\SBtools.dll</HintPath>
+      <HintPath>..\Vael\bin\Debug\net8.0\SBtools.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
@@ -625,10 +625,10 @@ public class KeywordCounterPlugin : IXiYuePlugin
 ```bash
 cd KeywordCounterPlugin
 dotnet build -c Release
-copy bin\Release\net8.0\KeywordCounterPlugin.dll ..\XiYue\bin\Debug\net8.0\Plugins\
+copy bin\Release\net8.0\KeywordCounterPlugin.dll ..\Vael\bin\Debug\net8.0\Plugins\
 ```
 
-重启汐月，打开「插件」页，应该能看到 **「关键词计数器 v1.0.0 已加载」**。
+重启Vael，打开「插件」页，应该能看到 **「关键词计数器 v1.0.0 已加载」**。
 
 ---
 
@@ -658,8 +658,8 @@ copy bin\Release\net8.0\KeywordCounterPlugin.dll ..\XiYue\bin\Debug\net8.0\Plugi
 
 `KeywordMatched` 只在浏览器插件通过 IPC 发送关键词时触发。检查：
 
-1. 浏览器插件里勾选了「检测到关键词时通知汐月」
-2. 汐月的本地 IPC 服务已启动（看日志 `[IPC] 本地 IPC 服务已启动`）
+1. 浏览器插件里勾选了「检测到关键词时通知Vael」
+2. Vael的本地 IPC 服务已启动（看日志 `[IPC] 本地 IPC 服务已启动`）
 3. 用 PowerShell 测试：
 
 ```powershell
@@ -682,7 +682,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:18520/notify" -Method Post `
 
 当前接口版本：**1.0**
 
-| 汐月版本 | 接口版本 | 说明 |
+| Vael版本 | 接口版本 | 说明 |
 |---------|---------|------|
 | 0.3.1 | 1.0 | 插件系统初始版本 |
 
@@ -697,12 +697,12 @@ Invoke-RestMethod -Uri "http://127.0.0.1:18520/notify" -Method Post `
 public void OnLoad(IPluginContext context)
 {
     var appVersion = context.AppVersion;
-    context.Log($"运行在汐月 {appVersion}");
+    context.Log($"运行在Vael {appVersion}");
 
     // 版本检查示例
     if (Version.Parse(appVersion) < new Version(0, 3, 1))
     {
-        context.Toast("警告", "此插件需要汐月 0.3.1+");
+        context.Toast("警告", "此插件需要Vael 0.3.1+");
         return;
     }
 }
@@ -750,16 +750,16 @@ IPluginContext
 
 ### 附录 B：相关链接
 
-- [汐月主仓库](https://github.com/TIANJING-qwq/XiYue)
-- [Issues](https://github.com/TIANJING-qwq/XiYue/issues)
-- [示例插件（含源码）](https://github.com/TIANJING-qwq/XiYue/tree/main/docs/examples)
+- [Vael主仓库](https://github.com/TIANJING-qwq/Vael)
+- [Issues](https://github.com/TIANJING-qwq/Vael/issues)
+- [示例插件（含源码）](https://github.com/TIANJING-qwq/Vael/tree/main/docs/examples)
 
 ### 附录 C：插件模板仓库
 
 推荐从模板开始：
 
 ```
-XiYue-Plugin-Template/
+Vael-Plugin-Template/
 ├── MyPlugin.csproj
 ├── MyPlugin.cs
 ├── README.md
@@ -769,7 +769,7 @@ XiYue-Plugin-Template/
 Clone 后改名字即可：
 
 ```bash
-git clone https://github.com/TIANJING-qwq/XiYue-Plugin-Template.git MyPlugin
+git clone https://github.com/TIANJING-qwq/Vael-Plugin-Template.git MyPlugin
 ```
 
 ### 附录 D：文件放置
@@ -777,7 +777,7 @@ git clone https://github.com/TIANJING-qwq/XiYue-Plugin-Template.git MyPlugin
 把本文档保存为：
 
 ```
-XiYue/
+Vael/
 ├── docs/
 │   └── PLUGIN_DEVELOPMENT.md       ← 本文档
 ├── README.md
@@ -797,11 +797,11 @@ XiYue/
 
 推送后，文档地址为：
 
-- **网页版**：`https://github.com/TIANJING-qwq/XiYue/blob/main/docs/PLUGIN_DEVELOPMENT.md`
-- **纯文本**：`https://raw.githubusercontent.com/TIANJING-qwq/XiYue/main/docs/PLUGIN_DEVELOPMENT.md`
+- **网页版**：`https://github.com/TIANJING-qwq/Vael/blob/main/docs/PLUGIN_DEVELOPMENT.md`
+- **纯文本**：`https://raw.githubusercontent.com/TIANJING-qwq/Vael/main/docs/PLUGIN_DEVELOPMENT.md`
 
 ---
 
 **文档版本**：1.0
 **最后更新**：2026-10
-**适用汐月版本**：0.3.1+
+**适用Vael版本**：0.3.1+

@@ -1,122 +1,184 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SBtools.Views.FeaturesView">
-    <ScrollViewer>
-        <StackPanel Margin="32" Spacing="16">
+    <Grid>
 
-            <TextBlock Text="功能" FontSize="28" FontWeight="Bold" />
-            <TextBlock Text="工具箱中的核心功能"
-                       FontSize="14" Opacity="0.6"
-                       Margin="0,0,0,8" />
+        <!-- ============ 主页 ============ -->
+        <ScrollViewer x:Name="HomeView">
+            <StackPanel Margin="36" Spacing="18" MaxWidth="860">
 
-            <!-- ============ 自动网络连接 ============ -->
-            <Expander Header="🌐 自动网络连接"
-                      IsExpanded="False"
-                      HorizontalAlignment="Stretch">
+                <!-- 图标 + 名称 -->
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Border Width="64" Height="64"
+                            CornerRadius="16"
+                            Background="#14000000">
+                        <Image Source="/Assets/app.png"
+                               Width="52" Height="52"
+                               Stretch="Uniform" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Spacing="3">
+                        <TextBlock Text="Vael" FontSize="30" FontWeight="Bold" />
+                        <TextBlock Text="校园网工具箱 · CCTV 直播 · 系统工具"
+                                   FontSize="13" Opacity="0.6" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 本次更新 -->
                 <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
-                        CornerRadius="0,0,8,8"
+                        CornerRadius="10"
                         Padding="20">
-                    <StackPanel Spacing="10">
-                        <TextBlock Text="检测到校园网断开时自动认证，支持 ikuai8 等常见网关。"
-                                   FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
-                        <TextBlock Text="请前往「网络」页配置。" FontSize="12" Opacity="0.5" />
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="本次更新" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock Text="• 央视直播改用官方 WebView2 播放器，全屏自动播放、稳定不卡" FontSize="13" Opacity="0.75" />
+                        <TextBlock Text="• 主页改为卡片式，点击卡片进入详细设置" FontSize="13" Opacity="0.75" />
+                        <TextBlock Text="• 自定义标题栏：图标 / 返回 / 最小化 / 最大化 / 关闭" FontSize="13" Opacity="0.75" />
+                        <TextBlock Text="• 应用更名 Vael" FontSize="13" Opacity="0.75" />
                     </StackPanel>
                 </Border>
-            </Expander>
 
-            <!-- ============ 定时播放 CCTV ============ -->
-            <Expander Header="📊 定时播放 CCTV"
-                      IsExpanded="False"
-                      HorizontalAlignment="Stretch">
-                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                <!-- 亮点（功能卡片） -->
+                <TextBlock Text="亮点" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,0" />
+
+                <!-- 播放 CCTV -->
+                <Button Click="PlayCctvButton_Click"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="0"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
-                        CornerRadius="0,0,8,8"
-                        Padding="20">
-                    <StackPanel Spacing="10">
-                        <TextBlock Text="到设定时段自动全屏播放央视新闻等频道，支持跨午夜时段。"
-                                   FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
-                        <TextBlock Text="请前往「网络 → 定时播放」配置。" FontSize="12" Opacity="0.5" />
-                    </StackPanel>
-                </Border>
-            </Expander>
-
-            <!-- ============ Windows 11 绕过配置要求升级 ============ -->
-            <Expander Header="🪟 Windows 11 绕过配置要求升级"
-                      IsExpanded="True"
-                      HorizontalAlignment="Stretch">
-                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="0,0,8,8"
-                        Padding="20">
-                    <StackPanel Spacing="14">
-
-                        <TextBlock Text="适用于 Windows 10 硬件不满足 TPM 2.0 / CPU 要求，但已有 Windows 11 ISO 的场景。"
-                                   FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
-
-                        <TextBlock Text="原理：挂载 ISO 后，以 /product server 参数运行 setup.exe，让 Windows 11 安装程序以「Server 模式」启动，从而跳过 TPM / Secure Boot / CPU 检查。"
-                                   FontSize="12" Opacity="0.55" TextWrapping="Wrap" />
-
-                        <!-- 步骤说明 -->
-                        <Border Background="#20808080"
-                                CornerRadius="6" Padding="12"
-                                Margin="0,4,0,0">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="操作步骤：" FontSize="13" FontWeight="SemiBold" />
-                                <TextBlock Text="1. 点击下方按钮，选择 Windows 11 的 ISO 文件"
-                                           FontSize="12" Opacity="0.75" />
-                                <TextBlock Text="2. 程序自动挂载 ISO"
-                                           FontSize="12" Opacity="0.75" />
-                                <TextBlock Text="3. 自动以 /product server 模式启动 setup.exe"
-                                           FontSize="12" Opacity="0.75" />
-                                <TextBlock Text="4. 按提示完成升级"
-                                           FontSize="12" Opacity="0.75" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- 状态 -->
-                        <TextBlock Name="Win11StatusText"
-                                   FontSize="12"
-                                   Opacity="0.6"
-                                   Text="尚未选择 ISO 文件"
-                                   TextWrapping="Wrap" />
-
-                        <!-- 按钮 -->
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Button Name="Win11SelectIsoButton"
-                                    Content="选择 Windows 11 ISO"
-                                    Padding="16,8"
-                                    CornerRadius="6"
-                                    Background="#0078D4"
-                                    Foreground="White"
-                                    BorderThickness="0"
-                                    Click="Win11SelectIsoButton_Click" />
-
-                            <Button Name="Win11UnmountButton"
-                                    Content="卸载已挂载的 ISO"
-                                    Padding="16,8"
-                                    CornerRadius="6"
-                                    Background="Transparent"
-                                    BorderBrush="#D0D0D0"
-                                    BorderThickness="1"
-                                    Click="Win11UnmountButton_Click" />
+                        CornerRadius="10">
+                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="20,14">
+                        <TextBlock Grid.Column="0" Text="▶" FontSize="22"
+                                   VerticalAlignment="Center" Margin="0,0,16,0" />
+                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="播放 CCTV" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock Text="央视直播 · 全屏自动播放" FontSize="12" Opacity="0.55" />
                         </StackPanel>
+                        <TextBlock Grid.Column="2" Text="›" FontSize="24" Opacity="0.45"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
 
-                        <!-- 警告 -->
-                        <Border Background="#30FFAA00"
-                                CornerRadius="6" Padding="10">
-                            <TextBlock Text="⚠️ 请以管理员权限运行本程序，否则无法挂载 ISO。"
-                                       FontSize="12"
-                                       Foreground="#FF8800"
-                                       TextWrapping="Wrap" />
-                        </Border>
+                <!-- 校园网自动认证 -->
+                <Button Click="NetworkTile_Click"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="0"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="20,14">
+                        <TextBlock Grid.Column="0" Text="🌐" FontSize="22"
+                                   VerticalAlignment="Center" Margin="0,0,16,0" />
+                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="校园网自动认证" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock Text="断网自动重连认证" FontSize="12" Opacity="0.55" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="›" FontSize="24" Opacity="0.45"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+
+                <!-- Windows 11 升级 -->
+                <Button Click="Win11Tile_Click"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="0"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="20,14">
+                        <TextBlock Grid.Column="0" Text="🪟" FontSize="22"
+                                   VerticalAlignment="Center" Margin="0,0,16,0" />
+                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="Windows 11 升级" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock Text="绕过 TPM / CPU 限制" FontSize="12" Opacity="0.55" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="›" FontSize="24" Opacity="0.45"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+
+                <!-- 每日一言 -->
+                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="每日一言" FontSize="14" FontWeight="SemiBold" Opacity="0.7" />
+                        <TextBlock x:Name="DailyQuoteText"
+                                   FontSize="14"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.85" />
                     </StackPanel>
                 </Border>
-            </Expander>
 
-        </StackPanel>
-    </ScrollViewer>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ============ Windows 11 详情（点击卡片进入） ============ -->
+        <ScrollViewer x:Name="Win11Detail" IsVisible="False">
+            <StackPanel Margin="36" Spacing="16" MaxWidth="860">
+
+                <Button Content="← 返回"
+                        Padding="14,8"
+                        HorizontalAlignment="Left"
+                        CornerRadius="6"
+                        Click="BackButton_Click" />
+
+                <TextBlock Text="Windows 11 绕过配置要求升级"
+                           FontSize="24" FontWeight="Bold" />
+
+                <TextBlock Text="适用于 Windows 10 硬件不满足 TPM 2.0 / CPU 要求，但已有 Windows 11 ISO 的场景。"
+                           FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+
+                <TextBlock Text="原理：挂载 ISO 后，以 /product server 参数运行 setup.exe，让 Windows 11 安装程序以「Server 模式」启动，从而跳过 TPM / Secure Boot / CPU 检查。"
+                           FontSize="12" Opacity="0.55" TextWrapping="Wrap" />
+
+                <Border Background="#20808080" CornerRadius="6" Padding="12">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="操作步骤：" FontSize="13" FontWeight="SemiBold" />
+                        <TextBlock Text="1. 点击下方按钮，选择 Windows 11 的 ISO 文件" FontSize="12" Opacity="0.75" />
+                        <TextBlock Text="2. 程序自动挂载 ISO" FontSize="12" Opacity="0.75" />
+                        <TextBlock Text="3. 自动以 /product server 模式启动 setup.exe" FontSize="12" Opacity="0.75" />
+                        <TextBlock Text="4. 按提示完成升级" FontSize="12" Opacity="0.75" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Name="Win11StatusText"
+                           FontSize="12" Opacity="0.6"
+                           Text="尚未选择 ISO 文件"
+                           TextWrapping="Wrap" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Name="Win11SelectIsoButton"
+                            Content="选择 Windows 11 ISO"
+                            Padding="16,8" CornerRadius="6"
+                            Background="#0078D4" Foreground="White"
+                            BorderThickness="0"
+                            Click="Win11SelectIsoButton_Click" />
+
+                    <Button Name="Win11UnmountButton"
+                            Content="卸载已挂载的 ISO"
+                            Padding="16,8" CornerRadius="6"
+                            Background="Transparent"
+                            BorderBrush="#D0D0D0" BorderThickness="1"
+                            Click="Win11UnmountButton_Click" />
+                </StackPanel>
+
+                <Border Background="#30FFAA00" CornerRadius="6" Padding="10">
+                    <TextBlock Text="⚠️ 请以管理员权限运行本程序，否则无法挂载 ISO。"
+                               FontSize="12" Foreground="#FF8800" TextWrapping="Wrap" />
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </Grid>
 </UserControl>

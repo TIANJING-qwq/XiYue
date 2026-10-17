@@ -1,6 +1,6 @@
 # 更新日志
 
-汐月（XiYue）的版本变更历史。
+Vael（Vael）的版本变更历史。
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
@@ -17,8 +17,18 @@
   - 自动检查：启动 + 定时，按「下载方式 / 安装方式」静默或询问
   - 下载失败时通过 `UpdateService.LastError` 显示具体原因（如「Release 里没有资产」「解压失败」等）
 - **数据目录可写回退**：`%APPDATA%` 不可写时（受限/沙箱环境），配置、日志、安全密钥、图库、插件、更新暂存等统一回退到程序所在目录，避免「Access denied」导致下载/保存失败
+- **修复 CCTV 播放崩溃**：崩溃根因是旧 iGPU（Haswell HD 4600）驱动在绕过的 Win11 上 **GPU 渲染**出问题（`STATUS_ILLEGAL_INSTRUCTION` 0xc000001d），与解码无关。修复：Avalonia 改用 `Win32RenderingMode.Software`（软件渲染跳过 ANGLE/D3D11），同时解码用 `--avcodec-hw=any`（**硬解优先**、失败自动回退软件）保证流畅不卡
+- **频道源标错台**：每日源里 `hls/N`、`tsfile/NNNN` 这类不带台号的地址会被**过滤掉**，只采纳 URL 里明确带台号的源（如 `cctv13hd.m3u8`），从根上避免「什么频道都播成 CCTV-5」
+- **只保留 CCTV-1 和 CCTV-13**：频道列表精简为「CCTV-1 综合」「CCTV-13 新闻」两个，内置官方源 + 带台号 IPTV 源
+- **关闭播放器时的空引用**：`TryPlayAsync` 改用局部引用并加 `_isClosing` 检查，修复关闭窗口时清理逻辑置空字段导致的 `NullReferenceException`
 
 ### 新增
+- **WebView2 官方直播播放器**：全屏播放改用 Edge WebView2 打开央视官方直播页（`tv.cctv.com/live/cctvN/`），复用官方播放器与官方 CDN，彻底摆脱第三方 IPTV 源不稳定
+  - 关闭方式：右上角悬浮 ✕ / Esc / Alt+F4 / 托盘「关闭播放」
+  - 无对应台号时回退到原 LibVLC 播放器
+  - 目标框架改为 `net8.0-windows`（WebView2 为 Windows 专属）
+- **播放器「源」选择器**：全屏播放器在频道选择后新增源下拉框，列出该频道全部可用地址，可手动切换失效源；每个频道的选择会记住
+- **记住上次频道/源**：关闭后重新打开（托盘「测试播放频道」）自动恢复上次观看的频道及其手动选择的源
 - **定时播放频道选择**：「网络 → 定时播放」新增频道下拉框，可保存所选频道
 - **每日自动更新直播源**：从 [best-fan/iptv-sources](https://github.com/best-fan/iptv-sources) 的 `cn_cctv.m3u8` 拉取每日更新的 CCTV 源
   - 启动后自动检查一次，之后每 24 小时自动检查替换

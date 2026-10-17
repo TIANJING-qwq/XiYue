@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace SBtools.Models;
@@ -107,10 +108,49 @@ public class ConfigManager
         set { _data.ScheduleChannel = value; Services.ScheduleConfig.ChannelName = value; Save(); }
     }
 
+    // ---------------- ★ 播放器：上次频道 / 首选源 ----------------
+    /// <summary>上次观看的频道（播放器重新打开时恢复）</summary>
+    public string LastChannelName
+    {
+        get => string.IsNullOrWhiteSpace(_data.LastChannelName)
+            ? "CCTV-13 新闻"
+            : _data.LastChannelName;
+        set
+        {
+            if (_data.LastChannelName == value) return;
+            _data.LastChannelName = value ?? "";
+            Save();
+        }
+    }
+
+    /// <summary>取某频道上次手动选择的源 URL（没有则返回 null）</summary>
+    public string? GetPreferredSource(string channelName)
+    {
+        if (string.IsNullOrWhiteSpace(channelName)) return null;
+        return _data.PreferredSources.TryGetValue(channelName, out var url)
+            ? url
+            : null;
+    }
+
+    /// <summary>记录某频道手动选择的源 URL</summary>
+    public void SetPreferredSource(string channelName, string url)
+    {
+        if (string.IsNullOrWhiteSpace(channelName)) return;
+        _data.PreferredSources[channelName] = url ?? "";
+        Save();
+    }
+
     // ---------------- 程序选项 ----------------
     public bool AutoStartOnBoot { get => _data.AutoStartOnBoot; set { _data.AutoStartOnBoot = value; Save(); } }
     public bool AutoStartMinimized { get => _data.AutoStartMinimized; set { _data.AutoStartMinimized = value; Save(); } }
     public bool MinimizeToTrayOnClose { get => _data.MinimizeToTrayOnClose; set { _data.MinimizeToTrayOnClose = value; Save(); } }
+
+    /// <summary>每次启动主程序时是否播放开场动画（「连接脉冲」）。</summary>
+    public bool StartupAnimationEnabled
+    {
+        get => _data.StartupAnimationEnabled;
+        set { if (_data.StartupAnimationEnabled == value) return; _data.StartupAnimationEnabled = value; Save(); }
+    }
     public int LastVolume { get => _data.LastVolume; set { _data.LastVolume = Math.Clamp(value, 0, 100); Save(); } }
 
     public bool AutoCheckUpdate
@@ -383,6 +423,10 @@ public class ConfigManager
         public int ScheduleEndMinutes { get; set; } = 19 * 60 + 30;
         public string ScheduleChannel { get; set; } = "CCTV-13 新闻";
 
+        // ★ 播放器：上次频道 / 每个频道首选源
+        public string LastChannelName { get; set; } = "CCTV-13 新闻";
+        public Dictionary<string, string> PreferredSources { get; set; } = new();
+
         public bool AutoStartOnBoot { get; set; } = false;
 
                 // ★ 点击音效
@@ -390,6 +434,9 @@ public class ConfigManager
         public int ClickSoundVolume { get; set; } = 80;
         public bool AutoStartMinimized { get; set; } = true;
         public bool MinimizeToTrayOnClose { get; set; } = false;
+
+        // ★ 启动开场动画
+        public bool StartupAnimationEnabled { get; set; } = true;
 
         public int LastVolume { get; set; } = 80;
         public bool AutoCheckUpdate { get; set; } = true;

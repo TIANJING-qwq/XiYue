@@ -155,6 +155,10 @@ public partial class SettingsView : UserControl
         if (minTraySwitch != null)
             minTraySwitch.IsChecked = _config.MinimizeToTrayOnClose;
 
+        var startupAnimSwitch = this.FindControl<ToggleSwitch>("StartupAnimationSwitch");
+        if (startupAnimSwitch != null)
+            startupAnimSwitch.IsChecked = _config.StartupAnimationEnabled;
+
         // ★ 退出安全码
         var quitPwdSwitch = this.FindControl<ToggleSwitch>("QuitPasswordSwitch");
         if (quitPwdSwitch != null)
@@ -776,6 +780,15 @@ public partial class SettingsView : UserControl
         if (_isInitializing) return;
         var sw = this.FindControl<ToggleSwitch>("MinTraySwitch");
         _config.MinimizeToTrayOnClose = sw?.IsChecked == true;
+    }
+
+    private void StartupAnimationSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("StartupAnimationSwitch");
+        var value = sw?.IsChecked == true;
+        _config.StartupAnimationEnabled = value;
+        MainWindow.PushToast("启动动画", value ? "已开启" : "已关闭");
     }
 
     // ============================================================

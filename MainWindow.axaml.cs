@@ -28,7 +28,7 @@ public partial class MainWindow : Window
     private bool _closingDialogShown;
     private bool _isHiddenToTray;
 
-    private FullscreenPlayerWindow? _playerWindow;
+    private Window? _playerWindow;
 
     private static bool _isAutoChecking = true;
     private bool _updateInProgress;
@@ -41,6 +41,13 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _instance = this;
+
+        // 最大化/还原时更新标题栏按钮图标
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == WindowStateProperty)
+                MaximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
+        };
 
         WindowBackdropService.Apply(this, ConfigManager.Instance.WindowBackdrop);
 
@@ -75,7 +82,6 @@ public partial class MainWindow : Window
         InitNetworkMonitor();
         InitUpdateService();
         LocalIpcServer.Instance.Start();
-        ChannelSourceService.Instance.Start();
 
         Closing += OnWindowClosing;
 
@@ -211,6 +217,63 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    /// <summary>供其它页面跳转到指定导航页（tag 与 MainWindow.axaml 菜单 Tag 一致）。</summary>
+    public static void NavigateTo(string tag)
+    {
+        if (_instance == null) return;
+        var item = _instance.NavView.MenuItems
+            .OfType<NavigationViewItem>()
+            .FirstOrDefault(i => i.Tag?.ToString() == tag);
+        if (item != null)
+            _instance.NavView.SelectedItem = item;
+    }
+
+    // ============================================================
+    // 自定义标题栏
+    // ============================================================
+    private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        try
+        {
+            // 点击标题栏上的按钮时不触发窗口拖拽
+            StyledElement? el = e.Source as StyledElement;
+            while (el != null)
+            {
+                if (el is Button) return;
+                el = el.Parent;
+            }
+
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                BeginMoveDrag(e);
+        }
+        catch { }
+    }
+
+    private void BackButton_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (ContentFrame.CanGoBack)
+                ContentFrame.GoBack();
+            else
+                NavigateTo("features");
+        }
+        catch { }
+    }
+
+    private void MinimizeButton_Click(object? sender, RoutedEventArgs e)
+        => WindowState = WindowState.Minimized;
+
+    private void MaximizeButton_Click(object? sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+    }
+
+    private void CloseButton_Click(object? sender, RoutedEventArgs e)
+        => Close();
 
     // ============================================================
     // 网络监控
@@ -451,7 +514,7 @@ public partial class MainWindow : Window
                     break;
                 case CloseAction.MinimizeToTray:
                     HideToTray();
-                    PushToast("已最小化", "汐月正在后台运行，双击托盘图标可恢复。");
+                    PushToast("已最小化", "Vael正在后台运行，双击托盘图标可恢复。");
                     break;
             }
         }
@@ -525,7 +588,6 @@ public partial class MainWindow : Window
             _scheduler = null;
 
             try { UpdateService.Instance.StopAutoCheck(); } catch { }
-            try { ChannelSourceService.Instance.Stop(); } catch { }
             try { LocalIpcServer.Instance.Stop(); } catch { }
             try { ClickSoundService.Instance.Dispose(); } catch { }
 
@@ -546,6 +608,16 @@ public partial class MainWindow : Window
     // 调度器
     // ============================================================
     private void OnScheduleStart()
+        => StartPlayer(ScheduleConfig.ChannelName, "定时播放", "调度");
+
+    /// <summary>托盘「测试播放」：恢复上次观看的频道</summary>
+    private void TestPlayLastChannel()
+        => StartPlayer(ConfigManager.Instance.LastChannelName, "测试播放", "播放");
+
+    /// <summary>供其它页面调用的「播放 CCTV」入口（恢复上次频道）</summary>
+    public static void PlayCctv() => _instance?.TestPlayLastChannel();
+
+    private void StartPlayer(string channelName, string toastTitle, string logSource)
     {
         Dispatcher.UIThread.Post(async () =>
         {
@@ -553,13 +625,14 @@ public partial class MainWindow : Window
             {
                 ClosePlayerWindow();
 
-                var ch = CctvChannels.All.FirstOrDefault(c => c.Name == ScheduleConfig.ChannelName)
-                         ?? CctvChannels.GetDefault();
+                var name = CctvChannels.Resolve(channelName);
+                var url = CctvWebPlayerWindow.GetCctvLiveUrl(name)
+                          ?? "https://tv.cctv.com/live/cctv13/";
 
-                LogService.Log($"定时触发播放: {ch.Name}", "调度");
+                LogService.Log($"{toastTitle}: {name}", logSource);
                 await Task.Delay(150);
 
-                _playerWindow = new FullscreenPlayerWindow(ch);
+                _playerWindow = new CctvWebPlayerWindow(url);
                 _playerWindow.Closed += (_, _) =>
                 {
                     LogService.Log("播放窗口已关闭", "播放");
@@ -567,11 +640,11 @@ public partial class MainWindow : Window
                 };
                 _playerWindow.Show();
 
-                PushToast("定时播放", $"正在播放 {ch.Name}");
+                PushToast(toastTitle, $"正在播放 {name}");
             }
             catch (Exception ex)
             {
-                LogService.Log($"定时播放异常: {ex.Message}", "调度");
+                LogService.Log($"{toastTitle}异常: {ex.Message}", logSource);
             }
         });
     }
@@ -615,7 +688,7 @@ public partial class MainWindow : Window
             _trayIcon = new TrayIcon
             {
                 Icon = icon,
-                ToolTipText = "汐月 · XiYue",
+                ToolTipText = "Vael",
                 IsVisible = true
             };
 
@@ -650,8 +723,8 @@ public partial class MainWindow : Window
             };
             menu.Add(connectItem);
 
-            var testPlayItem = new NativeMenuItem("测试播放 CCTV-13");
-            testPlayItem.Click += (_, _) => OnScheduleStart();
+            var testPlayItem = new NativeMenuItem("测试播放频道");
+            testPlayItem.Click += (_, _) => TestPlayLastChannel();
             menu.Add(testPlayItem);
 
             var stopPlayItem = new NativeMenuItem("关闭播放");

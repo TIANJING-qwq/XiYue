@@ -1,0 +1,98 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SBtools.Views.SplashWindow"
+        Title=""
+        Width="440" Height="440"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Topmost="True"
+        WindowStartupLocation="CenterScreen"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        TransparencyBackgroundFallback="#00000000">
+
+    <!-- 深色卡片：克制、留白 -->
+    <Border x:Name="Root"
+            CornerRadius="20"
+            BorderThickness="1"
+            BorderBrush="#14FFFFFF"
+            ClipToBounds="True">
+        <Border.Background>
+            <SolidColorBrush Color="#FF0B0D11"/>
+        </Border.Background>
+
+        <Grid>
+            <!-- 图标舞台 -->
+            <Grid Width="160" Height="160"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  Margin="0,-58,0,0">
+
+                <!-- 柔光 -->
+                <Ellipse x:Name="Glow" Width="150" Height="150"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Opacity="0">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Offset="0" Color="#265B9BFF"/>
+                            <GradientStop Offset="0.55" Color="#0F5B9BFF"/>
+                            <GradientStop Offset="1" Color="#005B9BFF"/>
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+
+                <!-- 细环：一次性「画圆」连接隐喻 -->
+                <Ellipse x:Name="Sweep" Width="124" Height="124"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Stroke="#5B9BFF" StrokeThickness="1"
+                         StrokeDashArray="389.557,389.557"
+                         StrokeDashOffset="389.557"
+                         Opacity="0"/>
+
+                <!-- 应用图标 -->
+                <Image x:Name="AppIcon" Source="/Assets/app.png"
+                       Width="88" Height="88"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Opacity="0"/>
+            </Grid>
+
+            <!-- 词标 -->
+            <TextBlock x:Name="Wordmark"
+                       Text="Vael"
+                       FontSize="40"
+                       FontWeight="SemiBold"
+                       LetterSpacing="4"
+                       Foreground="#F5F7FA"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="0,58,0,0"
+                       Opacity="0"/>
+
+            <!-- 细线 -->
+            <Border x:Name="Hairline" Width="120" Height="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="0,124,0,0"
+                    Opacity="0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                        <GradientStop Offset="0" Color="#005B9BFF"/>
+                        <GradientStop Offset="0.5" Color="#8C5B9BFF"/>
+                        <GradientStop Offset="1" Color="#005B9BFF"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+
+            <!-- 副标题 -->
+            <TextBlock x:Name="Tagline"
+                       Text="校园网自动认证 · 轻量校园工具集"
+                       FontSize="12"
+                       LetterSpacing="1"
+                       Foreground="#7E8897"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="0,142,0,0"
+                       Opacity="0"/>
+        </Grid>
+    </Border>
+</Window>

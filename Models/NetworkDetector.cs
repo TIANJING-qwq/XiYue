@@ -33,7 +33,7 @@ public sealed class NetworkDetector
         };
 
         _http.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) XiYue/1.0");
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Vael/1.0");
     }
 
     // ============================================================

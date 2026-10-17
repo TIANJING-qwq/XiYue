@@ -18,10 +18,10 @@ namespace SBtools.Views;
 
 public partial class AboutView : UserControl
 {
-    private const string GitHubUrl = "https://github.com/TIANJING-qwq/XiYue";
+    private const string GitHubUrl = "https://github.com/TIANJING-qwq/Vael";
 
     private readonly List<Control> _fadeTargets = new();
-    private readonly List<string> _titleStages = new() { "XY", "XiY", "XiYu", "XiYue" };
+    private readonly List<string> _titleStages = new() { "V", "Va", "Vae", "Vael" };
 
     private readonly Dictionary<string, double> _targetOpacity = new()
     {
@@ -180,7 +180,7 @@ public partial class AboutView : UserControl
         Fade(AppIcon);
         await Task.Delay(400);
 
-        TitleText.Text = "XY";
+        TitleText.Text = "VL";
         Fade(TitleText);
         await Task.Delay(500);
 

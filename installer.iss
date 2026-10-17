@@ -1,16 +1,16 @@
-﻿[Setup]
-AppName=汐月 XiYue
-AppVersion=0.3.8
-AppPublisher=SchoolBusytools
-DefaultDirName={autopf}\XiYue
-DefaultGroupName=汐月
+[Setup]
+AppName=Vael
+AppVersion=0.4.5
+AppPublisher=Vael
+DefaultDirName={autopf}\Vael
+DefaultGroupName=Vael
 UninstallDisplayIcon={app}\SBtools.exe
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 OutputDir=.\publish\installer
-OutputBaseFilename=XiYue_Setup_v0.3.8
+OutputBaseFilename=Vael_Setup_v0.4.5
 SetupIconFile=Assets\app.ico
 ArchitecturesInstallIn64BitMode=x64
 
@@ -24,9 +24,9 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 Source: "publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\汐月"; Filename: "{app}\SBtools.exe"
-Name: "{group}\卸载汐月"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\汐月"; Filename: "{app}\SBtools.exe"; Tasks: desktopicon
+Name: "{group}\Vael"; Filename: "{app}\SBtools.exe"
+Name: "{group}\卸载Vael"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\Vael"; Filename: "{app}\SBtools.exe"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\SBtools.exe"; Description: "立即启动"; Flags: nowait postinstall skipifsilent

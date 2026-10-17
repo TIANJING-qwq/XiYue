@@ -1,16 +1,17 @@
 <div align="center">
 
-<img src="Assets/app.png" width="140" alt="汐月 XiYue Logo" />
+<img src="Assets/app.png" width="140" alt="Vael Logo" />
 
-# 汐月 · XiYue
+# Vael
 
 **校园网自动认证 · 轻量校园工具集**
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Avalonia UI](https://img.shields.io/badge/Avalonia-11.3-8A2BE2)](https://avaloniaui.net/)
 [![FluentAvalonia](https://img.shields.io/badge/FluentAvalonia-2.2-0078D4)](https://github.com/amwx/FluentAvalonia)
+[![WebView2](https://img.shields.io/badge/WebView2-1.0-0078D4)](https://developer.microsoft.com/microsoft-edge/webview2/)
 [![LibVLCSharp](https://img.shields.io/badge/LibVLCSharp-3.8-FF6600)](https://github.com/videolan/libvlcsharp)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)](#)
 [![License](https://img.shields.io/badge/license-BSD--3-green)](LICENSE)
 
 </div>
@@ -19,9 +20,9 @@
 
 ## 📖 简介
 
-**汐月（XiYue）** 是一款基于 **C# / .NET 8 + Avalonia UI** 构建的跨平台桌面工具，采用 **Fluent Design** 风格界面，支持 **Windows / macOS / Linux**。
+**Vael** 是一款基于 **C# / .NET 8 + Avalonia UI** 构建的桌面工具，采用 **Fluent Design** 风格界面，运行于 **Windows**。
 
-专注于校园网 Portal 自动认证场景，同时提供定时 CCTV 直播播放、现代化通知系统、浏览器插件联动、云母/亚克力材质、插件系统等丰富功能。界面简洁、动画流畅、交互自然。
+专注于校园网 Portal 自动认证场景，同时提供 CCTV 直播播放（基于官方 WebView2，全屏自动播放）、现代化通知系统、浏览器插件联动、云母/亚克力材质、插件系统等丰富功能。界面简洁、动画流畅、交互自然。
 
 > 纯客户端工具，不收集任何用户数据，所有认证凭据均以 AES 加密存储在本地。
 
@@ -37,13 +38,12 @@
 - 记录连接尝试次数与最后成功时间
 
 ### 🕒 定时播放 CCTV
+- 基于 **Edge WebView2** 打开央视官方直播页（`tv.cctv.com`），复用官方播放器与官方 CDN，稳定不卡
+- 提供 **CCTV-1 综合 / CCTV-13 新闻** 两个频道
 - 可设定每日时段（支持跨午夜），到点自动全屏播放
-- 内置 17 个央视直播频道，可自由选择（频道下拉框，选择会保存）
-- 直播源每日自动从 best-fan/iptv-sources 更新，失效源自动替换
-- 顶部控制栏自动隐藏，鼠标上移或触摸时出现
-- 右上角叠加通知，5 秒倒计时后自动消失
-- 支持播放过程中实时切换频道
-- 音量快捷键（↑↓ 调节、M 静音）
+- 打开后**自动全屏 + 自动播放**，自动隐藏央视页面自身的导航与播放器控件，只剩纯净画面
+- 关闭方式：右上角悬浮 ✕ / Esc / Alt+F4 / 托盘「关闭播放」
+- 定时播放可在「网络 → 定时播放」配置
 
 ### 🔔 通知系统
 - 亚克力半透明背景，自适应主题
@@ -68,7 +68,7 @@
 - 详见 **[插件开发文档](docs/PLUGIN_DEVELOPMENT.md)**
 
 ### 🔗 浏览器插件联动
-- 检测到关键词时通过本地 IPC（`http://127.0.0.1:18520/notify`）通知汐月
+- 检测到关键词时通过本地 IPC（`http://127.0.0.1:18520/notify`）通知Vael
 - 可配置自动动作：
   - 打开多个浏览器**新窗口**（而非标签页）
   - 系统音量调整（可**持续保持** N 秒）
@@ -88,7 +88,9 @@
 - **动画**：
   - 窗口启动淡入 + 内容微缩放
   - 弹窗进入/退出动画（缩放 + 淡入淡出）
-  - 关于页标题逐字符展开（XY → XiYue）
+  - 关于页标题逐字符展开（V → Va → Vae → Vael）
+- **自定义标题栏**：图标 / 返回 / 最小化 / 最大化 / 关闭，空白处可拖动窗口
+- **主页**：展示应用图标、本次更新内容、亮点卡片（点击进入详情）、每日一言
 
 ### 🔄 自动更新
 - 基于 Updatum + GitHub Releases
@@ -107,7 +109,7 @@
 ### 🖥️ 桌面集成
 - 系统托盘图标 + 原生右键菜单
 - 关闭时询问：退出 / 最小化到托盘
-- 开机自启动（Windows 注册表 / macOS LaunchAgents / Linux autostart）
+- 开机自启动（Windows 注册表）
 - 单实例检测：重复启动时唤起已有窗口
 - 系统音量控制（Core Audio API，强制取消静音）
 
@@ -122,14 +124,14 @@
 
 ### 环境要求
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Windows 10 1809+ / macOS 11+ / Ubuntu 20.04+
+- Windows 10 1809+（CCTV 需 Edge WebView2 运行时）
 - （可选）Visual Studio 2022 或 JetBrains Rider
 
 ### 从源码运行
 
 ```bash
-git clone https://github.com/TIANJING-qwq/XiYue.git
-cd XiYue
+git clone https://github.com/TIANJING-qwq/Vael.git
+cd Vael
 dotnet restore
 dotnet run
 ```
@@ -145,20 +147,6 @@ dotnet publish -c Release -r win-x64 --self-contained true `
   -o ./publish/win-x64
 ```
 
-**macOS（Apple Silicon）：**
-
-```bash
-dotnet publish -c Release -r osx-arm64 --self-contained true \
-  -p:PublishSingleFile=true -o ./publish/osx-arm64
-```
-
-**Linux：**
-
-```bash
-dotnet publish -c Release -r linux-x64 --self-contained true \
-  -p:PublishSingleFile=true -o ./publish/linux-x64
-```
-
 ### 一键构建脚本（Windows）
 
 ```powershell
@@ -166,13 +154,13 @@ dotnet publish -c Release -r linux-x64 --self-contained true \
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 # 一键发布 + Inno Setup 打包 + GitHub Release
-.\publish.ps1 -Version 0.4.4
+.\publish.ps1 -Version 0.4.5
 
 # 只构建不发布
-.\publish.ps1 -Version 0.4.4 -SkipPublish
+.\publish.ps1 -Version 0.4.5 -SkipPublish
 
 # 保留 publish/ 里的构建产物
-.\publish.ps1 -Version 0.4.4 -KeepArtifacts
+.\publish.ps1 -Version 0.4.5 -KeepArtifacts
 ```
 
 脚本自动完成：
@@ -208,7 +196,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 ## 🔌 插件开发
 
-汐月支持第三方插件扩展。快速上手：
+Vael支持第三方插件扩展。快速上手：
 
 ```csharp
 using SBtools.Plugins;
@@ -251,25 +239,12 @@ Source: "publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdi
 
 > 必须加 `recursesubdirs createallsubdirs`，否则 LibVLC 的 `plugins\` 子目录不会被打包。
 
-### macOS
-
-```bash
-brew install create-dmg
-create-dmg "XiYue_v0.4.4.dmg" "XiYue.app"
-```
-
-### Linux
-
-```bash
-dpkg-deb --build XiYue_0.4.4_amd64
-```
-
 ---
 
 ## 📁 项目结构
 
 ```text
-XiYue/
+Vael/
 ├── Assets/                              # 图标、图片资源
 │   ├── app.ico                          # Windows 应用图标
 │   ├── app.png                          # PNG 图标
@@ -277,8 +252,7 @@ XiYue/
 │   └── screenshots/                     # 界面截图
 ├── Controls/
 │   ├── NotificationToast                # 通知组件
-│   ├── ToastHost                        # 通知堆叠容器
-│   └── VlcVideoView                     # 回调渲染视频控件
+│   └── ToastHost                        # 通知堆叠容器
 ├── Models/
 │   ├── ConfigManager.cs                 # 配置管理（持久化）
 │   ├── SecureStorage.cs                 # AES 加密存储
@@ -291,7 +265,7 @@ XiYue/
 │   ├── PluginContext.cs                 # 上下文实现
 │   └── PluginManager.cs                 # 加载器
 ├── Services/
-│   ├── CctvChannels.cs                  # 频道列表
+│   ├── CctvChannels.cs                  # CCTV 频道列表（CCTV-1/13）
 │   ├── PlaybackScheduler.cs             # 定时调度器
 │   ├── ScheduleConfig.cs                # 调度配置
 │   ├── AutoStartManager.cs              # 开机自启动
@@ -313,7 +287,7 @@ XiYue/
 │   ├── PluginsView.axaml                # 插件管理
 │   ├── SettingsView.axaml               # 设置
 │   ├── AboutView.axaml                  # 关于
-│   ├── FullscreenPlayerWindow.axaml     # 全屏播放窗口
+│   ├── CctvWebPlayerWindow.axaml        # WebView2 全屏播放窗口
 │   ├── CloseConfirmDialog.axaml         # 关闭确认对话框
 │   ├── UpdateAvailableDialog.axaml      # 更新提示
 │   ├── UpdateDownloadDialog.axaml       # 更新下载
@@ -341,8 +315,6 @@ XiYue/
 | 平台 | 路径 |
 |------|------|
 | Windows | `%APPDATA%\SchoolBusytools\` |
-| macOS | `~/Library/Application Support/SchoolBusytools/` |
-| Linux | `~/.config/SchoolBusytools/` |
 
 包含：
 
@@ -363,7 +335,8 @@ XiYue/
 | UI 框架 | Avalonia UI | 11.3 |
 | 设计风格 | FluentAvalonia | 2.2 |
 | MVVM | ReactiveUI | 20.1 |
-| 视频播放 | LibVLCSharp | 3.8 |
+| 视频播放 | WebView2（Edge） | 1.0 |
+| 音效播放 | LibVLCSharp | 3.8 |
 | JSON | Newtonsoft.Json | 13.0 |
 | 自动更新 | Updatum | 1.4 |
 | 加密 | AES-256（本地密钥） | - |
@@ -407,17 +380,15 @@ XiYue/
 | `StackedVisible` | 堆叠时露出高度 | 32 |
 | `AutoCollapseOnNew` | 新通知到达时自动折叠 | true |
 
-### 添加自定义 CCTV 频道
+### 添加 CCTV 频道
 
-编辑 `Services/CctvChannels.cs`：
+编辑 `Services/CctvChannels.cs`，把频道名加入 `Names` 列表：
 
 ```csharp
-public static List<CctvChannel> All { get; } = new()
-{
-    new() { Name = "自定义频道", Urls = new[] { "http://your-stream.m3u8" } },
-    // ...
-};
+public static readonly string[] Names = { "CCTV-1 综合", "CCTV-13 新闻", "CCTV-5 体育" };
 ```
+
+播放器会根据频道名里的台号自动打开对应央视直播页（例如 `CCTV-5 体育` → `https://tv.cctv.com/live/cctv5/`）。
 
 ### 浏览器插件关键词
 
@@ -439,7 +410,7 @@ const AIRPLANE_KEYWORDS = [
 A: 单文件打包的 exe 首次启动需解压到临时目录，约 2～5 秒。后续启动会快很多。
 
 **Q: CCTV 无法播放？**
-A: 检查 `publish\win-x64\` 目录下是否有 `libvlc.dll`、`libvlccore.dll`、`plugins\` 文件夹。如缺失，执行 `dotnet nuget locals all --clear && dotnet restore` 后重新发布。
+A: CCTV 播放依赖 **Microsoft Edge WebView2 运行时**。Windows 11 一般自带；Windows 10 可到微软官网下载 Evergreen 运行时。国内网络下央视直播页（`tv.cctv.com`）可正常访问；若页面黑屏或需手动点播放，请反馈现象。
 
 **Q: 杀毒软件报毒？**
 A: 未签名 exe 可能被 Windows Defender 误报，请添加信任，或使用 EV 证书签名后分发。
@@ -447,16 +418,10 @@ A: 未签名 exe 可能被 Windows Defender 误报，请添加信任，或使用
 **Q: 设置无法保存？**
 A: 检查 `%APPDATA%\SchoolBusytools\` 目录是否有写入权限。查看调试输出里的 `[Config]` 日志。
 
-**Q: Linux 上托盘图标不显示？**
-A: 部分桌面环境需要安装 `libappindicator3-1` 或 `libayatana-appindicator3-1`。
-
-**Q: IPTV 直播源失效？**
-A: 第三方源可能随时变化。可通过编辑 `Services/CctvChannels.cs` 更换为最新源。
-
 **Q: 自动更新失败？**
 A: 设置页里选一个代理（gh-proxy.com 等），或检查网络是否能访问 GitHub API。
 
-**Q: 浏览器插件无法连接汐月？**
+**Q: 浏览器插件无法连接Vael？**
 A: 需管理员权限注册 URL 前缀：
 
 ```powershell
@@ -473,7 +438,14 @@ A: 打开「插件」页查看错误信息。常见原因：缺依赖 DLL、主�
 
 ## 🔄 更新日志
 
-当前版本：**v0.4.4**（2026-10-11）
+当前版本：**v0.4.5**（2026-10）
+
+### v0.4.5
+- **CCTV 直播重构**：弃用 LibVLC + 第三方 IPTV 源，改用 **Edge WebView2** 打开央视官方直播页，全屏自动播放、稳定不卡
+- 频道精简为 **CCTV-1 / CCTV-13** 两个
+- **主页重做**：图标 + 本次更新内容 + 亮点卡片（点击进详情）+ 每日一言
+- **自定义标题栏**：图标 / 返回 / 最小化 / 最大化 / 关闭
+- 应用更名 **Vael**
 
 ### v0.4.4
 - 新增**更改设置需要安全码**：进入设置页需先验证，解锁后本次可自由修改
@@ -555,16 +527,15 @@ A: 打开「插件」页查看错误信息。常见原因：缺依赖 DLL、主�
 - [ReactiveUI](https://www.reactiveui.net/) — MVVM 框架
 - [LibVLCSharp](https://github.com/videolan/libvlcsharp) — 视频播放
 - [Updatum](https://github.com/sn4k3/Updatum) — 自动更新
-- [IPTV 直播源](https://github.com/iptv-org/iptv) — 频道列表参考
 - 所有开源贡献者
 
 ---
 
 <div align="center">
 
-**SchoolBusytools 项目组 · tianjing & deepseek**
+**Vael 项目组 · tianjing & deepseek**
 
-版本 0.4.4 · 2026
+版本 0.4.5 · 2026
 
 ⭐ 如果这个项目对你有帮助，欢迎点一个 Star！
 

@@ -27,8 +27,7 @@ internal class PluginContext : IPluginContext
         AppVersion = typeof(PluginContext).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 
         DataDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "SchoolBusytools", "plugins", pluginId);
+            ConfigManager.AppDataDir, "plugins", pluginId);
 
         try { Directory.CreateDirectory(DataDirectory); } catch { }
 

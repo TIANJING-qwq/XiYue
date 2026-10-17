@@ -37,7 +37,8 @@
 
         <StackPanel Spacing="16">
 
-            <TextBlock Text="发现新版本"
+            <TextBlock x:Name="TitleText"
+                       Text="发现新版本"
                        FontSize="20"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>

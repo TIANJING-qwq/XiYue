@@ -12,9 +12,7 @@ public static class SecureStorage
 
     static SecureStorage()
     {
-        var dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "SchoolBusytools");
+        var dir = ConfigManager.AppDataDir;
         Directory.CreateDirectory(dir);
         var keyFile = Path.Combine(dir, "secure.key");
 

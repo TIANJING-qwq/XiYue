@@ -139,6 +139,31 @@
                                     ClockIdentifier="24HourClock"/>
                     </Grid>
 
+                    <Grid ColumnDefinitions="*,180">
+                        <TextBlock Grid.Column="0"
+                                   Text="频道"
+                                   FontSize="13"
+                                   VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1"
+                                  x:Name="ScheduleChannelComboBox"/>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="直播源（每日自动更新）"
+                                       FontSize="13"/>
+                            <TextBlock x:Name="ChannelSourceStatusText"
+                                       FontSize="11"
+                                       Opacity="0.5"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Content="立即更新源"
+                                Padding="14,6"
+                                Margin="8,0,0,0"
+                                Click="RefreshChannelSource_Click"/>
+                    </Grid>
+
                     <TextBlock x:Name="ScheduleStatusText"
                                FontSize="12"
                                Opacity="0.6"

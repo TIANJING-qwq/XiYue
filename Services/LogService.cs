@@ -1,3 +1,4 @@
+using SBtools.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,9 +17,7 @@ public static class LogService
 
     static LogService()
     {
-        _logDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "SchoolBusytools", "logs");
+        _logDir = Path.Combine(ConfigManager.AppDataDir, "logs");
 
         try
         {

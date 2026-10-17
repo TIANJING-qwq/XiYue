@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Media.Transformation;
 using Avalonia.Platform;
+using SBtools.Models;
 using SBtools.Services;
 using System;
 using System.Collections.Generic;
@@ -253,8 +254,6 @@ public partial class AboutView : UserControl
 
         try
         {
-            MainWindow.SetAutoChecking(false);
-
             UpdateStatusText.Text = "正在检查更新...";
             LogService.Log("用户点击检查更新", "更新");
 
@@ -266,7 +265,51 @@ public partial class AboutView : UserControl
                 return;
             }
 
-            UpdateStatusText.Text = "已发现新版本，请查看弹窗";
+            // ★ 手动更新：弹窗确认 → 下载（带进度）→ 安装（按安装方式设置）
+            var owner = TopLevel.GetTopLevel(this) as Window;
+            var version = UpdateService.Instance.LatestVersion ?? "";
+
+            var dialog = new UpdateAvailableDialog(version, UpdateService.Instance.GetChangelog());
+            if (owner == null || !await dialog.ShowDialog<bool>(owner))
+            {
+                UpdateStatusText.Text = "已取消更新";
+                return;
+            }
+
+            UpdateStatusText.Text = "正在下载更新...";
+            var progress = new UpdateDownloadDialog();
+            progress.Show(owner);
+
+            bool downloaded = await UpdateService.Instance.DownloadAsync();
+            try { await progress.CloseWithAnimationAsync(); } catch { }
+
+            if (!downloaded)
+            {
+                UpdateStatusText.Text = "下载失败";
+                MainWindow.PushToast("更新失败", UpdateService.Instance.LastError ?? "下载失败，请稍后重试。");
+                return;
+            }
+
+            if (ConfigManager.Instance.AutoInstallUpdate)
+            {
+                UpdateStatusText.Text = "正在安装更新...";
+                await UpdateService.Instance.InstallAsync();
+            }
+            else
+            {
+                var installDialog = new UpdateAvailableDialog(
+                    version, "新版本已下载完成，是否立即安装？", "安装更新", "立即安装");
+                if (owner != null && await installDialog.ShowDialog<bool>(owner))
+                {
+                    UpdateStatusText.Text = "正在安装更新...";
+                    await UpdateService.Instance.InstallAsync();
+                }
+                else
+                {
+                    UpdateStatusText.Text = "已下载，未安装";
+                    MainWindow.PushToast("更新已下载", "稍后会再次提示安装。");
+                }
+            }
         }
         catch (Exception ex)
         {

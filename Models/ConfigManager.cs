@@ -9,9 +9,46 @@ public class ConfigManager
     private static ConfigManager? _instance;
     public static ConfigManager Instance => _instance ??= new ConfigManager();
 
-    private static readonly string ConfigDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SchoolBusytools");
+    private static readonly string ConfigDir = ResolveConfigDir();
+
+    /// <summary>应用数据目录（优先 %APPDATA%\SchoolBusytools，受限环境回退到程序目录）。</summary>
+    public static string AppDataDir => ConfigDir;
+
+    /// <summary>优先用 %APPDATA%，若不可写则回退到程序目录（沙箱/受限环境）。</summary>
+    private static string ResolveConfigDir()
+    {
+        var appData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "SchoolBusytools");
+
+        if (IsWritable(appData)) return appData;
+
+        try
+        {
+            var exeDir = AppContext.BaseDirectory;
+            if (!string.IsNullOrEmpty(exeDir))
+            {
+                var fallback = Path.Combine(exeDir, "SchoolBusytools");
+                if (IsWritable(fallback)) return fallback;
+            }
+        }
+        catch { }
+
+        return appData;
+    }
+
+    private static bool IsWritable(string dir)
+    {
+        try
+        {
+            Directory.CreateDirectory(dir);
+            var probe = Path.Combine(dir, $".w_{Guid.NewGuid():N}");
+            File.WriteAllText(probe, "x");
+            File.Delete(probe);
+            return true;
+        }
+        catch { return false; }
+    }
 
     private readonly string _path = Path.Combine(ConfigDir, "config.json");
 
@@ -80,6 +117,21 @@ public class ConfigManager
     {
         get => _data.AutoCheckUpdate;
         set { if (_data.AutoCheckUpdate == value) return; _data.AutoCheckUpdate = value; Save(); }
+    }
+
+    // ---------------- ★ 更新：下载方式 / 安装方式 ----------------
+    /// <summary>检测到更新后是否自动下载（false = 先弹窗确认）</summary>
+    public bool AutoDownloadUpdate
+    {
+        get => _data.AutoDownloadUpdate;
+        set { if (_data.AutoDownloadUpdate == value) return; _data.AutoDownloadUpdate = value; Save(); }
+    }
+
+    /// <summary>下载完成后是否自动安装（false = 先弹窗确认）</summary>
+    public bool AutoInstallUpdate
+    {
+        get => _data.AutoInstallUpdate;
+        set { if (_data.AutoInstallUpdate == value) return; _data.AutoInstallUpdate = value; Save(); }
     }
 
     public string ThemeMode
@@ -153,9 +205,7 @@ public class ConfigManager
     public string GalleryPath
     {
         get => string.IsNullOrWhiteSpace(_data.GalleryPath)
-            ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SchoolBusytools", "gallery")
+            ? Path.Combine(AppDataDir, "gallery")
             : _data.GalleryPath;
         set
         {
@@ -343,6 +393,10 @@ public class ConfigManager
 
         public int LastVolume { get; set; } = 80;
         public bool AutoCheckUpdate { get; set; } = true;
+
+        // ★ 更新：下载方式 / 安装方式
+        public bool AutoDownloadUpdate { get; set; } = true;
+        public bool AutoInstallUpdate { get; set; } = true;
         public string ThemeMode { get; set; } = "Default";
 
         // ★ 更新代理

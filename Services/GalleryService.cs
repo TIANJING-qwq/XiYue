@@ -30,9 +30,7 @@ public static class GalleryService
             try { return ConfigManager.Instance.GalleryPath; }
             catch
             {
-                return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "SchoolBusytools", "gallery");
+                return Path.Combine(ConfigManager.AppDataDir, "gallery");
             }
         }
     }

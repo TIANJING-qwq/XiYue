@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private FullscreenPlayerWindow? _playerWindow;
 
     private static bool _isAutoChecking = true;
+    private bool _updateInProgress;
 
     private bool _windowShown;
 
@@ -74,6 +75,7 @@ public partial class MainWindow : Window
         InitNetworkMonitor();
         InitUpdateService();
         LocalIpcServer.Instance.Start();
+        ChannelSourceService.Instance.Start();
 
         Closing += OnWindowClosing;
 
@@ -130,10 +132,34 @@ public partial class MainWindow : Window
             {
                 await Task.Delay(1500);
 
-                LogService.Log("开始自动检查更新", "更新");
-                _isAutoChecking = true;
+                // ★ 若有上次下载好但未安装的更新，先提示安装
+                if (UpdateService.Instance.HasPendingUpdate)
+                {
+                    Dispatcher.UIThread.Post(async () =>
+                    {
+                        try
+                        {
+                            if (_isHiddenToTray || !IsVisible)
+                                RestoreMainWindow();
 
-                await UpdateService.Instance.CheckForUpdatesAsync();
+                            var dlg = new UpdateAvailableDialog(
+                                "已下载", "检测到上次已下载好的更新，是否立即安装？",
+                                "安装更新", "立即安装");
+
+                            if (await dlg.ShowDialog<bool>(this))
+                                await UpdateService.Instance.InstallAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            LogService.Log($"待安装更新提示异常: {ex.Message}", "更新");
+                        }
+                    });
+                    return;
+                }
+
+                // ★ 启动时检查一次，走后台自动更新流程
+                var hasUpdate = await UpdateService.Instance.CheckForUpdatesAsync();
+                await Dispatcher.UIThread.InvokeAsync(() => _ = HandleAutoUpdateAsync(hasUpdate));
 
                 if (ConfigManager.Instance.AutoCheckUpdate)
                     UpdateService.Instance.StartAutoCheck();
@@ -229,60 +255,10 @@ public partial class MainWindow : Window
         {
             var updater = UpdateService.Instance;
 
-            updater.UpdateAvailable += version =>
+            // ★ 后台自动更新（定时检查）：发现新版本后按设置决定是否静默下载/安装
+            updater.AutoCheckCompleted += hasUpdate =>
             {
-                Dispatcher.UIThread.Post(async () =>
-                {
-                    try
-                    {
-                        if (_isHiddenToTray || !IsVisible)
-                            RestoreMainWindow();
-
-                        await Task.Delay(200);
-
-                        var changelog = updater.GetChangelog();
-                        var dialog = new UpdateAvailableDialog(version, changelog);
-                        var confirmed = await dialog.ShowDialog<bool>(this);
-
-                        if (!confirmed)
-                        {
-                            LogService.Log($"用户忽略新版本 {version}", "更新");
-                            _isAutoChecking = true;
-                            return;
-                        }
-
-                        var progressDialog = new UpdateDownloadDialog();
-                        progressDialog.Show(this);
-
-                        var success = await updater.DownloadAndInstallAsync();
-
-                        try { await progressDialog.CloseWithAnimationAsync(); } catch { }
-
-                        _isAutoChecking = true;
-
-                        if (success)
-                            PushToast("更新就绪",
-                                "安装程序已启动，请按提示完成后重新打开汐月。");
-                        else
-                            PushToast("更新失败",
-                                "请稍后重试，或前往 GitHub 手动下载。");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogService.Log($"更新对话框异常: {ex.Message}", "更新");
-                        _isAutoChecking = true;
-                    }
-                });
-            };
-
-            updater.CheckCompleted += hasUpdate =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (!hasUpdate)
-                        PushToast("检查更新", "当前已是最新版本。");
-                    _isAutoChecking = true;
-                });
+                Dispatcher.UIThread.Post(() => _ = HandleAutoUpdateAsync(hasUpdate));
             };
 
             updater.InstallCompleted += success =>
@@ -290,11 +266,9 @@ public partial class MainWindow : Window
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (success)
-                        PushToast("更新就绪",
-                            "安装程序已启动，请按提示完成后重新打开汐月。");
+                        PushToast("更新安装已开始", "应用即将自动重启。");
                     else
-                        PushToast("更新失败",
-                            "请稍后重试，或前往 GitHub 手动下载。");
+                        PushToast("更新失败", UpdateService.Instance.LastError ?? "请稍后重试。");
                 });
             };
 
@@ -303,6 +277,77 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             LogService.Log($"订阅更新事件失败: {ex.Message}", "更新");
+        }
+    }
+
+    // ============================================================
+    // ★ 后台自动更新流程（与手动「检查更新」分开）
+    // ============================================================
+    private async Task HandleAutoUpdateAsync(bool hasUpdate)
+    {
+        if (!hasUpdate) return;
+        if (_updateInProgress) return;
+        _updateInProgress = true;
+
+        try
+        {
+            var version = UpdateService.Instance.LatestVersion ?? "";
+            bool autoDownload = ConfigManager.Instance.AutoDownloadUpdate;
+            bool autoInstall  = ConfigManager.Instance.AutoInstallUpdate;
+
+            if (!autoDownload)
+            {
+                // 下载方式=手动：弹窗确认是否下载
+                if (_isHiddenToTray || !IsVisible) RestoreMainWindow();
+                var dialog = new UpdateAvailableDialog(version, UpdateService.Instance.GetChangelog());
+                if (!await dialog.ShowDialog<bool>(this))
+                {
+                    LogService.Log($"用户忽略新版本 {version}", "更新");
+                    return;
+                }
+            }
+            else
+            {
+                PushToast("发现新版本", $"正在自动下载 v{version} …");
+            }
+
+            bool fullyAuto = autoDownload && autoInstall;
+            var progress = fullyAuto ? null : new UpdateDownloadDialog();
+            if (progress != null) progress.Show(this);
+
+            bool downloaded = await UpdateService.Instance.DownloadAsync();
+            if (progress != null) { try { await progress.CloseWithAnimationAsync(); } catch { } }
+
+            if (!downloaded)
+            {
+                PushToast("更新失败", UpdateService.Instance.LastError ?? "下载失败，请稍后重试。");
+                return;
+            }
+
+            if (autoInstall)
+            {
+                // 安装方式=自动：静默替换并重启
+                PushToast("更新", "下载完成，正在安装…");
+                await UpdateService.Instance.InstallAsync();
+            }
+            else
+            {
+                // 安装方式=手动：弹窗确认
+                if (_isHiddenToTray || !IsVisible) RestoreMainWindow();
+                var dialog = new UpdateAvailableDialog(version, "新版本已下载完成，是否立即安装？", "安装更新", "立即安装");
+                if (await dialog.ShowDialog<bool>(this))
+                    await UpdateService.Instance.InstallAsync();
+                else
+                    PushToast("更新已下载", "稍后会再次提示安装。");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Log($"自动更新流程异常: {ex.Message}", "更新");
+        }
+        finally
+        {
+            _updateInProgress = false;
         }
     }
 
@@ -480,6 +525,7 @@ public partial class MainWindow : Window
             _scheduler = null;
 
             try { UpdateService.Instance.StopAutoCheck(); } catch { }
+            try { ChannelSourceService.Instance.Stop(); } catch { }
             try { LocalIpcServer.Instance.Stop(); } catch { }
             try { ClickSoundService.Instance.Dispose(); } catch { }
 

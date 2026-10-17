@@ -29,36 +29,38 @@ public sealed class UpdateService
     private bool _initialized;
 
     private CancellationTokenSource? _downloadCts;
+    private System.Timers.Timer? _autoCheckTimer;
 
-    public event Action<string>? UpdateAvailable;
-    public event Action<bool>? CheckCompleted;
+    /// <summary>下载完成后暂存的更新目录（持久化，供「手动安装」使用）。</summary>
+    private static readonly string PendingDir =
+        Path.Combine(ConfigManager.AppDataDir, "pending_update");
+
     public event Action<int>? DownloadProgressChanged;
     public event Action<string>? DownloadSpeedChanged;
+    public event Action<bool>? DownloadCompleted;
     public event Action<bool>? InstallCompleted;
     public event Action? DownloadCancelled;
 
+    /// <summary>定时自动检查完成（是否有新版本），供主窗口后台自动更新使用。</summary>
+    public event Action<bool>? AutoCheckCompleted;
+
     public string CurrentVersion => _updater.CurrentVersion.ToString();
     public string? LatestVersion  => _updater.LatestRelease?.TagName?.TrimStart('v');
+
+    /// <summary>最近一次操作失败的原因（空 = 无错误）。</summary>
+    public string? LastError { get; private set; }
+
+    /// <summary>是否存在已下载、待安装的更新。</summary>
+    public bool HasPendingUpdate =>
+        Directory.Exists(PendingDir) && File.Exists(Path.Combine(PendingDir, "SBtools.exe"));
 
     private UpdateService()
     {
         _updater = new UpdatumManager(GithubOwner, GithubRepo)
         {
-            // ★ 改为 Portable，Updatum 内部不再启动 Inno 安装程序
-                        // 保留 Installer 值即可，反正我们不走 Updatum 的安装流程
-            InstallUpdateWindowsExeType = UpdatumWindowsExeType.Installer,
-
             // ★ 只匹配 ZIP（忽略 Setup.exe）
             AssetRegexPattern = @"XiYue.*win-x64.*\.zip$",
-
             DownloadProgressUpdateFrequencySeconds = 0.3,
-        };
-
-        _updater.UpdateFound += (sender, e) =>
-        {
-            var version = _updater.LatestRelease?.TagName ?? "未知";
-            LogService.Log($"发现新版本: {version}", "更新");
-            UpdateAvailable?.Invoke(version.TrimStart('v'));
         };
     }
 
@@ -86,8 +88,6 @@ public sealed class UpdateService
     {
         try
         {
-            LogService.Log("手动检查更新...", "更新");
-
             var hasUpdate = await _updater.CheckForUpdatesAsync();
 
             if (hasUpdate)
@@ -95,24 +95,23 @@ public sealed class UpdateService
             else
                 LogService.Log("当前已是最新版本", "更新");
 
-            CheckCompleted?.Invoke(hasUpdate);
             return hasUpdate;
         }
         catch (Exception ex)
         {
             LogService.Log($"检查更新失败: {ex.Message}", "更新");
-            CheckCompleted?.Invoke(false);
             return false;
         }
     }
 
     // ============================================================
-    // ★ 核心：下载 ZIP → 解压 → 生成替换脚本 → 退出
+    // ★ 下载：ZIP → 解压 → 展平 → 暂存到 pending_update
     // ============================================================
-    public async Task<bool> DownloadAndInstallAsync()
+    public async Task<bool> DownloadAsync()
     {
         _downloadCts = new CancellationTokenSource();
         var token = _downloadCts.Token;
+        LastError = null;
 
         try
         {
@@ -121,8 +120,9 @@ public sealed class UpdateService
             var release = _updater.LatestRelease;
             if (release?.Assets == null || release.Assets.Count == 0)
             {
-                LogService.Log("Release 里没有资产", "更新");
-                InstallCompleted?.Invoke(false);
+                LastError = "Release 里没有资产";
+                LogService.Log(LastError, "更新");
+                DownloadCompleted?.Invoke(false);
                 return false;
             }
 
@@ -132,8 +132,9 @@ public sealed class UpdateService
 
             if (asset == null)
             {
-                LogService.Log("没有找到 .zip 资产，无法自替换更新", "更新");
-                InstallCompleted?.Invoke(false);
+                LastError = "没有找到 .zip 资产";
+                LogService.Log(LastError, "更新");
+                DownloadCompleted?.Invoke(false);
                 return false;
             }
 
@@ -145,29 +146,32 @@ public sealed class UpdateService
 
             LogService.Log($"下载地址: {downloadUrl}", "更新");
 
-            // 1. 下载 ZIP 到临时文件
+            // 1. 下载 ZIP 到数据目录（受限环境自动回退到可写位置）
             var zipPath = Path.Combine(
-                Path.GetTempPath(),
+                ConfigManager.AppDataDir,
                 $"XiYue_update_{Guid.NewGuid():N}.zip");
 
             await DownloadFileAsync(downloadUrl, zipPath, token);
             LogService.Log($"下载完成: {zipPath}", "更新");
 
-            // 2. 解压到临时目录
+            // 2. 解压到 AppData 下的临时目录（与 pending_update 同盘，便于 rename）
+            Directory.CreateDirectory(ConfigManager.AppDataDir);
             var extractDir = Path.Combine(
-                Path.GetTempPath(),
-                $"XiYue_update_{Guid.NewGuid():N}");
+                ConfigManager.AppDataDir,
+                $".update_tmp_{Guid.NewGuid():N}");
 
             try
             {
                 if (Directory.Exists(extractDir)) Directory.Delete(extractDir, true);
                 ZipFile.ExtractToDirectory(zipPath, extractDir);
                 LogService.Log($"解压完成: {extractDir}", "更新");
+                try { File.Delete(zipPath); } catch { }
             }
             catch (Exception ex)
             {
-                LogService.Log($"解压失败: {ex.Message}", "更新");
-                InstallCompleted?.Invoke(false);
+                LastError = $"解压失败: {ex.Message}";
+                LogService.Log(LastError, "更新");
+                DownloadCompleted?.Invoke(false);
                 return false;
             }
 
@@ -181,8 +185,9 @@ public sealed class UpdateService
 
             if (string.IsNullOrEmpty(newExe) || !File.Exists(newExe))
             {
-                LogService.Log("ZIP 里没有 SBtools.exe", "更新");
-                InstallCompleted?.Invoke(false);
+                LastError = "ZIP 里没有 SBtools.exe";
+                LogService.Log(LastError, "更新");
+                DownloadCompleted?.Invoke(false);
                 return false;
             }
 
@@ -203,26 +208,79 @@ public sealed class UpdateService
                 try { Directory.Delete(newExeDir, true); } catch { }
             }
 
-            // 4. 当前程序目录
+            // 4. 暂存到 pending_update（原子 rename，避免临时目录被清理）
+            try
+            {
+                if (Directory.Exists(PendingDir)) Directory.Delete(PendingDir, true);
+                Directory.Move(extractDir, PendingDir);
+                LogService.Log($"更新已暂存到: {PendingDir}", "更新");
+            }
+            catch (Exception ex)
+            {
+                LastError = $"暂存更新失败: {ex.Message}";
+                LogService.Log(LastError, "更新");
+                DownloadCompleted?.Invoke(false);
+                return false;
+            }
+
+            DownloadCompleted?.Invoke(true);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            LastError = "用户取消了下载";
+            LogService.Log(LastError, "更新");
+            DownloadCancelled?.Invoke();
+            DownloadCompleted?.Invoke(false);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            LogService.Log($"下载失败: {ex.Message}", "更新");
+            DownloadCompleted?.Invoke(false);
+            return false;
+        }
+        finally
+        {
+            _downloadCts?.Dispose();
+            _downloadCts = null;
+        }
+    }
+
+    // ============================================================
+    // ★ 安装：从 pending_update 生成替换脚本 → 退出主程序
+    // ============================================================
+    public async Task<bool> InstallAsync()
+    {
+        try
+        {
+            LogService.Log("开始安装更新...", "更新");
+
+            if (!HasPendingUpdate)
+            {
+                LogService.Log("没有可安装的更新", "更新");
+                InstallCompleted?.Invoke(false);
+                return false;
+            }
+
+            // 当前程序目录
             var currentExe = Environment.ProcessPath;
             if (string.IsNullOrEmpty(currentExe))
                 currentExe = Path.Combine(AppContext.BaseDirectory, "SBtools.exe");
 
             var targetDir = Path.GetDirectoryName(currentExe)!;
-
             LogService.Log($"更新目标目录: {targetDir}", "更新");
-            LogService.Log($"当前 exe: {currentExe}", "更新");
 
-            // 5. 生成替换脚本（纯 ASCII，避免编码问题）
             var batPath = Path.Combine(Path.GetTempPath(),
                 $"XiYue_update_{Guid.NewGuid():N}.bat");
 
-            var batContent = BuildUpdateScript(extractDir, targetDir, currentExe, zipPath);
+            var batContent = BuildUpdateScript(
+                PendingDir, targetDir, Path.Combine(targetDir, "SBtools.exe"), "");
             File.WriteAllText(batPath, batContent, Encoding.ASCII);
 
             LogService.Log($"替换脚本已生成: {batPath}", "更新");
 
-            // 6. 启动 bat（隐藏窗口）
             var psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
@@ -237,30 +295,24 @@ public sealed class UpdateService
 
             InstallCompleted?.Invoke(true);
 
-            // 7. 主程序退出，让 bat 完成替换
             await Task.Delay(500);
             Environment.Exit(0);
 
             return true;
         }
-        catch (OperationCanceledException)
-        {
-            LogService.Log("用户取消了下载", "更新");
-            DownloadCancelled?.Invoke();
-            InstallCompleted?.Invoke(false);
-            return false;
-        }
         catch (Exception ex)
         {
-            LogService.Log($"下载/安装失败: {ex.Message}", "更新");
+            LogService.Log($"安装失败: {ex.Message}", "更新");
             InstallCompleted?.Invoke(false);
             return false;
         }
-        finally
-        {
-            _downloadCts?.Dispose();
-            _downloadCts = null;
-        }
+    }
+
+    /// <summary>下载后立即安装（一步到位）。</summary>
+    public async Task<bool> DownloadAndInstallAsync()
+    {
+        if (!await DownloadAsync()) return false;
+        return await InstallAsync();
     }
 
     // ============================================================
@@ -299,7 +351,8 @@ public sealed class UpdateService
         sb.AppendLine("");
         sb.AppendLine("echo Cleaning up...");
         sb.AppendLine($"rmdir /S /Q \"{sourceDir}\" >nul 2>&1");
-        sb.AppendLine($"del /F /Q \"{zipPath}\" >nul 2>&1");
+        if (!string.IsNullOrEmpty(zipPath))
+            sb.AppendLine($"del /F /Q \"{zipPath}\" >nul 2>&1");
         sb.AppendLine("");
         sb.AppendLine("del /F /Q \"%~f0\"");
         sb.AppendLine("");
@@ -328,8 +381,23 @@ public sealed class UpdateService
         try
         {
             var span = interval ?? TimeSpan.FromHours(1);
-            _updater.AutoUpdateCheckTimer.Interval = span.TotalMilliseconds;
-            _updater.AutoUpdateCheckTimer.Start();
+            StopAutoCheck();
+
+            _autoCheckTimer = new System.Timers.Timer(span.TotalMilliseconds) { AutoReset = true };
+            _autoCheckTimer.Elapsed += async (_, _) =>
+            {
+                try
+                {
+                    var hasUpdate = await CheckForUpdatesAsync();
+                    AutoCheckCompleted?.Invoke(hasUpdate);
+                }
+                catch (Exception ex)
+                {
+                    LogService.Log($"定时检查异常: {ex.Message}", "更新");
+                }
+            };
+            _autoCheckTimer.Start();
+
             LogService.Log($"定时自动检查已启动，间隔 {span}", "更新");
         }
         catch (Exception ex)
@@ -342,8 +410,9 @@ public sealed class UpdateService
     {
         try
         {
-            _updater.AutoUpdateCheckTimer.Stop();
-            LogService.Log("定时自动检查已停止", "更新");
+            _autoCheckTimer?.Stop();
+            _autoCheckTimer?.Dispose();
+            _autoCheckTimer = null;
         }
         catch { }
     }

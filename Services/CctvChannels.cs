@@ -7,8 +7,8 @@ public class CctvChannel
 {
     public string Name { get; init; } = "";
 
-    /// <summary>多个备用源（按可用性排序）</summary>
-    public string[] Urls { get; init; } = Array.Empty<string>();
+    /// <summary>多个备用源（按可用性排序）。可被频道源服务在每日更新时替换。</summary>
+    public string[] Urls { get; set; } = Array.Empty<string>();
 
     /// <summary>用户自定义源（优先级最高，非空时优先用它）</summary>
     public string? CustomUrl { get; set; }

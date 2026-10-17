@@ -14,11 +14,16 @@ public partial class UpdateAvailableDialog : Window
     public UpdateAvailableDialog() : this("未知", "暂无更新说明") { }
 
     public UpdateAvailableDialog(string version, string changelog)
+        : this(version, changelog, "发现新版本", "立即更新") { }
+
+    public UpdateAvailableDialog(string version, string changelog, string title, string confirmText)
     {
         InitializeComponent();
 
+        TitleText.Text = title;
         VersionText.Text = $"最新版本：{version}";
         ChangelogText.Text = changelog;
+        DownloadButton.Content = confirmText;
 
         RootCard.Opacity = 0;
         RootCard.RenderTransform = TransformOperations.Parse("scale(0.92)");

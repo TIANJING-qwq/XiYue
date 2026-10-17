@@ -85,6 +85,15 @@ public partial class SettingsView : UserControl
             };
         }
 
+        // 更新：下载方式 / 安装方式
+        var autoDlSwitch = this.FindControl<ToggleSwitch>("AutoDownloadSwitch");
+        if (autoDlSwitch != null)
+            autoDlSwitch.IsChecked = _config.AutoDownloadUpdate;
+
+        var autoInSwitch = this.FindControl<ToggleSwitch>("AutoInstallSwitch");
+        if (autoInSwitch != null)
+            autoInSwitch.IsChecked = _config.AutoInstallUpdate;
+
         // 图库位置
         UpdateGalleryPathDisplay();
 
@@ -603,6 +612,29 @@ public partial class SettingsView : UserControl
             _ => "直连",
         };
         MainWindow.PushToast("更新代理", $"已切换为: {display}");
+    }
+
+    // ============================================================
+    // 更新：下载方式 / 安装方式
+    // ============================================================
+    private void AutoDownloadSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("AutoDownloadSwitch");
+        if (sw == null) return;
+        _config.AutoDownloadUpdate = sw.IsChecked == true;
+        MainWindow.PushToast("更新",
+            _config.AutoDownloadUpdate ? "已开启自动下载" : "检测到更新后将先询问");
+    }
+
+    private void AutoInstallSwitch_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        var sw = this.FindControl<ToggleSwitch>("AutoInstallSwitch");
+        if (sw == null) return;
+        _config.AutoInstallUpdate = sw.IsChecked == true;
+        MainWindow.PushToast("更新",
+            _config.AutoInstallUpdate ? "已开启自动安装" : "下载完成后将先询问");
     }
 
     // ============================================================
